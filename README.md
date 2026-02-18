@@ -1,4 +1,4 @@
-# FloCMP - MCP Server Generator
+# FloMCP - MCP Server Generator
 
 **Stop Writing Boilerplate MCP Servers**
 

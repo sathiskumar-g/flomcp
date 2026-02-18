@@ -108,7 +108,7 @@ export default function Home() {
       });
     }
     console.log('Demo button clicked', { timestamp: new Date() });
-    alert('Demo coming soon! We\'re working hard to show you how FloCMP generates production-ready MCP servers.');
+    alert('Demo coming soon! We\'re working hard to show you how FloMCP generates production-ready MCP servers.');
   };
 
   return (
@@ -118,7 +118,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Code2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">FloCMP</span>
+            <span className="text-2xl font-bold">FloMCP</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">
@@ -155,10 +155,10 @@ export default function Home() {
           <div className="inline-flex flex-col gap-2 p-6 rounded-lg bg-card border-2 border-primary/20">
             <div className="flex items-center gap-3 justify-center text-sm text-muted-foreground mb-2">
               <Clock className="h-4 w-4" />
-              <span>Without FloCMP: <span className="line-through">10+ hours</span></span>
+              <span>Without FloMCP: <span className="line-through">10+ hours</span></span>
             </div>
             <div className="text-3xl font-bold text-primary">5 minutes</div>
-            <div className="text-sm text-muted-foreground">with FloCMP</div>
+            <div className="text-sm text-muted-foreground">with FloMCP</div>
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center text-sm">
@@ -405,7 +405,7 @@ export default function Home() {
             Works With Your Favorite AI Assistant
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            MCP is an open standard. Use FloCMP servers with any tool.
+            MCP is an open standard. Use FloMCP servers with any tool.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -462,7 +462,7 @@ export default function Home() {
 
           <div className="mt-8 p-6 rounded-lg bg-muted/50 border">
             <p className="text-sm text-center text-muted-foreground">
-              <strong>The best tool?</strong> Use both. FloCMP servers work everywhere MCP is supported—Claude Desktop, Cursor, Windsurf, Cline, and more.
+              <strong>The best tool?</strong> Use both. FloMCP servers work everywhere MCP is supported—Claude Desktop, Cursor, Windsurf, Cline, and more.
             </p>
           </div>
         </div>
@@ -631,7 +631,7 @@ export default function Home() {
                   )}
 
                   <p className="text-xs text-muted-foreground text-center pt-2">
-                    No spam, ever. Unsubscribe with one click. We'll email you when FloCMP launches.
+                    No spam, ever. Unsubscribe with one click. We'll email you when we launch.
                   </p>
                 </form>
               </CardContent>
@@ -643,7 +643,7 @@ export default function Home() {
                 <h3 className="text-2xl md:text-3xl font-bold">You're on the list!</h3>
                 <p className="text-muted-foreground text-lg max-w-md mx-auto">
                   {interest === "product" 
-                    ? "We'll notify you as soon as FloCMP launches. Your feedback will help us build the perfect tool for MCP development."
+                    ? "We'll notify you as soon as we launch. Your feedback will help us build the perfect tool for MCP development."
                     : "We'll reach out within 24 hours to discuss your custom MCP server needs and how we can help."}
                 </p>
                 <div className="pt-6">
@@ -672,7 +672,7 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Code2 className="h-6 w-6 text-primary" />
-                <span className="text-lg font-bold">FloCMP</span>
+                <span className="text-lg font-bold">FloMCP</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Build MCP servers in minutes, not hours. For developers who value their time.
@@ -701,7 +701,7 @@ export default function Home() {
           </div>
           
           <div className="pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
-            <p>© 2026 FloCMP. Built for developers who ship fast.</p>
+            <p>© 2026 FloMCP. Built for developers who ship fast.</p>
           </div>
         </div>
       </footer>

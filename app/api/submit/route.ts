@@ -50,7 +50,7 @@ export async function POST(request: Request) {
           : getFreelanceRequestEmail(email, description || '', urgency || 'medium');
 
         const subject = interest === 'product'
-          ? '🎉 New FloCMP Product Interest'
+          ? '🎉 New FloMCP Product Interest'
           : `🚨 Custom MCP Development Request [${urgency?.toUpperCase()}]`;
 
         const result = await sendEmail({

@@ -71,7 +71,7 @@ You should receive a beautiful HTML email with:
 ## 📧 Email Templates
 
 ### Product Interest Email:
-- Subject: "🎉 New FloCMP Product Interest"
+- Subject: "🎉 New FloMCP Product Interest"
 - Shows: Email, problem description, timestamp
 - Green success badge
 

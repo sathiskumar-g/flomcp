@@ -1,4 +1,4 @@
-# 🚀 FloCMP Deployment Guide - Step by Step
+# 🚀 FloMCP Deployment Guide - Step by Step
 
 ## ✅ What We Just Built
 - ✅ Supabase database integration
@@ -84,7 +84,7 @@
    cd s:\Engineering\2026\one\flomcp
    git init
    git add .
-   git commit -m "Initial commit - FloCMP MVP"
+   git commit -m "Initial commit - FloMCP MVP"
    git branch -M main
    git remote add origin https://github.com/YOUR-USERNAME/flomcp.git
    git push -u origin main
@@ -240,7 +240,7 @@ SELECT * FROM submissions;  -- Then click "Download as CSV"
 
 ## 🎉 You're Done!
 
-Your FloCMP MVP is now:
+Your FloMCP MVP is now:
 - ✅ Live at **flomcp.com**
 - ✅ Secure with SSL (HTTPS)
 - ✅ Collecting submissions in database

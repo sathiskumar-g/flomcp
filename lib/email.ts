@@ -11,12 +11,12 @@ interface SendEmailParams {
 export async function sendEmail({ to, subject, html }: SendEmailParams) {
   try {
     console.log('📨 Sending email via Resend...');
-    console.log('From: FloCMP <onboarding@resend.dev>');
+    console.log('From: FloMCP <onboarding@resend.dev>');
     console.log('To:', to);
     console.log('Subject:', subject);
     
     const data = await resend.emails.send({
-      from: 'FloCMP <onboarding@resend.dev>', // Will update to your domain later
+      from: 'FloMCP <onboarding@resend.dev>', // Will update to your domain later
       to: [to],
       subject,
       html,
@@ -71,12 +71,12 @@ export function getProductInterestEmail(email: string, problem: string) {
 
             <div style="margin-top: 30px; padding: 20px; background: #e8f5e9; border-radius: 8px;">
               <p style="margin: 0; font-size: 14px; color: #2e7d32;">
-                ✅ <strong>Action:</strong> Add to product launch list. Send notification when FloCMP goes live!
+                ✅ <strong>Action:</strong> Add to product launch list. Send notification when FloMCP goes live!
               </p>
             </div>
           </div>
           <div class="footer">
-            <p>FloCMP - Build MCP Servers in Minutes</p>
+            <p>FloMCP - Build MCP Servers in Minutes</p>
             <p>View all submissions in your <a href="https://supabase.com/dashboard" style="color: #667eea;">Supabase Dashboard</a></p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export function getFreelanceRequestEmail(
             </div>
           </div>
           <div class="footer">
-            <p>FloCMP - Custom MCP Development Services</p>
+            <p>FloMCP - Custom MCP Development Services</p>
             <p>View all submissions in your <a href="https://supabase.com/dashboard" style="color: #f5576c;">Supabase Dashboard</a></p>
           </div>
         </div>
