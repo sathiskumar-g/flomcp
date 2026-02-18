@@ -1,0 +1,2495 @@
+MCPs are a workaround
+showcase
+You’ll see posts saying “MCPs are a fad,” and other posts saying “MCPs are amazing.” I think both sides are missing the point.
+
+MCPs exist because they’re solving a very real pain right now.
+
+When Anthropic shipped MCP, the intent was clear: make it easier for models to plug into real systems. The “USB-C for AI tools” line was great marketing, but the deeper truth is simpler: MCP fit their product constraints and made integrations safer and more repeatable.
+
+Then adoption took off and a narrative formed: “This is the new wave.”
+
+But I don’t think teams adopted MCP because everyone concluded it’s the One True Interface. Adoption happened because lots of teams hit the same wall at the same time: LLMs weren’t reliable enough to write integration code live without messing it up.
+
+In theory, if a model could generate perfect code every time, you wouldn’t need MCP. The model could just generate whatever connector you need on the spot and it would work. But that wasn’t the world we were living in. Models could code, sure—but “pretty good” isn’t good enough when you’re dealing with production systems, permissions, and actions that move money.
+
+Fast-forward to now: models are meaningfully better at code. And you can see the product direction shifting with that reality. Anthropic started talking about code-based tool calling—roughly: “what if tools are scripts (real code) instead of only protocol-shaped endpoints?” That arc naturally leads into things like Skills.
+
+That’s the part I find most interesting: tooling evolves with model capability. MCP made sense when models needed tighter guardrails. Code-first approaches make more sense as models get stronger.
+
+And all this brings me to what we’re releasing today.
+
+We’re releasing a framework called Operai (operations + AI, and yes, a nod to operads). Call it a plug if you want—it's public and we think it’s the better direction for the ecosystem.
+
+Our main thesis is: Instead of orchestrating agents + a giant pile of tools, orchestrate tools with policies and keep the tool surface area small, scoped, and deliberate.
+
+Why?
+
+A dedicated toolset beats a Swiss Army knife. You can fumble around with a “do-everything” MCP, or you can just program a tool that does the job—cleanly, predictably, and safely.
+
+Policy orchestration matters more than agent orchestration. In a real org, leadership doesn’t micromanage every person’s steps. They define constraints: approval rules, audit requirements, budgets, access boundaries. When you “orchestrate agents,” you’re implicitly trying to micromanage. You shouldn’t care about the agent’s personality—you should care about what it is allowed to do.
+
+Operai uses an effect-based policy system: agents can behave flexibly, but the system enforces guardrails on side effects. The policies protect the endgame.
+
+The workflow with operai is simple:
+
+Create a Git repo that stores your tools.
+
+Build tools with your favorite coding assistant + the Operai CLI.
+
+Serve them with Operai.
+
+Under the hood we made choices that are biased toward enterprise reality and how LLMs actually behave. For example, we chose Rust because Python/JS don’t give you compile-time guarantees—and when you’re exposing capabilities to an agent, you want as many guarantees as you can get.
+
+Why do we think this is where things go?
+
+Because programs aren’t going away. Even with infinite context, we’re not “hedging probability” here—we’re enforcing logic: access control, schemas, invariants, side effects, logging, auditing. Those aren’t optional. The transport is secondary. What we need is a solid mechanism for AI to generate good programs—not ad-hoc scripts, not unaudited glue code, but real software: versioned, typed, testable, reviewable, observable. The kind of quality level you’d expect from something like ripgrep.
+
+So our bet is simple:
+
+The future isn’t picking a single protocol and arguing forever. It’s treating tools like real software—whether it's fully authored by a human or an AI—without pretending the model is perfect.
+
+
+Upvote
+38
+
+Downvote
+
+30
+Go to comments
+
+
+Share
+u/vast_ai avatar
+vast_ai
+•
+Promoted
+
+Push your creative models further. Vast.ai handles the GPUs.
+Book Now
+vast.ai
+Thumbnail image: Push your creative models further. Vast.ai handles the GPUs.
+Join the conversation
+Sort by:
+
+Best
+
+Search Comments
+Expand comment search
+Comments Section
+u/Biruleiby avatar
+Biruleiby
+•
+1mo ago
+i like this take. for me MCP is more like a bridge than “the final interface”.
+the real hard part is not the transport, is all the ops: who can do what, audit trail, debugging, costs etc.
+
+how do you handle RBAC / approvals / audit logs / cost limits in operai when tools start to spread in a big org?
+
+
+
+Upvote
+6
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+•
+Edited 1mo ago
+Thank you! And really great question :) I actually hoped someone would ask this
+
+Operai is stateless (scalable) so it scales based on IO. Also regarding audit logs, you just hook a database to operai which captures all activity. For everything else, our effects system is what drives everything.
+
+For example, for the things you mentioned, you can use the following policies:
+
+[[policies]]
+name = "rbac-policy"
+version = "1.0"
+
+[[policies.effects]]
+tool = "admin.*"       # Pattern matching for tool names
+stage = "before"       # Run before the tool executes
+when = "user.id != 'Fred'"
+fail_message = "permission denied: Admin access required."
+
+[[policies]]
+name = "deploy-approval"
+version = "1.0"
+
+# Initialize state
+[[policies.context]
+approval_status = "pending"
+
+# Rule 1: Guard the sensitive tool
+[[policies.effects]]
+tool = "deploy_prod"
+stage = "before"
+when = "context.approval_status != 'granted'"
+fail_message = "Deployment requires approval. Please run 'request_approval' first."
+
+# Rule 2: Grant approval (Action)
+# Assumes you created an 'approve_request' tool and it was called successfully
+[[policies.effects]]
+tool = "approve_request"
+stage = "after"
+when = "result.is_ok"
+[policies.effects.set]
+approval_status = "'granted'"
+I think you can probably come up with cost control example (we'll write a list of examples in the repo at some point).
+
+You would handle policies like you would in a large scale systems. You can bundle them however you wish and deploy it to the file system (for example, ConfigMap in K8S).
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/intertubeluber avatar
+intertubeluber
+•
+1mo ago
+I stopped reading before the pitch for your product, but the first part addresses a subset of how MCPs are useful. And MCP isn’t even about guardrails. 
+
+They provide context that the LLMs need.  Ie my LLM needs time know my internal database schema to build queries or optimize indexes. Or connect to my task management system. Or Spotify to create a playlist. 
+
+MCPs provide the model with a protocol for the needed context from different resources. 
+
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+Yes—MCP gives a clean protocol for context/tool access. Agreed.
+
+But you just said you stopped reading before the pitch… which is the part where I explain the actual problem: MCP in enterprise isn’t blocked by 'can it fetch context,' it’s blocked by 'can it do it safely, compliantly, and repeatedly'.
+
+
+Upvote
+0
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Low-Efficiency-9756
+•
+1mo ago
+MCP is a protocol for executable tools that:
+
+Validate inputs — Schema enforcement via JSON-RPC before execution
+
+Mutate state — Write to databases, filesystems, APIs
+
+Return structured data — Not prose, actual typed responses the LLM can parse
+
+Maintain invariants — The LLM proposes, the tool validates and executes
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+I don't understand what this comment is supposed to be about; I think everyone in r/mcp knows what an MCP is for, but I need to correct several things:
+
+3. This is completely wrong. LLMs do not need structured data. They actually work better with prose. Tools return structured data for the purpose of orchestration (e.g. intercepting a tool call and doing something with that data).
+
+4. This is also completely wrong. Nothing about MCPs maintains invariants. In fact, it's one of the main reasons I created Operai. To maintain invariants.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Low-Efficiency-9756
+•
+1mo ago
+Just because you don’t build MCPs like that doesn’t mean the rest of us don’t.
+
+Structured data isn’t about what LLMs “work better with” LLMs are stateless. They don’t have data, but data is prose. When a tool returns coordinates in 3D space, that’s the interface between a stateless model and actual persistent state. The structure exists for the database, the game engine, the system, not the model. However structured data is useful for the user behind the scene, we should all be designing our tool outputs for structured data so humans can easily parse it as well.
+
+And “LLM proposes, tool validates and executes” is invariant maintenance. The protocol doesn’t prescribe your business rules, it ensures all mutations flow through server-controlled logic where you enforce them. That’s the architecture. MCP isn’t a workaround. Shallow implementations are.
+
+
+
+Upvote
+4
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+•
+Edited 1mo ago
+> However structured data is useful for the user behind the scene, we should all be designing our tool outputs for structured data so humans can easily parse it as well.
+
+I completely agree, but you're contradicting your initial statement as how I read it: "Not prose, actual typed responses the LLM can parse." It seems like you're saying typed responses matters for the LLM (which is wrong).
+
+> And “LLM proposes, tool validates and executes” is invariant maintenance. The protocol doesn’t prescribe your business rules, it ensures all mutations flow through server-controlled logic where you enforce them.
+
+Right — but invariant maintenance is often local to a tool’s boundary. If you have a DB MCP and an API MCP that depends on that DB, the LLM can make a “valid” mutation from the DB MCP’s point of view that still creates an invalid state from the API MCP’s point of view. Each MCP can enforce its own invariants correctly, and the composition still breaks because the global invariants live across both systems. That’s not a knock on MCP — it’s just a reminder that “server-controlled logic” is only as strong as the boundary you choose for “the server” and the invariants it actually owns.
+
+Also: calling something a workaround isn’t a complaint. I’m not dunking on MCPs — I build and use them (and Operai plans to ship one too), and I expect MCP-style interfaces to be around for a long time. My point is more about where the community is over-investing: people are treating MCP as the product, when the real durable thing is the tools/APIs underneath — the integration surfaces we’ve been building for decades. The transport shouldn’t be the star.
+
+With Operai, we’re trying to shift attention back to the underlying tools and business logic. You build the integrations that matter; we handle transport + governance. In practice that means Operai users can plug into current and future systems as long as the programs/tools remain relevant — without everyone rewriting their world around whatever the interface flavor-of-the-year is.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/rocket-53 avatar
+u/rocket-53
+•
+Promoted
+
+Drowning in month-end bank recs? Merge 100+ client statements into one Excel or CSV—fast.
+Drowning in month-end bank recs? Merge 100+ client statements into one Excel or CSV—fast.
+Drowning in month-end bank recs? Merge 100+ client statements into one Excel or CSV—fast.
+Drowning in month-end bank recs? Merge 100+ client statements into one Excel or CSV—fast.
+rocketstatements.com
+Learn More
+u/d2000e avatar
+d2000e
+•
+1mo ago
+I wrote this a while back, explaining that MCP is just one of several methods to get work done with LLMs, with other interfaces like REST and CLI being great options depending on what is needed and the context of the work.
+
+https://www.localmemory.co/blog/the-mcp-backlash-is-missing-the-point
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+Really great article. Particularly "Domain-centric operations with semantic guarantees". This is exactly what I'm talking about. It's funny because there are some people who view this article and see this as some negative feedback to MCPs when in reality we're really just highlighting what needs actual focus.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/d2000e avatar
+d2000e
+•
+1mo ago
+Appreciate the feedback. I think people forget that they have agency. No one has to use MCP or any other protocol. We are all free to use whatever works for our needs.
+
+For example, I frequently use plain old JSON-RPC instead of installing an MCP. However, there are times when I need to install an MCP or use bash scripts to automate CLI commands. This is the beauty of software engineering. There is no "one right way" for anything.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+actual-time-traveler
+•
+1mo ago
+•
+Edited 1mo ago
+I’m all for opinionated ideas in tool protocols, thanks for the work. I starred your repo and would love to give it a spin, but I’m not smart enough to understand it without examples.
+
+I really like that audit and logging are first class. The fact that MCP didn’t initially spin out with built in tracing is bewildering to me.
+
+Edit: forgot to ask how does the LLM discover and load the tools into context?
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+We implement a search endpoint using embeddings that can be used for semantic search. We're debating about implementing a "code mode" which means the tools embed their source code and provide a ripgrep like endpoint, but for our use case, the search endpoint is sufficient.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+promethe42
+•
+1mo ago
+I agree that code mode is better and more agentic.
+
+But (and that's a big but) Claude Code has to burn loooots of token before being able to do integration/glue code that works.
+
+In the other hand, code mode based on MCP tools is a good middleground when the tool schemas are clean and documented. Plus progressive disclosure can easily be implemented based on the MCP tools. Not so much on an entire code base.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+> But (and that's a big but) Claude Code has to burn loooots of token before being able to do integration/glue code that works.
+
+Claude creates scripts on the fly and uses those so it's not that bad.
+
+> In the other hand, code mode based on MCP tools is a good middleground when the tool schemas are clean and documented.
+
+Definitely, but it's a shit show because of how MCPs work. Even if an MCP is completely stateless, MCPs are not cross-system invariant in general. Ultimately this means you are back to just coding a server that works for your use-case which is basically just API programming again. With Operai, you can code once and it will literally expand (this is a rust joke) to every use-case (API, tools, even code mode [but we're not convinced code mode is actually the best solution]).
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+promethe42
+•
+1mo ago
+But to create integration scripts and debug them, the LLM must inspect the code base. That burns a lot of token.
+
+If the client - say Claude Code - were to save said script automatically as a shareable/reusable skill for example then that would truly be the best solution. 
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+martial_fluidity
+•
+1mo ago
+Except your ai generated connector code will break as soon as that service releases a breaking change.
+
+
+
+Upvote
+-1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Illustrious_Eye_1280 avatar
+Illustrious_Eye_1280
+•
+1mo ago
+And then it gets patched up again, so what's the issue.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Solace-Platform avatar
+u/Solace-Platform
+•
+Promoted
+
+AI Agents Need Live Enterprise Data—Hear 2026 Predictions
+Sign Up
+solace.com
+Thumbnail image: AI Agents Need Live Enterprise Data—Hear 2026 Predictions
+
+socrateslee
+•
+1mo ago
+Big-Victory-3948
+•
+1mo ago
+MCP's are an amazing fad!
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Live_Vermicelli4307 avatar
+Live_Vermicelli4307
+•
+1mo ago
+Well, let's see how far along we can make it then.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Virviil
+•
+1mo ago
+So, why cdylib in a world where wasm is already invented?
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+This is on our roadmap. We want to be able to plug in to the JS community but we've been using this in server-sided/client-side code that uses Rust so far.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Virviil
+•
+1mo ago
+i want to work on this. Are you hiring?
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+I sent you a DM.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Accomplished-Emu8030
+OP
+•
+1mo ago
+Hey everyone. I really appreciate all the comments. The ultimate goal of this article is to present how much care needs to be made when building programs and reducing the spotlight of MCPs back to classical backend programming. Also, Operai is still in its infancy so it's experimental. We recently got it working for some of our backend infra so now we're focusing pushing this upstream and making the DX impeccable :).
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/moonshinemclanmower avatar
+moonshinemclanmower
+•
+1mo ago
+Mcp is a protocol... its api with, but with modern consteraints applied for realtime observation during persistent compute, and yes, its here to say, we wont go back to non streaming apis again. That's because of our CAP theorem needs when it comes to internet calls that have to have state now
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+McNemarra
+•
+27d ago
+I mean I think I understand what you are trying to solve and the problem is real but it just seems like everyone will build their own version of this and the big boys will win out. I'm certain this idea is being done a hundred times over a leading ai companies but good luck. Great website btw
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/theblacklotus_ avatar
+theblacklotus_
+•
+25d ago
+this is very well written. compelling thesis, i dont know if im technical enough to have the aha moment and "Get it" ... which may be feedback or maybe im just not the target audience. BUt hook and storytelling was elite. gonna scrape this for launch post ideation haha
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+-------------------
+Does anyone still use MCPs?
+MCP
+When I first heard of MCPs I was quite excited and installed some, until I realized, a fresh chat is already at 50% context size. This is obviously not helpful, so I got rid of them instantly.
+
+I still think the concept is quite cool but having them loaded all the time makes imo no sense. I don't need every function loaded all the time.
+
+What's your experience with MCPs? Are there any actual useful ones? Is there a way to optimize them? When I work for myself I or a team I don't see any benefits and would just use flat .mds in the claude directory, right?
+
+
+Upvote
+58
+
+Downvote
+
+95
+Go to comments
+
+
+Share
+u/kiloCode avatar
+kiloCode
+•
+Promoted
+
+Yes, you read it right. Limited time.
+Install
+kilo.ai
+Thumbnail image: Yes, you read it right. Limited time.
+Join the conversation
+Sort by:
+
+Best
+
+Search Comments
+Expand comment search
+Comments Section
+u/ClaudeAI-mod-bot avatar
+ClaudeAI-mod-bot
+MOD
+•
+1mo ago
+•
+Stickied comment
+Mod
+TL;DR generated automatically after 50 comments.
+
+The community consensus is that MCPs are definitely useful, but you're right to be wary of the context bloat. The trick is not to load them globally.
+
+Many users are ditching the "always-on" MCP approach for a more lightweight solution: using Claude's Skills feature to interact with CLI tools or APIs directly. This gives you similar power without sacrificing your context window from the get-go.
+
+However, for specific, recurring workflows, some MCPs are considered "essential" by the community. The most popular use cases mentioned in this thread are:
+
+Atlassian: The top-voted comment raves about using it to manage JIRA tickets and Confluence docs.
+
+System Integration: Desktop Commander for macOS is a fan favorite for letting Claude read/write local files, which users say they "can't live without."
+
+Development & Debugging: People are using MCPs for Unreal Engine, Unity, controlling the iOS simulator, and debugging with Playwright.
+
+SEO: The Ahrefs MCP gets a shout-out for streamlining SEO tasks.
+
+So, the verdict? Don't just install MCPs for the sake of it. Either find one that solves a major pain point in a specific project or stick to the leaner Skills + CLI method.
+
+
+Upvote
+Vote
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/HugeRoof avatar
+HugeRoof
+•
+1mo ago
+I use the Atlassian MCP all the time. I use it to validate work against JIRA stories, refine JIRA stories, add in progress details and updates to JIRA comments, update Confluence docs, etc. 
+
+
+
+Upvote
+40
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+iduzinternet
+•
+1mo ago
+I used to in claude code, then i had it make a command to use the Atlassian api and an environment key. Now i don’t need to authenticate, i actually have more tools and i think it uses fewer tokens. just an idea if you use claude code.
+
+
+Upvote
+13
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+sergei_kukharev
+•
+1mo ago
+Would you be so kind to share more? I’m about to start something similar for my coding agents and I’d love to learn from others experience.
+
+Like even describing your flow would help me think it through.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/HugeRoof avatar
+HugeRoof
+•
+1mo ago
+"Using atlassisn mcp, lookup ticket DEVOPS-1234, see if my current branch meets the acceptance criteria. Summarize tha changes, create a PR, link back to the JIRA. Output a summary of the state of the JIRA, with links to PRs and gaps"
+
+I then take that summary and use it to build my context for working in a new branch or another repo for things that cross repository boundaries. 
+
+I have not yet atomized my workflow enough to have a pre defined shortcut, in part because writing that out in plain English is easier than memorizing a specialized command. 
+
+
+
+Upvote
+4
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+[deleted]
+•
+1mo ago
+This assumes you have tickets with clear details lol
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Brandroid-Loom99 avatar
+Brandroid-Loom99
+•
+1mo ago
+Next retro propose a new working agreement that you add AC (acceptance criteria) to every ticket during grooming. It's how you know the ticket is done. AC all checked == done, AC not all checked != done. I don't know how other people do it but I've found that to really save a lot rework and mismatched expectations.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+ravencilla
+•
+1mo ago
+Profile Badge for the Achievement Top 1% Commenter Top 1% Commenter
+I have not yet atomized my workflow enough to have a pre defined shortcut, in part because writing that out in plain English is easier than memorizing a specialized command.
+
+Literally just write that into a command called /ticket-lookup or something. It's that simple
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+tankerdudeucsc
+•
+1mo ago
+Not needed now though? Generate key and skip mcp and do the same thing?
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+ur-krokodile
+•
+1mo ago
+I switched to using their cli Works juat as good for what I need.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/kohowski avatar
+kohowski
+•
+1mo ago
+•
+Edited 1mo ago
+Not necessary. Claude is well aware of REST APIs of Jira, Clickup, Asana, and other bug trackers. Give it your token, your name/id (i.e. who are you/"me"), lists/projects' IDs you prefer to search in, nudge it to use "jq" against responses, base url (if that's an intranet instance), and that's it. 3-5 lines in CLAUDE.md, or as a skill.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+andymatthewslondon
+•
+1mo ago
+•
+Edited 1mo ago
+I use an MCP with Ahrefs SEO tool. It allows me to query it with normal language and also prep content for my site which aligns with our SEO goals and wider website improvement drive.
+
+Edit. Updated with some links to guides.
+
+https://docs.ahrefs.com/docs/mcp/reference/introduction
+
+https://docs.ahrefs.com/docs/mcp/reference/claude-desktop-web
+
+
+
+Upvote
+16
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Ben01pr
+•
+1mo ago
+This sounds interesting. Is most of it run on the Claude browser interface or are you able bring it into your websites admin panel/CMS?
+
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+andymatthewslondon
+•
+1mo ago
+It’s all done through the Claude Mac app I use. It’s set up as a project so that all previous chats and development can be referenced. I’m an architect (buildings not software) and just poking around to see what the possibilities are.
+
+One of the best things I did was ask it to make a top priorities list and make an Excel sheet with all the info. It listed out all the meta and description tags along with any redirects needed. All colour coded. It feels like I’m just scratching the surface with it but I’ve been super impressed with it so far.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Ben01pr
+•
+1mo ago
+Definitely! Hoping to see more seamless use cases. MCP definitely seems useful when multiple tools or apps are involved.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+andymatthewslondon
+•
+1mo ago
+Some more context. Website is Squarespace. Info is in Google Search Console/Analytics then all pulled into ahfrefs.com and MCP from there to Claude.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Ben01pr
+•
+1mo ago
+Thank you! I wonder if there’s some way to have the website as the key source (of URLs and overall business context) and have Claude and AHREFs work together to have titles and meta descriptions for new and old pages. I guess this is where agents might be of use.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+andymatthewslondon
+•
+1mo ago
+Yeah that’s possible. The API failed a few times and it rolled back to just using the website directly when I was configuring it all. There’s probably not a massive need for ahrefs if you know what you’re doing and what questions to ask.
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/doodlebugpack avatar
+doodlebugpack
+•
+1mo ago
+The API failed on me for the last 6 hours and Claude can’t authenticate. Any tips? I followed ahrefs guide. How’d you get in? Custom connector or editing the config file?
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+andymatthewslondon
+•
+1mo ago
+I have mine set via a custom connector, pointing to https://api.ahrefs.com/mcp/mcp
+
+I think I connected it and removed it once or twice for it to stick. I'm using the Mac and iOS app. I can't find a status page for ahref's systems to check if any of their service is down.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Brandroid-Loom99 avatar
+Brandroid-Loom99
+•
+1mo ago
+Claude is an agent. Essentially you tell Claude what you want to do and it does it.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Microsoft_Azure avatar
+u/Microsoft_Azure
+•
+Promoted
+
+Get all the scalable compute power you need with 750 free VM hours.
+Sign Up
+azure.microsoft.com
+Thumbnail image: Get all the scalable compute power you need with 750 free VM hours.
+u/im-here-to-lose-time avatar
+im-here-to-lose-time
+•
+1mo ago
+Built my own to control iOS sim, other than that a lot more useful systems can be done trough MCPs
+
+
+
+Upvote
+9
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+bowemortimer
+OP
+•
+1mo ago
+With the macOS iPhone simulator?
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/im-here-to-lose-time avatar
+im-here-to-lose-time
+•
+1mo ago
+Yeah
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+bowemortimer
+OP
+•
+1mo ago
+What exactly is it for? Isn't this just browser usage with extra steps? I'd love to see what you are actually doing with it
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/im-here-to-lose-time avatar
+im-here-to-lose-time
+•
+1mo ago
+https://www.reddit.com/r/MVPLaunch/comments/1q1jw3k/i_built_a_bridge_between_iphone_simulator_and/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+
+check demo. it's using mcp tools to control ios simulator, making testing apps 10 times faster then manually clicking and verifying
+
+
+
+Upvote
+6
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+
+[deleted]
+•
+1mo ago
+Ecsta
+•
+1mo ago
+is it better than this one? https://github.com/cameroncooke/XcodeBuildMCP
+
+I use it a lot, its kinda clunky but works.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/im-here-to-lose-time avatar
+im-here-to-lose-time
+•
+1mo ago
+Miles ahead in simulator behaviour. Since I mix OCR and ui describe. I’ll be releasing it very soon. I’ll tag you to try it out.
+
+Also I deliberately shorten token consumption.
+
+I m thinking of bundling it up with faster xcodebuild mcp, since my tooling is Go, can’t fork and make that MCP better
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Ecsta
+•
+1mo ago
+Yeah xcodebuild isn't bad, it's free so can't complain. It's super slow so usually I ask it to test and then go make myself a coffee or something haha.
+
+Sure would be happy to try it out.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/im-here-to-lose-time avatar
+im-here-to-lose-time
+•
+1mo ago
+Have in mind this is just, simulator MCP not xcodebuildmcp. What worked for me was telling AI to use xcodebuildmcp for builds and bridge4simulator for simulator testing.
+
+Try it out and let me know your thoughts
+
+be free to try it out:
+
+https://github.com/AppGram/bridge4simulator
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Impossible_Raise2416 avatar
+Impossible_Raise2416
+•
+1mo ago
+playwright mcp for debugging ?
+
+
+
+Upvote
+6
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/shintaii84 avatar
+shintaii84
+•
+1mo ago
+Use the skill + playwright cli. Works the same, no bloat of tokens etc.
+
+
+
+Upvote
+9
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+MakeLifeHardAgain
+•
+1mo ago
+I haven't thought of that lol
+Mind sharing your skill file?
+
+
+Upvote
+0
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/ajimix avatar
+ajimix
+•
+1mo ago
+also interested in your skill file
+
+
+Upvote
+0
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+notq
+•
+1mo ago
+Yep, this is what I do
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+bowemortimer
+OP
+•
+1mo ago
+Same argument as for almost everything else: You need this only when testing and debugging. The rest of the time it just wastes context.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Brandroid-Loom99 avatar
+Brandroid-Loom99
+•
+1mo ago
+You can enable and disable MCP servers w/o exiting Claude now. Did that just change the game?
+
+BTW Chrome DevTools MCP is far more effective at controlling the browser than using a CLI. MCP provides persistent bidirectional communication and I find claude a lot more 'fluent' when controlling the browser. MCP servers are also (typically) designed to be token efficient when returning outputs which CLIs often aren't designed with that in mind.
+
+I'd give it a shot sometime. It's the only MCP server I use consistently (replaced most with skills).
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/yosbeda avatar
+yosbeda
+•
+1mo ago
+•
+Edited 1mo ago
+Yeah, I still use a few MCPs, though I get what you mean about the context issue. I keep three running: Sequential Thinking, Knowledge Graph Memory, and Desktop Commander.
+
+Sequential Thinking is mainly for when I need more structured problem-solving. Unlike Extended Thinking which is more linear, this one lets Claude revise earlier thoughts, branch into different reasoning paths, and adjust scope as it goes. Pretty useful for complex analysis.
+
+The memory server is honestly pretty niche for me. I use it to maintain a knowledge graph for my blogging workflow, mostly tracking info about my multiple blogs like topics, structure standards, writing principles, that kind of stuff.
+
+It works with Hammerspoon XML prompt templates I've got set up locally that handle different editing tasks like grammar fixes, content restructuring, and fact-checking. Nothing groundbreaking, but it keeps things organized.
+
+Desktop Commander though? That one I genuinely can't live without. The other two I could probably drop if context became a real issue, but this one's essential for how I work. It integrates Claude with my whole macOS system—file operations, terminal commands, the works.
+
+I can have Claude read from and write to local files instead of always generating artifacts, which actually saves tokens. For example, all my blog workflows end with Claude writing directly to a local .md file instead of creating an artifact I'd have to copy.
+
+I think the key is being selective about which ones you actually need. For most people, flat .md files in the project directory might be totally fine, but if you're doing a lot of file operations or system-level stuff, something like Desktop Commander makes a huge difference.
+
+
+
+Upvote
+6
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Brandroid-Loom99 avatar
+Brandroid-Loom99
+•
+1mo ago
+Have you tried Claude Code?
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/yosbeda avatar
+yosbeda
+•
+1mo ago
+•
+Edited 1mo ago
+Not yet. I've been curious, but it seems like overkill for my needs. Claude Code is built for complex development workflows like autonomous refactoring, codebase analysis, and multi-file operations, while I mostly just need file operations and basic automation for my blog workflow.
+
+Desktop Commander handles that perfectly for my use case. For what I do, the combination of MCPs and Hammerspoon automation is more than enough, way easier to maintain, and significantly more budget-friendly since MCPs are free and don't require additional subscriptions.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Silver_5557 avatar
+u/Silver_5557
+•
+Promoted
+
+looking for reliable proxies? We offer Residential, ISP, Datacenter, and Mobile proxies from just $0.75. Great support, and affordable prices!
+looking for reliable proxies? We offer Residential, ISP, Datacenter, and Mobile proxies from just $0.75. Great support, and affordable prices!
+looking for reliable proxies? We offer Residential, ISP, Datacenter, and Mobile proxies from just $0.75. Great support, and affordable prices!
+looking for reliable proxies? We offer Residential, ISP, Datacenter, and Mobile proxies from just $0.75. Great support, and affordable prices!
+proxy-seller.com
+Learn More
+akolomf
+•
+1mo ago
+Serena, context7, sequential thinking and github. Thats what i use
+
+
+
+Upvote
+4
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Aprazors13
+•
+5d ago
+Vibe coder
+Why sequential thinking when you have serena?
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/HenkPoley avatar
+HenkPoley
+•
+1mo ago
+Is there another way when you want to have Claude (or a competitor LLM) communicate with a third party service? 'Skills' would have you bump into no-networking-sandboxing permissions all the time, isn't it?
+
+
+Upvote
+6
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/SkidMark227 avatar
+SkidMark227
+•
+1mo ago
+•
+Edited 1mo ago
+if mcp is the only option use lazy-mcp. great results. or alternatively ask your ai model to implement the cloudflare approach i.e. writing an mcp server that treats your target mcp server as an API endpoint and calls it by building the code paths for what you're trying to accomplish. this has worked for me quite well.
+
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Crafty_Disk_7026 avatar
+Crafty_Disk_7026
+•
+1mo ago
+I made a codemode SQLite MCP if your curious https://github.com/imran31415/codemode-sqlite-mcp/tree/main
+
+Written in Go
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/macdanish avatar
+macdanish
+•
+1mo ago
+I actually prefer using the APIs that are already available; I find it far more useful than MCPs by default. For instance, I built a script (well, Claude did) that interacts with the Cloudflare API. Any DNS update I need, at all, Claude can implement, directly with the existing API.
+
+I'm not against MCPs, for my use cases though, I've just found many company APIs to be a bit more extensive and unrestricted compared to their MCP offerings.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+10EtherealLane
+•
+1mo ago
+All the time
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+haneke86
+•
+1mo ago
+Docker gave a shot to get MCP streamlined and let MCPs be used on demand to ease its consumption of the context window but I could not to make it work as intended. For example when i open GitHub MCP it starts loading hundreds of containers, multiple per MCP task and takes space in the context window. But as a concept it has the capacity to load MCP tasks to context only when needed. https://share.google/Ytbv3Jk67qJo93tuz
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+HorseLeaf
+•
+1mo ago
+I setup MCPs working with unreal engine. I just kept adding MCPs every time I needed a functionality and now Claude interacts very naturally both with the code and with unreal engine. Basically it allows Claude to think of using those skills more naturally without having to directly prompt it to.
+
+
+
+Upvote
+3
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Art_Gecko avatar
+Art_Gecko
+•
+1mo ago
+Are you able to share your Unreal Engine MCP?
+
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+HorseLeaf
+•
+1mo ago
+I am but I don't have the code online at the moment. But honestly I just made them with Claude code as needed. I use the unreal local rest API and a helper character inserted in the scene who can call custom C++ scripts.
+
+Just prompting him to do this with should be enough to set it up, but if you struggle I can find the code and share it.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+bowemortimer
+OP
+•
+1mo ago
+Thats actually a cool use case, you are right. You need this context every time.
+
+My viewpoint was: In web dev having one for frontend and backend is still overkill because often you only need one
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+HorseLeaf
+•
+1mo ago
+In this case I would use the context7 and feature dev plug-ins from Anthropic, then I would create specialized agents for frontend / backend / the interplay between them and then code review agents. I usually also throw in an agent inspired by Kent Becks book "Tidy first?"
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+[deleted]
+•
+1mo ago
+Stopped using altogether and only use skills /plugins now
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+lucasvtiradentes
+•
+1mo ago
+I fixed this problem by setting up a lot of tools+skills and put a small summary of them on the claude.md file
+
+So when I ask claude code to check the linear issue, it automatically reads the "linear skill" and there we have all the instructions to interact with the linear cli tool
+
+I have this setup for: linear, google sheets, chrome, postgres, postman, etc
+
+My tools can be either cli commands or custom bashes.
+
+This is simple, context friendly and works 9/10 times for me.
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+AsparagusKlutzy1817
+•
+1mo ago
+Think of MCP as infrastructure like a street. If its fairly new there won't be many vehicles on the street and this will let you quickly doubt its usefulness and if it was useful to set it up.
+
+This is more the viewpoint you need to take here. Just having an MCP for the sake of having one is not very helpful. Its more a pre-requisite to use this agent idea to the fullest. How well this will work out is something time will tell. Also the topic of determinism and completeness guarantees of calls and transcation-like behavior are some of many points why an MCP landscape may not work as expected.
+
+You will need to design an MCP server in a way that it does not spams the context with a response - this is again something which makes this MCP server landscape challenging in practical application.
+
+So yes, I think MCP can be useful but there are many points of misuse, bad design and wrong expectation that let MCP look extremely overrated (which they may be at the end....)
+
+And also - don't implement MCP endpoints because you want to have one :D
+
+
+Upvote
+2
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Sarithis avatar
+Sarithis
+•
+1mo ago
+Profile Badge for the Achievement Top 1% Commenter Top 1% Commenter
+Yes, I use them all the time, but they load selectively based on what I do. Some of many examples are Claude Context or my Thunderbird MCP. If you want an easy way to load them selectively, just don't configure them globally - do it per-project.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+bowemortimer
+OP
+•
+1mo ago
+But I get that right, when they are selected in the project, they are loaded EVERY time in this project, whether I need them or not?
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Sarithis avatar
+Sarithis
+•
+1mo ago
+Profile Badge for the Achievement Top 1% Commenter Top 1% Commenter
+Yes, that's correct. If you want to load them selectively within the given project, you'll need something like: https://github.com/spences10/mcpick
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+jNSKkK
+•
+1mo ago
+Try tool search beta: export ENABLE_TOOL_SEARCH=true
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/padetn avatar
+padetn
+•
+1mo ago
+I think simple bash tool use covers almost anything MCP offers, and it’s open to any use.
+
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+MakeLifeHardAgain
+•
+1mo ago
+That's true...
+I mainly use PAL mcp to Clink Gemini or Codex
+Anyone has tried it with bash script + skill and how was the experience? is it smooth?
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/baradas avatar
+baradas
+•
+1mo ago
+MCP's are claude code specs waiting to be picked up by the coding agent. The playbook has been repeated oft by bigger teams
+- Facebook
+- Shopify
+
+Dat said just dropped a new MCP for "deep LLM debate"
+
+kept copy pasting output from one model to another to validate the hypothesis and synthesis. Inspired a ton by Karpathy’s work on the LLM-council product, over the holidays, built Counsel MCP Server: an MCP server that runs structured debates across a family of LLM agents to research + synthesize with fewer silent errors. The council emphasizes: a debuggable artifact trail and a MCP integration surface that can be plugged in into any assistant.
+
+If you want to try it, there’s a playground assistant with Counsel MCP already wired up:
+
+https://counsel.getmason.io
+
+You submit a research question or task.
+
+The server runs a structured loop with multiple LLM agents (examples: propose, critique, synthesize, optional judge).
+
+You get back artifacts that make it inspectable:
+
+final synthesis (answer or plan)
+
+critiques (what got challenged and why)
+
+decision record (assumptions, key risks, what changed)
+
+trace (run timeline, optional per-agent messages, cost/latency)
+
+not only a "N models voting” in a round robin pattern - the council runs structured arguments and critique aimed at improving research synthesis.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/HKChad avatar
+HKChad
+•
+1mo ago
+Yes that’s gow claude queries my rag, it’s only loaded when requested though.
+
+
+Upvote
+0
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Brandroid-Loom99 avatar
+Brandroid-Loom99
+•
+1mo ago
+If you're using MCPs to load text, yea that's a pretty suboptimal way to do that.
+
+I use the Chrome DevTools MCP all the time. Used it the other day to reverse engineer a bluetooth protocol for a device I own that uses a web app to connect. Then I wrote a few custom apps for the device, a terminal based app, then a web based app. The put the web based app in a Chrome extension and into a Tauri desktop app. I have no prior experience implementing bluetooth.
+
+If there is a method that works as seamlessly as MCP for that sort of use case, I'd love to know more. Yes Claude can run shell commands but shell commands don't provide the seamless bidirectional communication that makes this effective. Shell output is also typically not optimized for token efficiency so you find yourself filling your context much faster. That being said, for most use cases, I think skills (or just telling claude to call shell scripts) are going to end up being superior.
+
+Something I don't see mentioned is that Anthropic recently added the ability to disable and enable individual MCP servers within claude, without restarting. You can turn them on and off during a session at will now. That's a pretty significant improvement, although it it still annoying that most MCP servers seem to have 17 different tools each using 650 tokens for a description when I really only care about one of the tools and I ask for it by name every time.
+
+
+Upvote
+0
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Legitimate-Pumpkin
+•
+1mo ago
+I just started with claude and my starting point is opencode in a container connected to a memory MCP to remember previous seasons. No idea if it’s really better than no MCP, but I believe that it removes the need for Claude to reread the whole repo for context every time, plus it includes past decisions, rather than just final states.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/buff_samurai avatar
+buff_samurai
+•
+1mo ago
+Good for setting up and working with Stripe environment .
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+AriyaSavaka
+•
+1mo ago
+Experienced Developer
+I still use Repomix, Context7, Playwright, and the ones that come with the GLM Max plan (web search, web fetch, zread for github, and vision mcp). Some already come with Anthropic official plugins (Context7, Playwright, etc.), Repomix also has plugins from its own marketplace. They are great and super useful for me.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Nearly_Tarzan
+•
+1mo ago
+the only one i've been using frequently is the MCP that allows me to connect to my PowerBI desktop and create measures and set up the framework of my designs since I hate that shit. Loading that one MCP takes up about 25% of my context initially.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+drop_carrier
+•
+1mo ago
+Yeah. I built a couple, for Kit.com and Pickaxe.co so that I can ask Claude to query both, run gap analysis etc
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/ASTRdeca avatar
+ASTRdeca
+•
+1mo ago
+This week I've been using a Unity MCP server that gives CC access to the unity editor to help with game making. The functionalities a bit limited but it can create game objects and c# scripts in the editor which is a big chunk of the work
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/Own-Shopping-1054 avatar
+Own-Shopping-1054
+•
+1mo ago
+Playwright MCP is the only one i use recently
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+thebwt
+•
+1mo ago
+I use knowledge base mcps, aka MCP interface to a vector db, constantly. It's been a game changer for me. Claude actually wired it up as a http transport and we have oauth via authentik so I can plan stuff in a web/mobile conversation and then pick that plan up in claude code. 
+
+Beyond that, I (Claude) made an some endpoints that basically proxy Requests to Home assistant so I am now able to use the Claude app voice mode to control home automation. 
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/tom3141592 avatar
+tom3141592
+•
+1mo ago
+Playwright MCP to enable CC make UX fixes:
+https://github.com/microsoft/playwright-mcp
+
+Multi MCP to ask multiple models the same question or do code review:
+https://github.com/religa/multi_mcp
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+notq
+•
+1mo ago
+I use zero MCPs, and just make skill files instead. Way less context.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/screamingearth avatar
+screamingearth
+•
+1mo ago
+yeah, ive got some custom mcp servers and instructions for an LLM to use gemini-cli and a local vector duckdb memory. I have some ambitious plans for this but from what i can tell so far it's working decently even in its new, relatively basic state
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+FancyAd4519
+•
+1mo ago
+heres a good mcp; https://github.com/m1rl0k/Context-Engine ; meant to save you on context bloat and tokens.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+P_nde
+•
+1mo ago
+I use the Firebase, Stripe, and Sentry MCPs.. I love them.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Da_ha3ker
+•
+1mo ago
+Mcp to CLI tool... Works really well. You instruct the LLM to use the mcp tool and list the servers available. It can then use "mcp context7 --help" and it lists the description. It can use --list-tools and get the available tools, and "mcp context7 get-library {json data}" etc.. the "CLI" makes it treat it similar to other commands on the system. Really opens the door to lots of tools. I am thinking of open sourcing the tool, but I am sure there are several out there already like this. I just saw instructions for "prefer CLI to mcp" and thought, why not adapt mcp to be a CLI interface? 🤷‍♂️ Works pretty well, I usually specify to use specific tools at specific time.es though. The LLM will often times not list or figure out how to run the tools without me prompting it to "use slack mcp" or "use context7 mcp"
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/mr_brobot__ avatar
+mr_brobot__
+•
+1mo ago
+Figma MCP is OP
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/waxyslave avatar
+waxyslave
+•
+1mo ago
+Search MCP server manager on Mac app store. I made a completely free lightweight swift app for managing MCPs. I'm constantly switching MCPs, atlassian, GitHub (for searching through all my companies repos when looking for existing patterns), honeycomb, etc.
+
+If you are flat out refusing to use MCPs cause of random reddit comments or context bloat, you should reconsider and optimize. MCPs are incredible tools and make things SO EASY.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/arvindand1695 avatar
+arvindand1695
+•
+1mo ago
+Of course, context7 is a must have to avoid agents using outdated dependencies. For java developers, I built a maven mcp server which bundles context7 - see more if interested at https://github.com/arvindand/maven-tools-mcp
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+TheLostWanderer47
+•
+1mo ago
+MCPs still make sense, but only when they’re treated as on-demand tool servers, not permanent prompt baggage. The early mistake was stuffing functionality into context instead of exposing it as callable tools. MCP setups like Bright Data’s do this right. Nothing is loaded upfront; the agent just invokes browse/search/scrape when needed.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+Ok_Message7136
+•
+1mo ago
+I still use MCPs, but I agree the “always loaded, always trusted” model doesn’t scale well.
+
+One thing that helped for me was treating MCP more like infrastructure than just a plugin layer, on-demand servers, gateway in between, and policy checks before tool execution.
+
+We actually open-sourced an MCP server + gateway after hitting similar issues around context bloat, tool over-trust, and lack of visibility:
+Mcp Server
+
+Not saying it’s the only way, but it explores MCP with isolation, inspection, and observability, which made MCPs much more usable for us in real workflows.
+
+Lmk what you think about it
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+arnaldodelisio
+•
+1mo ago
+dissect the big mcps you use into multiple small mcps, then setup toolhive to only call the needed ones.
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+u/dataguzzler avatar
+dataguzzler
+•
+24d ago
+MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems. If there is a need then it can happen but as to whether anyone is using it, there are plenty to be found. Here is a list of MCP people are using: https://github.com/mcp
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+no_one_k_me
+•
+5d ago
+I use MCP in my coding workflow
+
+MCP: Supabase, Pencil (UI/UX), Context7, Global issue memory (Issue soln AI has not learned yet), Playwright
+
+
+Upvote
+1
+
+Downvote
+
+Reply
+
+Award
+
+Share
+
+
