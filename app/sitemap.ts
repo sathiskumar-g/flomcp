@@ -5,8 +5,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     {
       url: 'https://flomcp.com',
       lastModified: new Date(),
-      changeFrequency: 'weekly',
+      changeFrequency: 'daily',
       priority: 1,
+    },
+    {
+      url: 'https://flomcp.com/#features',
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://flomcp.com/#waitlist',
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
     },
   ]
 }

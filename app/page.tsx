@@ -140,7 +140,7 @@ export default function Home() {
           </div>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-            Build MCP Servers
+            Create MCP Online
             <br />
             <span className="bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
               in Minutes, Not Hours
@@ -148,7 +148,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Stop wasting time on boilerplate. Generate production-ready Model Context Protocol servers with complete schemas, error handling, and documentation in minutes.
+            The quick MCP helper for developers. Build MCP online with our MCP flow generator. Create production-ready Model Context Protocol servers with complete schemas, error handling, and documentation instantly.
           </p>
 
           {/* Time Savings Showcase */}
@@ -192,10 +192,10 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
-            Building MCP Servers is Painful
+            Why Use an MCP Helper to Build MCP Online?
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            Every MCP server requires the same repetitive work
+            Creating MCP servers manually takes 10+ hours - every single time
           </p>
           
           <Card className="border-2 border-primary/20 bg-card/50 backdrop-blur">
@@ -279,21 +279,21 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Everything You Need, Nothing You Don't
+            Quick MCP Creation - Everything You Need
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            Production-ready MCP servers in minutes, not hours
+            Create MCP servers online with FloMCP MCP helper - production-ready in minutes
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
               <CardHeader>
                 <Zap className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">5-Minute Setup</CardTitle>
+                <CardTitle className="text-xl">Quick MCP Setup - 5 Minutes</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Describe your integration in plain English. Get complete, working code with schemas, handlers, and documentation generated instantly.
+                  Build MCP online fast. Describe your integration in plain English. Get complete, working MCP server code with schemas, handlers, and documentation generated instantly.
                 </p>
               </CardContent>
             </Card>
@@ -313,11 +313,11 @@ export default function Home() {
             <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
               <CardHeader>
                 <FileCode className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">Copy-Paste Ready</CardTitle>
+                <CardTitle className="text-xl">MCP Flow - Copy-Paste Ready</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  No configuration required. Download your server, add your API keys, and start using it with Claude, Copilot, or any AI assistant.
+                  Seamless MCP flow from creation to deployment. No configuration required. Download your MCP server, add your API keys, and start using it with Claude, Copilot, or any AI assistant.
                 </p>
               </CardContent>
             </Card>
@@ -665,6 +665,86 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="container mx-auto px-4 py-16 bg-secondary/20">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 text-lg">
+            Everything you need to know about creating MCP online
+          </p>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">How do I create MCP online?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  FloMCP lets you create MCP servers online in just minutes. Simply describe your requirements in plain English, and FloMCP generates production-ready Model Context Protocol server code with schemas, error handling, and documentation. No manual setup or configuration required.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">What is an MCP helper?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  An MCP helper is a tool that simplifies the process of building Model Context Protocol servers. FloMCP is a quick MCP helper that automates the entire creation process - from boilerplate code to schemas to testing. It saves you 10+ hours per project by generating everything you need automatically.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">How long does it take to build MCP online?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  With FloMCP, you can build MCP servers online in just 5 minutes. Manual MCP development typically takes 10+ hours including setup, schema creation, error handling implementation, and testing. FloMCP automates all of this for instant results.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">What is MCP flow and why does it matter?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  MCP flow refers to the streamlined workflow from idea to deployment. FloMCP provides a seamless MCP flow: describe your needs → generate code → download → deploy. Our quick MCP approach eliminates friction at every step, letting you focus on building features instead of wrestling with configuration.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Can I build MCP for Claude and Copilot?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Yes! FloMCP generates MCP servers that work with Claude Desktop, GitHub Copilot, and any AI assistant supporting the Model Context Protocol standard. Create MCP online once and use it everywhere - with Claude, Copilot, Cursor, Windsurf, Cline, and more.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Is there a quick MCP tutorial?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  FloMCP itself is the quickest MCP tutorial you'll find. Instead of spending hours reading documentation, you get hands-on, production-ready code instantly. Study the generated code to learn MCP best practices, schema structures, and error handling patterns - all by example.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-border/40 mt-20">
         <div className="container mx-auto px-4 py-12">
@@ -674,8 +754,11 @@ export default function Home() {
                 <Code2 className="h-6 w-6 text-primary" />
                 <span className="text-lg font-bold">FloMCP</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Build MCP servers in minutes, not hours. For developers who value their time.
+              <p className="text-sm text-muted-foreground mb-3">
+                Create MCP online in minutes. Quick MCP helper for developers building Model Context Protocol servers.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Keywords: create mcp online, build mcp online, mcp helper, quick mcp, mcp flow, mcp generator
               </p>
             </div>
             
