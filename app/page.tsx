@@ -1,19 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Code2, Zap, Shield, CheckCircle2, ArrowRight, Clock, Users, Database, FileCode, Sparkles, Target, X } from "lucide-react";
+import { Code2, Zap, Shield, CheckCircle2, ArrowRight, Clock, Users, Database, FileCode, Sparkles, Target, X, LogIn } from "lucide-react";
+import { UserMenu } from "@/components/auth/UserMenu";
+import type { User } from "@supabase/supabase-js";
 
 export default function Home() {
+  const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [problem, setProblem] = useState("");
   const [interest, setInterest] = useState<"product" | "freelance" | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // User state
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   
   // Modal state for custom development
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +31,35 @@ export default function Home() {
   const [freelanceDescription, setFreelanceDescription] = useState("");
   const [urgency, setUrgency] = useState("medium");
   const [error, setError] = useState("");
+
+  // Check authentication status on mount
+  useEffect(() => {
+    let isMounted = true;
+    
+    const checkUser = async () => {
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (isMounted) {
+          setUser(currentUser);
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+      } finally {
+        if (isMounted) {
+          setCheckingAuth(false);
+        }
+      }
+    };
+
+    checkUser();
+
+    // No auth listener here to prevent AbortError with session locks
+    // User state updates happen via page navigation/refresh after login/logout
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent, type: "product" | "freelance") => {
     e.preventDefault();
@@ -116,17 +155,48 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
             <Code2 className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold">FloMCP</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              Build MCP servers in minutes
-            </span>
-            <Button variant="outline" size="sm" onClick={trackDemoInterest}>
+          <div className="flex items-center gap-3">
+            {/* Show demo button for everyone */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={trackDemoInterest}
+            >
               See Demo
             </Button>
+            
+            {/* Conditionally show UserMenu or Auth buttons */}
+            {checkingAuth ? (
+              // Show nothing while checking auth
+              <div className="h-9 w-32" />
+            ) : user ? (
+              // User is logged in - show user menu
+              <UserMenu user={user} />
+            ) : (
+              // User is not logged in - show auth buttons
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => router.push('/auth/signin')}
+                  className="hidden sm:flex"
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={() => router.push('/auth/signup')}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Start Free Trial
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -177,11 +247,20 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button size="lg" className="text-lg px-8" onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}>
-              Get Early Access
+            <Button 
+              size="lg" 
+              className="text-lg px-8" 
+              onClick={() => router.push('/auth/signup')}
+            >
+              Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8" onClick={trackDemoInterest}>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-lg px-8" 
+              onClick={trackDemoInterest}
+            >
               Watch Demo
             </Button>
           </div>
@@ -392,6 +471,111 @@ export default function Home() {
                     <span>Generate best-practice code with built-in templates</span>
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Security & Trust Section - Based on MCP Ecosystem Security Insights */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-b from-secondary/10 to-background">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-sm mb-4">
+              <Shield className="h-4 w-4 text-green-500" />
+              <span className="text-green-500 font-medium">Security-First MCP Development</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Build Secure MCP Servers from Day One
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Recent analysis of 8,000+ MCP servers revealed widespread security vulnerabilities. FloMCP generates secure, production-ready code that follows industry best practices.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <Card className="border-2 border-green-500/20 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-lg">No SSRF Vulnerabilities</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  FloMCP automatically implements safe URL validation and request boundaries. No server-side request forgery risks - we validate all external calls and block metadata endpoints by default.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-green-500/20 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-lg">Input Validation & Bounded Execution</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Every generated endpoint includes strict input validation with JSON schemas. All tool execution paths are bounded and sandboxed - no unsafe command injection or arbitrary code execution.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-green-500/20 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Shield className="h-5 w-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-lg">Zero Hardcoded Secrets</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Environment-based secret management is baked in. No API keys, tokens, or credentials ever appear in generated code. Runtime secret injection with proper scoping included automatically.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-green-500/20 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  </div>
+                  <CardTitle className="text-lg">OWASP-Compliant Code</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Generated servers follow OWASP Top 10 security standards and MCP-specific best practices. Trust boundary enforcement, dependency scanning, and secure defaults on every export.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="p-6 rounded-lg border-2 border-primary/20 bg-card">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Target className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1">Why MCP Security Matters</h3>
+                <p className="text-sm text-muted-foreground">
+                  MCP servers have privileged access to sensitive data, APIs, and local systems. A single vulnerability can expose credentials, leak metadata, or enable unauthorized actions. FloMCP eliminates these risks before they reach production.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}>
+                  Build Secure MCP Now
+                </Button>
               </div>
             </div>
           </div>
@@ -738,6 +922,61 @@ export default function Home() {
               <CardContent>
                 <p className="text-muted-foreground">
                   FloMCP itself is the quickest MCP tutorial you'll find. Instead of spending hours reading documentation, you get hands-on, production-ready code instantly. Study the generated code to learn MCP best practices, schema structures, and error handling patterns - all by example.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Are FloMCP servers secure?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Yes. Recent analysis found that 8,000+ MCP servers contain security vulnerabilities like SSRF, command injection, and hardcoded secrets. FloMCP generates secure, OWASP-compliant code with proper input validation, zero hardcoded credentials, bounded execution, and protection against common MCP vulnerabilities from day one.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">What is MCP flow in FloMCP?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  MCP flow in FloMCP refers to our seamless workflow: describe your integration needs → FloMCP generates complete MCP server code → download → deploy. The entire MCP flow takes just 5 minutes from idea to working integration, with no manual configuration or boilerplate coding required.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">How does FloMCP compare to building MCP manually?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Manual MCP development takes 10+ hours: writing boilerplate (1-2 hrs), creating JSON schemas (2-3 hrs), implementing error handling (2 hrs), testing with AI restarts (3+ hrs), and documentation (1-2 hrs). FloMCP automates all of this in 5 minutes - that's 120x faster with better code quality and security.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Can I use FloMCP for complex API integrations?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Absolutely. FloMCP excels at complex integrations. Build MCP servers for REST APIs, GraphQL, databases, file systems, webhooks, and more. The MCP helper automatically generates authentication flows, rate limiting, error recovery, and schema validation - everything production systems need.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">What makes FloMCP the best quick MCP tool?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  FloMCP is purpose-built for speed and quality. Unlike generic code generators, we focus exclusively on secure MCP development with AI-specific optimizations. You get type-safe schemas, comprehensive error handling, built-in validation, zero security vulnerabilities, and production-ready code - not just basic templates.
                 </p>
               </CardContent>
             </Card>

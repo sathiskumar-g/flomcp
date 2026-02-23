@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://flomcp.com'),
   title: "FloMCP - Create MCP Online | Build MCP Servers in Minutes | MCP Helper & Generator",
-  description: "Create MCP servers online with FloMCP. Build Model Context Protocol servers instantly. MCP helper tool for quick MCP development. Generate production-ready MCP servers with AI - works with Claude, Copilot. Save 10+ hours per project.",
+  description: "Create MCP servers online with FloMCP - the quick MCP helper. Build Model Context Protocol servers in 5 minutes. Secure MCP generator for Claude, Copilot. MCP flow automation, instant MCP builder. Save 10+ hours. Try the best MCP creation tool - build MCP online now!",
   keywords: [
     // Primary keywords
     "create mcp online", "build mcp online", "mcp helper", "mcp flow", "quick mcp",
@@ -24,7 +24,11 @@ export const metadata: Metadata = {
     "developer productivity", "code generation", "api integration", "ai tools",
     // Long-tail keywords
     "how to create mcp server", "how to build mcp", "mcp server tutorial",
-    "fastest way to build mcp", "mcp development tool", "mcp automation"
+    "fastest way to build mcp", "mcp development tool", "mcp automation",
+    // Security keywords
+    "secure mcp", "mcp security", "safe mcp server", "owasp mcp", "mcp best practices",
+    // Competitor keywords
+    "mcp generator online", "instant mcp", "mcp maker", "mcp wizard"
   ],
   authors: [{ name: "FloMCP Team" }],
   creator: "FloMCP",
@@ -142,6 +146,52 @@ export default function RootLayout({
           "@type": "Answer",
           "text": "With FloMCP, you can build MCP servers online in just 5 minutes. Without FloMCP, manual MCP development takes 10+ hours including setup, schemas, and testing."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "Are FloMCP servers secure?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. FloMCP generates secure, OWASP-compliant MCP servers with no SSRF vulnerabilities, proper input validation, zero hardcoded secrets, and bounded execution paths. All code follows MCP security best practices."
+        }
+      }
+    ]
+  };
+
+  const howToJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Create MCP Server Online with FloMCP",
+    "description": "Step-by-step guide to build MCP servers online using FloMCP MCP helper tool in just 5 minutes",
+    "totalTime": "PT5M",
+    "tool": [{
+      "@type": "HowToTool",
+      "name": "FloMCP - MCP Helper & Generator"
+    }],
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Sign up for FloMCP",
+        "text": "Create your free FloMCP account to access the quick MCP builder",
+        "position": 1
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Describe your MCP requirements",
+        "text": "Tell FloMCP what APIs or integrations you need in plain English",
+        "position": 2
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Generate MCP server code",
+        "text": "FloMCP instantly generates production-ready MCP server with schemas, validation, and error handling",
+        "position": 3
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Download and deploy",
+        "text": "Download your secure MCP server code and deploy it with Claude, Copilot, or any AI assistant",
+        "position": 4
       }
     ]
   };
@@ -161,6 +211,12 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+        />
+        <link rel="canonical" href="https://flomcp.com" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
       </head>
       <body className={inter.className}>
         {children}
