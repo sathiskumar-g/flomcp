@@ -98,10 +98,9 @@ export function Sidebar() {
               onClick={() => router.push(item.href)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all",
-                "hover:bg-accent/50",
                 active 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:text-primary-foreground" 
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
             >
               <Icon className={cn("h-5 w-5", active && "text-primary-foreground")} />

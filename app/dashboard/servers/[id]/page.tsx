@@ -20,6 +20,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadMCPServerAsZip } from "@/lib/download-helper";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,21 +133,17 @@ export default function ServerDetailPage() {
     URL.revokeObjectURL(url);
   }
 
-  // Download all files as separate downloads
+  // Download all files as a ZIP archive
   async function handleDownloadAll() {
     if (!server) return;
-    const filesToDownload = FILE_TABS.filter((t) => server[t.key]);
-    for (const tab of filesToDownload) {
-      const content = server[tab.key] ?? "";
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = tab.filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      await new Promise((r) => setTimeout(r, 200));
-    }
+    await downloadMCPServerAsZip({
+      name: server.name,
+      generated_code: server.generated_code,
+      package_json: server.package_json,
+      readme: server.readme,
+      tsconfig: server.tsconfig,
+      env_example: server.env_example,
+    });
     // Mark as downloaded
     await supabase
       .from("mcp_servers")
