@@ -1,26 +1,23 @@
 /**
  * Supabase Client Configuration (Client-Side Only)
- * 
- * This file is for CLIENT COMPONENTS ("use client")
- * For server-side usage, use lib/supabase-server.ts instead
- * 
- * Usage:
- * import { createClient } from '@/lib/supabase'
- * const supabase = createClient()
+ *
+ * Uses createBrowserClient from @supabase/ssr so the session is stored in
+ * cookies (not localStorage). This is required for the Next.js middleware to
+ * read the session server-side and protect /dashboard routes.
+ *
+ * For server-side usage, use lib/supabase-server.ts instead.
  */
 
-import { createClient as createBrowserClient } from '@supabase/supabase-js';
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
- * Creates a Supabase client for browser/client-side usage
- * Use this in Client Components ("use client")
+ * Creates a Supabase browser client.
+ * Session is stored in cookies so middleware + server components can read it.
+ * Call this inside client components — do not call at module level.
  */
 export function createClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
-
-// Legacy export for backward compatibility
-export const supabase = createClient();

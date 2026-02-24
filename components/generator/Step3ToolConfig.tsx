@@ -1,0 +1,399 @@
+"use client";
+
+/**
+ * Step 3 — Tool Configuration
+ *
+ * On mount: calls /api/suggest-tools to get 3 AI-suggested tools pre-selected.
+ * Users can remove suggestions they don't want, edit them, or add custom ones.
+ */
+
+import { useEffect, useRef, useState } from "react";
+import {
+  useGeneratorStore,
+  type ToolDefinition,
+  type SchemaField,
+} from "@/lib/stores/generator-store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Wrench,
+  AlertCircle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const FIELD_TYPES: SchemaField["type"][] = ["string", "number", "boolean", "object", "array"];
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function Step3ToolConfig() {
+  const {
+    description,
+    tools,
+    suggestionsLoading,
+    setTools,
+    setSuggestionsLoading,
+    addTool,
+    updateTool,
+    removeTool,
+    addToolField,
+    updateToolField,
+    removeToolField,
+    nextStep,
+    prevStep,
+  } = useGeneratorStore();
+
+  const [suggestedIds, setSuggestedIds] = useState<Set<string>>(new Set());
+  // First tool starts expanded so users see it immediately
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(tools.length > 0 ? [tools[0].id] : [])
+  );
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const fetched = useRef(false);
+
+  // Fetch 3 AI suggestions on first mount if tools are still blank
+  useEffect(() => {
+    if (fetched.current) return;
+    const allBlank = tools.every((t) => t.name === "");
+    if (!allBlank) return;
+    fetched.current = true;
+    setSuggestionsLoading(true);
+    setSuggestionError(null);
+
+    fetch("/api/suggest-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.tools && Array.isArray(data.tools)) {
+          setTools(data.tools);
+          setSuggestedIds(new Set(data.tools.map((t: ToolDefinition) => t.id)));
+          setExpandedIds(new Set(data.tools.map((t: ToolDefinition) => t.id)));
+        } else {
+          setSuggestionError("Could not load suggestions — add your tools manually.");
+        }
+      })
+      .catch(() => setSuggestionError("Could not load suggestions — add your tools manually."))
+      .finally(() => setSuggestionsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleExpand = (id: string) =>
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const allValid = tools.every(
+    (t) => t.name.trim().length > 0 && t.description.trim().length > 0
+  );
+  const canContinue = tools.length > 0 && allValid;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold">Define Your Tools</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          We've suggested 3 tools based on your description. Remove any you don't need,
+          edit them, or add custom ones.
+        </p>
+      </div>
+
+      {/* Loading skeleton */}
+      {suggestionsLoading && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Asking Claude to suggest the best tools for your server…</span>
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 rounded-lg border border-border/50 bg-muted/20 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {/* Suggestion error */}
+      {suggestionError && !suggestionsLoading && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-center gap-2 text-sm text-amber-600">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          {suggestionError}
+        </div>
+      )}
+
+      {/* Tool cards */}
+      {!suggestionsLoading && (
+        <div className="space-y-3">
+          {tools.map((tool, idx) => (
+            <ToolCard
+              key={tool.id}
+              tool={tool}
+              index={idx}
+              isSuggested={suggestedIds.has(tool.id)}
+              isExpanded={expandedIds.has(tool.id)}
+              canRemove={tools.length > 1}
+              onToggleExpand={() => toggleExpand(tool.id)}
+              onUpdate={(patch) => updateTool(tool.id, patch)}
+              onRemove={() => removeTool(tool.id)}
+              onAddField={() => addToolField(tool.id)}
+              onUpdateField={(fid, patch) => updateToolField(tool.id, fid, patch)}
+              onRemoveField={(fid) => removeToolField(tool.id, fid)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add custom tool */}
+      {!suggestionsLoading && (
+        <Button
+          variant="outline"
+          className="w-full border-dashed"
+          onClick={addTool}
+          disabled={tools.length >= 10}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Custom Tool
+          {tools.length >= 10 && (
+            <Badge variant="secondary" className="ml-2 text-xs">Max 10</Badge>
+          )}
+        </Button>
+      )}
+
+      {/* Validation hint */}
+      {!suggestionsLoading && !allValid && tools.length > 0 && (
+        <p className="text-xs text-amber-500 flex items-center gap-1.5">
+          <AlertCircle className="h-3.5 w-3.5" />
+          Every tool needs a name and description before continuing
+        </p>
+      )}
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="outline" onClick={prevStep}>
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button onClick={nextStep} disabled={!canContinue || suggestionsLoading} className="min-w-[160px]">
+          Continue
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── ToolCard ─────────────────────────────────────────────────────────────────
+
+type ToolCardProps = {
+  tool: ToolDefinition;
+  index: number;
+  isSuggested: boolean;
+  isExpanded: boolean;
+  canRemove: boolean;
+  onToggleExpand: () => void;
+  onUpdate: (patch: Partial<Pick<ToolDefinition, "name" | "description">>) => void;
+  onRemove: () => void;
+  onAddField: () => void;
+  onUpdateField: (fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
+  onRemoveField: (fieldId: string) => void;
+};
+
+function ToolCard({
+  tool,
+  index,
+  isSuggested,
+  isExpanded,
+  canRemove,
+  onToggleExpand,
+  onUpdate,
+  onRemove,
+  onAddField,
+  onUpdateField,
+  onRemoveField,
+}: ToolCardProps) {
+  return (
+    <Card className="border border-border/70 shadow-none">
+      {/* Always-visible header */}
+      <CardHeader className={cn("pt-3 px-4", isExpanded ? "pb-0" : "pb-3")}>
+        <div className="flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-primary flex-shrink-0" />
+          <span
+            className={cn(
+              "text-sm font-mono font-medium flex-1 truncate",
+              !tool.name && "text-muted-foreground italic"
+            )}
+          >
+            {tool.name || `tool_${index + 1}`}
+          </span>
+          <div className="flex items-center gap-1.5 ml-auto">
+            {isSuggested && (
+              <Badge variant="secondary" className="text-xs gap-1 h-5 px-1.5">
+                <Sparkles className="h-2.5 w-2.5" />
+                AI Suggested
+              </Badge>
+            )}
+            {canRemove && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                onClick={onRemove}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              onClick={onToggleExpand}
+            >
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        {!isExpanded && tool.description && (
+          <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+            {tool.description}
+          </p>
+        )}
+      </CardHeader>
+
+      {/* Expanded editor */}
+      {isExpanded && (
+        <CardContent className="px-4 pb-4 pt-3 space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Tool Name
+            </label>
+            <Input
+              value={tool.name}
+              onChange={(e) =>
+                onUpdate({ name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") })
+              }
+              placeholder="e.g. get_weather"
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground">
+              Snake_case — this is what Claude calls when using your tool
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Description
+            </label>
+            <textarea
+              value={tool.description}
+              onChange={(e) => onUpdate({ description: e.target.value })}
+              placeholder="What does this tool do?"
+              rows={2}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Input Parameters
+              </label>
+              <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={onAddField}>
+                <Plus className="h-3 w-3" />
+                Add
+              </Button>
+            </div>
+            {tool.fields.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No parameters — runs with no inputs</p>
+            ) : (
+              <div className="space-y-1.5">
+                {tool.fields.map((field) => (
+                  <FieldRow
+                    key={field.id}
+                    field={field}
+                    onChange={(patch) => onUpdateField(field.id, patch)}
+                    onRemove={() => onRemoveField(field.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// ─── FieldRow ─────────────────────────────────────────────────────────────────
+
+function FieldRow({
+  field,
+  onChange,
+  onRemove,
+}: {
+  field: SchemaField;
+  onChange: (patch: Partial<Omit<SchemaField, "id">>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/20 p-2">
+      <Input
+        value={field.name}
+        onChange={(e) => onChange({ name: e.target.value })}
+        placeholder="param_name"
+        className="text-xs font-mono h-7 flex-1 min-w-0"
+      />
+
+      <select
+        value={field.type}
+        onChange={(e) => onChange({ type: e.target.value as SchemaField["type"] })}
+        className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground flex-shrink-0"
+      >
+        {FIELD_TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+
+      <Input
+        value={field.description}
+        onChange={(e) => onChange({ description: e.target.value })}
+        placeholder="Description"
+        className="text-xs h-7 flex-[2] min-w-0"
+      />
+
+      <button
+        onClick={() => onChange({ required: !field.required })}
+        className={cn(
+          "text-xs px-2 py-1 rounded-md border transition-colors flex-shrink-0 h-7",
+          field.required
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "border-border text-muted-foreground hover:bg-muted"
+        )}
+      >
+        {field.required ? "Req" : "Opt"}
+      </button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 text-muted-foreground hover:text-red-500 flex-shrink-0"
+        onClick={onRemove}
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}

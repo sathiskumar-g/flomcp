@@ -1019,6 +1019,34 @@ export default function Home() {
                 <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Support</a></li>
               </ul>
+              
+              <h4 className="font-semibold mb-3 text-sm mt-6">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <a 
+                    href="/legal/terms-of-service" 
+                    className="hover:text-foreground transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/legal/terms-of-service');
+                    }}
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a 
+                    href="/legal/acceptable-use" 
+                    className="hover:text-foreground transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/legal/acceptable-use');
+                    }}
+                  >
+                    Acceptable Use Policy
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
           

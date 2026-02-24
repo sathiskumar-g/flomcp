@@ -68,7 +68,9 @@ export function SignIn() {
         return;
       }
 
-      // Success! Redirect to dashboard
+      // Success! Refresh the router cache so middleware sees the new cookie,
+      // then navigate to dashboard.
+      router.refresh();
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Sign in error:', err);
