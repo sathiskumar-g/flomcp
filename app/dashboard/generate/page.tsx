@@ -12,6 +12,7 @@ import { useGeneratorStore } from "@/lib/stores/generator-store";
 import { Step1Description } from "@/components/generator/Step1Description";
 import { Step2APIConfig } from "@/components/generator/Step2APIConfig";
 import { Step3ToolConfig } from "@/components/generator/Step3ToolConfig";
+import { Step4Resources } from "@/components/generator/Step4Resources";
 import { Step4Review } from "@/components/generator/Step4Review";
 import { PostGenerationReview } from "@/components/generator/PostGenerationReview";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const STEPS = [
   { label: "Describe" },
   { label: "API Setup" },
   { label: "Tools" },
+  { label: "Resources" },
   { label: "Review" },
 ] as const;
 
@@ -49,8 +51,8 @@ function GenerateWizard() {
           </p>
         </div>
 
-        {/* ── Step indicator (hidden on step 5 — done state) ── */}
-        {step < 5 && (
+        {/* ── Step indicator (hidden on step 6 — done state) ── */}
+        {step < 6 && (
         <div className="relative flex items-center">
           {/* connector line */}
           <div
@@ -109,15 +111,16 @@ function GenerateWizard() {
             );
           })}
         </div>
-        )} {/* end step < 5 */}
+        )} {/* end step < 6 */}
 
         {/* ── Active step content ── */}
         <div className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
           {step === 1 && <Step1Description />}
           {step === 2 && <Step2APIConfig />}
           {step === 3 && <Step3ToolConfig />}
-          {step === 4 && <Step4Review />}
-          {step === 5 && <PostGenerationReview />}
+          {step === 4 && <Step4Resources />}
+          {step === 5 && <Step4Review />}
+          {step === 6 && <PostGenerationReview />}
         </div>
 
         {/* ── Fine print ── */}

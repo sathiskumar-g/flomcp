@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,10 @@ import {
   Settings,
   Terminal,
   BookOpen,
+  Shield,
+  ChevronDown,
+  ChevronUp,
+  MonitorPlay,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
@@ -29,6 +32,7 @@ interface MCPServer {
   name: string;
   description: string | null;
   status: string;
+  security_score: number | null;
   generated_code: string;
   package_json: string;
   readme: string;
@@ -62,30 +66,24 @@ const FILE_TABS: FileTab[] = [
 export default function ServerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const supabase = createClient();
 
   const [server, setServer] = useState<MCPServer | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FileTab["key"]>("generated_code");
   const [copied, setCopied] = useState(false);
   const [copiedConfig, setCopiedConfig] = useState(false);
+  const [copiedVscode, setCopiedVscode] = useState(false);
+  const [vscodeOpen, setVscodeOpen] = useState(false);
+  const [claudeOpen, setClaudeOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
-      // Verify the user session first
-      const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) {
-        setLoading(false);
-        return;
+      const res = await fetch(`/api/servers/${id}`);
+      if (res.status === 401) { router.push("/auth/signin"); setLoading(false); return; }
+      if (res.ok) {
+        const json = await res.json();
+        setServer(json.server ?? null);
       }
-
-      const { data, error } = await supabase
-        .from("mcp_servers")
-        .select("id, name, description, status, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded")
-        .eq("id", id)
-        .single();
-
-      if (!error && data) setServer(data as MCPServer);
       setLoading(false);
     }
     load();
@@ -144,21 +142,34 @@ export default function ServerDetailPage() {
       tsconfig: server.tsconfig,
       env_example: server.env_example,
     });
-    // Mark as downloaded
-    await supabase
-      .from("mcp_servers")
-      .update({ downloaded: true, downloaded_at: new Date().toISOString() })
-      .eq("id", id);
+    // Mark as downloaded via API
+    await fetch(`/api/servers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ downloaded: true, downloaded_at: new Date().toISOString() }),
+    });
   }
 
-  // Claude Desktop config JSON
-  const serverName = server.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  // Config JSON generators
+  const serverSlug = server.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   const claudeConfig = JSON.stringify(
     {
       mcpServers: {
-        [serverName]: {
-          command: "node",
-          args: [`/path/to/${serverName}/dist/index.js`],
+        [serverSlug]: {
+          command: "npx",
+          args: ["tsx", `C:/Users/YourName/Downloads/${serverSlug}/src/index.ts`],
+        },
+      },
+    },
+    null,
+    2
+  );
+  const vscodeConfig = JSON.stringify(
+    {
+      "github.copilot.chat.mcp.servers": {
+        [serverSlug]: {
+          command: "npx",
+          args: ["tsx", `C:/Users/YourName/Downloads/${serverSlug}/src/index.ts`],
         },
       },
     },
@@ -170,6 +181,11 @@ export default function ServerDetailPage() {
     await navigator.clipboard.writeText(claudeConfig);
     setCopiedConfig(true);
     setTimeout(() => setCopiedConfig(false), 2000);
+  }
+  async function handleCopyVscode() {
+    await navigator.clipboard.writeText(vscodeConfig);
+    setCopiedVscode(true);
+    setTimeout(() => setCopiedVscode(false), 2000);
   }
 
   const createdDate = new Date(server.created_at).toLocaleDateString("en-US", {
@@ -200,7 +216,16 @@ export default function ServerDetailPage() {
           {server.description && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{server.description}</p>
           )}
-          <p className="text-xs text-muted-foreground mt-1">Generated {createdDate}</p>
+          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+            <p className="text-xs text-muted-foreground">Generated {createdDate}</p>
+            {server.security_score != null && (
+              <div className="flex items-center gap-1 text-xs">
+                <Shield className="h-3 w-3 text-green-500" />
+                <span className="text-green-600 font-medium">{server.security_score}/100</span>
+                <span className="text-muted-foreground">security score</span>
+              </div>
+            )}
+          </div>
         </div>
         <Button onClick={handleDownloadAll} className="flex-shrink-0">
           <Download className="mr-2 h-4 w-4" />
@@ -251,38 +276,108 @@ export default function ServerDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Claude Desktop setup */}
+      {/* Connect section */}
       <Card className="border border-border/70">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Terminal className="h-4 w-4 text-primary" />
-            Connect to Claude Desktop
+            Connect to your AI client
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            After installing and building your server, add it to your{" "}
-            <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">claude_desktop_config.json</code>:
-          </p>
-          <div className="relative rounded-lg border border-border/50 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-muted/40 border-b border-border/50">
-              <span className="text-xs font-mono text-muted-foreground">claude_desktop_config.json</span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={handleCopyConfig}>
-                {copiedConfig ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                {copiedConfig ? "Copied!" : "Copy"}
-              </Button>
-            </div>
-            <pre className="p-3 text-xs font-mono bg-background overflow-auto">
-              <code>{claudeConfig}</code>
-            </pre>
+          {/* Shared setup steps */}
+          <div className="rounded-lg bg-muted/30 border border-border/50 px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Setup (one time)</p>
+            <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+              <li>Download all files and extract them into a folder</li>
+              <li>
+                Open a terminal in that folder and run{" "}
+                <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npm install</code>
+              </li>
+              <li>
+                Test it works:{" "}
+                <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npx tsx src/index.ts</code>
+                {" — should print: MCP server running on stdio"}
+              </li>
+            </ol>
           </div>
-          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Download all files and put them in a folder</li>
-            <li>Run <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npm install</code> in that folder</li>
-            <li>Run <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npm run build</code> to compile TypeScript</li>
-            <li>Add the config above to your Claude Desktop settings</li>
-            <li>Restart Claude Desktop — your tools will appear</li>
-          </ol>
+
+          {/* VS Code / GitHub Copilot */}
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <button
+              onClick={() => setVscodeOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <MonitorPlay className="h-4 w-4 text-blue-500" />
+                VS Code (GitHub Copilot)
+              </div>
+              {vscodeOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {vscodeOpen && (
+              <div className="px-4 pb-4 space-y-2.5 border-t border-border/40">
+                <p className="text-xs text-muted-foreground pt-3">
+                  Create or edit{" "}
+                  <code className="font-mono bg-muted px-1 py-0.5 rounded">.vscode/settings.json</code>{" "}
+                  in your project folder (not the server folder):
+                </p>
+                <div className="rounded-lg border border-border/50 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/40 border-b border-border/50">
+                    <span className="text-xs font-mono text-muted-foreground">.vscode/settings.json</span>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={handleCopyVscode}>
+                      {copiedVscode ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                      {copiedVscode ? "Copied!" : "Copy"}
+                    </Button>
+                  </div>
+                  <pre className="p-3 text-xs font-mono bg-background overflow-auto">
+                    <code>{vscodeConfig}</code>
+                  </pre>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Replace the path with your actual folder path. Then press{" "}
+                  <strong>Ctrl+Shift+P → Developer: Reload Window</strong>. A 🔌 icon will appear in Copilot Chat.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Claude Desktop */}
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <button
+              onClick={() => setClaudeOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-orange-500" />
+                Claude Desktop
+              </div>
+              {claudeOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {claudeOpen && (
+              <div className="px-4 pb-4 space-y-2.5 border-t border-border/40">
+                <div className="text-xs text-muted-foreground pt-3 space-y-0.5">
+                  <p>Edit <code className="font-mono bg-muted px-1 py-0.5 rounded">claude_desktop_config.json</code>:</p>
+                  <p>Windows: <code className="font-mono bg-muted px-1 py-0.5 rounded">%APPDATA%\Claude\claude_desktop_config.json</code></p>
+                  <p>macOS: <code className="font-mono bg-muted px-1 py-0.5 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
+                </div>
+                <div className="rounded-lg border border-border/50 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/40 border-b border-border/50">
+                    <span className="text-xs font-mono text-muted-foreground">claude_desktop_config.json</span>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={handleCopyConfig}>
+                      {copiedConfig ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                      {copiedConfig ? "Copied!" : "Copy"}
+                    </Button>
+                  </div>
+                  <pre className="p-3 text-xs font-mono bg-background overflow-auto">
+                    <code>{claudeConfig}</code>
+                  </pre>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Replace the path with your actual folder path, then <strong>restart Claude Desktop</strong> — your tools will appear.
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

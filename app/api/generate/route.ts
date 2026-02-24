@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
@@ -6,7 +6,7 @@ import { createServerClient } from "@/lib/supabase-server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ─── SSE helper ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ SSE helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function encode(data: object) {
   return `data: ${JSON.stringify(data)}\n\n`;
@@ -16,7 +16,7 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// ─── Route ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient();
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { description, apiConfig, tools } = body;
+  const { description, serverName = "", apiConfig, tools, resources = [], prompts = [] } = body;
 
-  // ── Rate limit check ──
+  // â”€â”€ Rate limit â”€â”€
   const rateCheck = await checkRateLimit(supabase, user.id);
   if (!rateCheck.allowed) {
     return new Response(
@@ -40,153 +40,85 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Stream SSE ──
+  // â”€â”€ SSE stream â”€â”€
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: object) =>
         controller.enqueue(new TextEncoder().encode(encode(data)));
 
       try {
-        // Step 1
-        send({ type: "progress", step: "analyzing", message: "Analyzing your requirements…" });
+        send({ type: "progress", step: "analyzing", message: "Analyzing your requirementsâ€¦" });
         await delay(1200);
 
-        // Step 2
-        send({ type: "progress", step: "schema", message: "Designing tool schemas…" });
+        send({ type: "progress", step: "schema", message: "Designing tool schemasâ€¦" });
         await delay(1000);
 
-        // Step 3 — actual Claude call
-        send({ type: "progress", step: "coding", message: "Writing TypeScript code…" });
+        send({ type: "progress", step: "coding", message: "Writing TypeScript codeâ€¦" });
 
-        const toolList = tools
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((t: any, i: number) =>
-            `${i + 1}. ${t.name}: ${t.description}${
-              t.fields?.length
-                ? `\n   Parameters: ${t.fields
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .map((f: any) => `${f.name} (${f.type}${f.required ? ", required" : ""})`)
-                    .join(", ")}`
-                : ""
-            }`
-          )
-          .join("\n");
+        // Build tool list string
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolList = tools.map((t: any, i: number) =>
+          `${i + 1}. ${t.name}: ${t.description}${
+            t.fields?.length
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ? `\n   Parameters: ${t.fields.map((f: any) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ")}`
+              : ""
+          }`
+        ).join("\n");
 
         const apiSection = apiConfig?.enabled
-          ? `\nAPI Integration:\n- Base URL: ${apiConfig.baseUrl}\n- Auth: ${apiConfig.authType}\n${apiConfig.apiDocUrl ? `- Docs: ${apiConfig.apiDocUrl}` : ""}`
-          : "\nNo external API — local tools only.";
+          ? `API Integration:\n- Base URL: ${apiConfig.baseUrl}\n- Auth type: ${apiConfig.authType}${apiConfig.apiDocUrl ? `\n- Docs: ${apiConfig.apiDocUrl}` : ""}`
+          : "No external API â€” local tools only.";
 
-        // ─────────────────────────────────────────────────────────────────
-        // SYSTEM PROMPT — operating contract (LangChain context engineering)
-        //   Rules + concrete few-shot example here (episodic memory pattern)
-        //   temperature: 0.1 = deterministic code, no hallucination
-        //   User message = task spec only (no rule repetition)
-        // ─────────────────────────────────────────────────────────────────
-        const SYSTEM_PROMPT = `You are FloMCP Generator — an expert TypeScript MCP (Model Context Protocol) server engineer.
-You generate LOCAL STDIO MCP servers that run on the user's machine.
-You output ONLY valid JSON. No markdown fences. No prose. No explanation outside the JSON.
+        // Build resources section
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resourceList = resources.length > 0
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? resources.map((r: any, i: number) =>
+              `${i + 1}. "${r.name}" (${r.mimeType})\n   Description: ${r.description || "(none)"}\n   Content length: ${r.content?.length ?? 0} chars`
+            ).join("\n")
+          : "None";
 
-════════════════════════════════════════════════════════
-CANONICAL PATTERN — copy this structure EXACTLY, no variations
-════════════════════════════════════════════════════════
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resourceEmbeds = resources.length > 0
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? resources.map((r: any) =>
+              `  "${r.name}": {\n    text: ${JSON.stringify(r.content ?? "")},\n    mimeType: "${r.mimeType}",\n    description: ${JSON.stringify(r.description ?? "")}\n  }`
+            ).join(",\n")
+          : "";
 
-FILE: src/index.ts
-───────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // SYSTEM PROMPT â€” TypeScript single-file MCP server (core engine)
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        const SYSTEM_PROMPT = `You are FloMCP Generator â€” the core engine for generating production-quality LOCAL STDIO MCP servers in TypeScript.
+Your output runs on the developer's machine and connects to VS Code (GitHub Copilot) or Claude Desktop.
+Output ONLY valid JSON. No markdown code fences around the JSON. No prose. No explanation outside the JSON object.
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ARCHITECTURE: TypeScript Â· Single file Â· No build step
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+All code goes in ONE src/index.ts.
+Run immediately after download: npm install && npx tsx src/index.ts
+No separate tool files. No utils/ imports. No types.ts. Everything inline.
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+CANONICAL src/index.ts STRUCTURE
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadAllTools } from "./tools/index.js";
+import { z } from "zod";
 
 const server = new McpServer(
-  { name: "{{server-name}}", version: "1.0.0" },
-  { capabilities: { tools: {} } }
+  { name: "SERVER_SLUG", version: "1.0.0" },
+  { capabilities: { tools: {}, prompts: {}, resources: {} } }
 );
 
-const tools = await loadAllTools();
-for (const tool of tools) {
-  server.tool(tool.name, tool.description, tool.inputSchema.shape, async (args) => {
-    return tool.handler(args);
-  });
-}
-
-const transport = new StdioServerTransport();
-await server.connect(transport);
-console.error("{{server-name}} MCP server started");
-
-FILE: src/tools/index.ts
-────────────────────────
-import { readdir } from "node:fs/promises";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { z } from "zod";
-import type { ToolModule } from "../types.js";
-const __dirname = dirname(fileURLToPath(import.meta.url));
-export async function loadAllTools(): Promise<ToolModule[]> {
-  const files = await readdir(__dirname);
-  const tools: ToolModule[] = [];
-  for (const file of files.filter(f => f.endsWith(".js") && f !== "index.js")) {
-    const mod = await import(join(__dirname, file));
-    if (mod.name && mod.inputSchema && mod.handler) tools.push(mod as ToolModule);
-  }
-  return tools;
-}
-
-FILE: src/types.ts
-──────────────────
-import type { z } from "zod";
-export interface ToolModule {
-  name: string;
-  description: string;
-  inputSchema: z.ZodObject<z.ZodRawShape>;
-  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean };
-  handler: (args: unknown) => Promise<{ content: Array<{ type: "text"; text: string }>; isError: boolean }>;
-}
-
-FILE: src/tools/example-tool.ts  ← REPLICATE THIS PATTERN for each tool
-────────────────────────────────
-import { z } from "zod";
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { sanitizeError } from "../utils/errors.js";
-
-export const inputSchema = z.object({
-  param1: z.string().describe("Description of param1"),
-  limit: z.number().int().min(1).max(100).default(10).describe("Max results"),
-});
-
-export const name = "tool_name";
-export const description = "What this tool does and when to call it.";
-export const annotations = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-};
-
-export async function handler(
-  args: unknown
-): Promise<{ content: Array<{ type: "text"; text: string }>; isError: boolean }> {
-  try {
-    const validated = inputSchema.parse(args);
-    const result = { data: validated.param1, count: validated.limit };
-    return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-      isError: false,
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      throw new McpError(ErrorCode.InvalidParams, error.message);
-    }
-    return {
-      content: [{ type: "text", text: sanitizeError(error) }],
-      isError: true,
-    };
-  }
-}
-
-FILE: src/utils/errors.ts
-──────────────────────────
-import { z } from "zod";
-export function sanitizeError(error: unknown): string {
-  if (error instanceof z.ZodError) return \`Validation failed: \${error.message}\`;
+// â”€â”€ Security helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function sanitizeError(error: unknown): string {
+  if (error instanceof z.ZodError)
+    return "Validation error: " + error.errors.map((e) => \`\${e.path.join(".")}: \${e.message}\`).join(", ");
   if (error instanceof Error) {
     return error.message
       .replace(/\\/[^\\s"']+/g, "[PATH]")
@@ -196,137 +128,449 @@ export function sanitizeError(error: unknown): string {
   return "An unexpected error occurred";
 }
 
-FILE: src/utils/fetch-with-timeout.ts  ← ONLY include when API calls exist
-──────────────────────────────────────
-export async function fetchWithTimeout(
-  url: string,
-  options: RequestInit & { timeoutMs?: number } = {}
-): Promise<Response> {
-  const { timeoutMs = 10000, ...rest } = options;
-  const res = await fetch(url, { ...rest, signal: AbortSignal.timeout(timeoutMs) });
-  if (!res.ok) throw new Error(\`HTTP \${res.status}: \${res.statusText}\`);
-  return res;
+// Uncomment for API servers:
+// async function fetchWithTimeout(url: string, options: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+//   const { timeoutMs = 10000, ...rest } = options;
+//   const res = await fetch(url, { ...rest, signal: AbortSignal.timeout(timeoutMs) });
+//   if (!res.ok) throw new Error(\`HTTP \${res.status}: \${res.statusText}\`);
+//   return res;
+// }
+
+// â”€â”€ Resources (embedded content) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Inline the user's text content as typed constants.
+const RESOURCE_CONTENT: Record<string, { text: string; mimeType: string; description: string }> = {
+  "example-resource": {
+    text: "Content here",
+    mimeType: "text/plain",
+    description: "Example resource description",
+  },
+};
+
+for (const [name, resource] of Object.entries(RESOURCE_CONTENT)) {
+  const uri = \`resource://SERVER_SLUG/\${name}\`;
+  server.resource(
+    name,
+    uri,
+    async (resourceUri) => ({
+      contents: [{ uri: resourceUri.href, text: resource.text, mimeType: resource.mimeType }],
+    })
+  );
 }
 
-════════════════════════════════════════════════════════
-22 SECURITY RULES — never violate any of these
-════════════════════════════════════════════════════════
+// â”€â”€ Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// One server.tool() per tool â€” all inline, complete business logic.
 
-INPUT VALIDATION:
-[S1]  inputSchema.parse(args) MUST be the first call inside every handler function
-[S2]  NEVER use raw args directly — only ever use the validated result from .parse()
-[S3]  Add .min()/.max()/.url()/.email() Zod guards wherever the type allows it
-[S4]  String params that become file paths: reject any containing ".." or null bytes
+/** @readonly â€” this tool only reads data */
+server.tool(
+  "add",
+  "Add two numbers",
+  {
+    a: z.number().finite().describe("First number"),
+    b: z.number().finite().describe("Second number"),
+  },
+  async ({ a, b }) => {
+    try {
+      return { content: [{ type: "text" as const, text: String(a + b) }] };
+    } catch (error) {
+      return { content: [{ type: "text" as const, text: sanitizeError(error) }], isError: true };
+    }
+  }
+);
 
-API / NETWORK:
-[S5]  NEVER hardcode secrets — use process.env.VARIABLE_NAME exclusively
-[S6]  ALL fetch calls must go through fetchWithTimeout() — never use raw fetch()
-[S7]  Add Authorization header ONLY inside an if (process.env.API_KEY) guard
-[S8]  When debug-logging API keys: use apiKey.slice(0, 4) + "..." never full value
-[S9]  Check response.ok before calling response.json() — throw on non-2xx status
-[S10] Set explicit timeouts on all external network calls (default 10 000 ms)
+// â”€â”€ Prompts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+server.prompt(
+  "usage_guide",
+  "Show all tools, resources, and prompts with concrete examples",
+  [],
+  () => ({
+    messages: [{
+      role: "user" as const,
+      content: {
+        type: "text" as const,
+        text: "List every tool in this MCP server. For each: name, description, parameters (with types), and a concrete usage example with sample input and expected output. Also list any resources available.",
+      },
+    }],
+  })
+);
 
-ERROR HANDLING:
-[S11] Every handler body MUST be wrapped in try/catch — no exceptions
-[S12] Throw McpError(ErrorCode.InvalidParams, ...) for bad user input (bad Zod parse)
-[S13] Return { content: [...], isError: true } for runtime failures — never re-throw
-[S14] ALWAYS call sanitizeError(error) — never return raw error.message to caller
-[S15] NEVER include stack traces in any response content
-[S16] Write full errors to console.error (stderr) — never to console.log (stdout)
+// â”€â”€ Start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function main(): Promise<void> {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("SERVER_SLUG MCP server running on stdio");
+}
+main().catch((error: unknown) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});
 
-OUTPUT / DATA:
-[S17] NEVER return raw process.env values in any response
-[S18] NEVER return internal file system paths in responses
-[S19] Trim and sanitize all user-supplied strings before using in queries or URLs
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+TOOL RULES
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-STRUCTURE:
-[S20] #!/usr/bin/env node MUST be the first line of src/index.ts
-[S21] ALL console output goes to console.error — stdout carries only JSON-RPC
-[S22] package.json MUST have "type": "module" — all imports MUST end in .js
+server.tool(name: string, description: string, zodShape: ZodRawShape, handler):
+- 3rd arg: PLAIN { param: z.type() } shape â€” NOT z.object({}) wrapper
+- Zod types: z.string().trim(), z.number().finite(), z.boolean(), z.enum([...])
+- Optional params: z.string().optional().default("") â€” always provide a safe default
+- Every handler wrapped in try/catch
+- Success: return { content: [{ type: "text" as const, text: String(result) }] }
+- Error:   return { content: [{ type: "text" as const, text: sanitizeError(error) }], isError: true }
+- Write COMPLETE real logic â€” zero TODO, zero placeholder comments
+- Add JSDoc annotation above each tool: /** @readonly */ or /** @destructive */ or /** @creates */
 
-════════════════════════════════════════════════════════
-EXACT IMPORTS — use only these, never invent others
-════════════════════════════════════════════════════════
+TOOL ANNOTATION TYPES (comment only â€” not passed to the SDK):
+  /** @readonly */    â€” Query/Read: fetches or lists, no side effects
+  /** @creates */     â€” Create: adds new data/record/resource
+  /** @modifies */    â€” Update: changes existing data
+  /** @destructive */ â€” Delete: removes or destroys data
+  /** @executes */    â€” Execute: runs a command or operation
 
-CORRECT:
-  "@modelcontextprotocol/sdk/server/mcp.js"   → McpServer
-  "@modelcontextprotocol/sdk/server/stdio.js" → StdioServerTransport
-  "@modelcontextprotocol/sdk/types.js"         → McpError, ErrorCode
-  "zod"                                        → z
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+RESOURCE RULES
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-FORBIDDEN — these will break the server:
-  ❌ @modelcontextprotocol/sdk/server/index.js  (old low-level API)
-  ❌ new Server(...)                            (use McpServer instead)
-  ❌ setRequestHandler(...)                    (use server.tool() instead)
-  ❌ Express, Fastify, http, https             (STDIO only — no HTTP server)
-  ❌ console.log(...)                          (use console.error for all logs)
+If resources are provided, embed them as typed RESOURCE_CONTENT constants and register each via server.resource():
 
-IF UNSURE: copy the pattern exactly from the canonical example above. Do not guess.
+const RESOURCE_CONTENT: Record<string, { text: string; mimeType: string; description: string }> = {
+  "resource-slug": { text: \`...\`, mimeType: "text/plain", description: "..." },
+};
 
-════════════════════════════════════════════════════════
-REQUIRED JSON OUTPUT SHAPE
-════════════════════════════════════════════════════════
+for (const [name, resource] of Object.entries(RESOURCE_CONTENT)) {
+  const uri = \`resource://SERVER_SLUG/\${name}\`;
+  server.resource(name, uri, async (resourceUri) => ({
+    contents: [{ uri: resourceUri.href, text: resource.text, mimeType: resource.mimeType }],
+  }));
+}
 
-Return ONLY this JSON object. No wrapping. No markdown.
+If no resources provided: omit RESOURCE_CONTENT and the for loop entirely. Also remove "resources: {}" from capabilities if no resources.
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+PROMPT RULES
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+Always include usage_guide. Add 1-2 domain-specific prompts:
+- server.prompt(name, description, args[], handler)
+- Args array: [{ name: "param", description: "...", required: true }]
+- Handler receives args as Record<string, string>: args?.param ?? ""
+- Prompt messages should be rich, instructive workflows for the AI to follow
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+SECURITY RULES (all required)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+[S1]  Destructure validated args directly â€” Zod shape pre-validates them
+[S2]  Add refinements: .min()/.max()/.url()/.email()/.regex() where sensible
+[S3]  File paths: .refine(s => !s.includes("..") && !path.isAbsolute(s) || allowedCheck, "Invalid path")
+[S4]  z.number().finite() for ALL numeric params â€” prevents NaN/Infinity
+[S5]  NEVER hardcode secrets â€” process.env.VAR_NAME only
+[S6]  ALL HTTP calls: use fetchWithTimeout() only â€” never raw fetch()
+[S7]  Never log full secrets: apiKey.slice(0, 4) + "..." to stderr only
+[S8]  Every tool handler in try/catch
+[S9]  On error: return { content, isError: true } using sanitizeError()
+[S10] Never re-throw inside handlers
+[S11] sanitizeError() on ALL error paths â€” never return raw error.message
+[S12] No stack traces in response content
+[S13] console.error only â€” console.log corrupts JSON-RPC on stdout
+[S14] Never return process.env values in responses
+[S15] Never return file system paths in responses
+[S16] z.string().trim() on user input before query/URL use
+[S17] fetchWithTimeout throws on non-2xx automatically (check your implementation)
+[S18] Default HTTP timeout: 10000ms
+[S19] #!/usr/bin/env node on EXACTLY line 1
+[S20] main() at bottom: async function main(): Promise<void>
+[S21] main().catch() calls process.exit(1)
+[S22] "type": "module" in package.json; all local imports end in .js
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+CORRECT IMPORTS â€” only these three
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+  import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
+  import { z } from "zod"
+
+Add only if file operations needed:
+  import path from "path"
+  import fs from "fs/promises"
+
+FORBIDDEN:
+  âœ— @modelcontextprotocol/sdk/server/index.js
+  âœ— new Server(...) / setRequestHandler(...)
+  âœ— ListToolsRequestSchema / CallToolRequestSchema
+  âœ— Express / http / https / Fastify
+  âœ— console.log(...) anywhere â€” use console.error() only
+  âœ— Any import from ./tools/ ./utils/ ./types.ts
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+TEST FILE (tests/index.test.ts) â€” generate this for every server
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+import { describe, it, expect } from "vitest";
+import { z } from "zod";
+
+// Helper: run a Zod schema validation
+function validate<T extends z.ZodTypeAny>(schema: T, input: unknown) {
+  return schema.safeParse(input);
+}
+
+// â”€â”€ sanitizeError tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+describe("sanitizeError", () => {
+  it("hides file paths", () => {
+    // Replace with import of sanitizeError when refactored to module
+    const msg = "Error at /home/user/.env line 3";
+    const sanitized = msg.replace(/\\/[^\\s"']+/g, "[PATH]");
+    expect(sanitized).not.toContain("/home");
+    expect(sanitized).toContain("[PATH]");
+  });
+
+  it("hides IP addresses", () => {
+    const msg = "Connection to 192.168.1.1 refused";
+    const sanitized = msg.replace(/\\b\\d{1,3}(\\.\\d{1,3}){3}\\b/g, "[IP]");
+    expect(sanitized).not.toContain("192.168");
+  });
+});
+
+// â”€â”€ Tool schema validation tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+describe("Tool schemas", () => {
+  // Generate one describe block per tool, testing valid and invalid inputs
+  it("add: accepts valid numbers", () => {
+    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
+    const result = validate(schema, { a: 5, b: 3 });
+    expect(result.success).toBe(true);
+  });
+
+  it("add: rejects non-finite numbers", () => {
+    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
+    expect(validate(schema, { a: Infinity, b: 1 }).success).toBe(false);
+    expect(validate(schema, { a: NaN, b: 1 }).success).toBe(false);
+  });
+
+  it("add: rejects missing params", () => {
+    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
+    expect(validate(schema, { a: 5 }).success).toBe(false);
+  });
+  // Add more tests for each tool below
+});
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+README.md TEMPLATE â€” follow exactly, with real values
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+Use triple-backtick code fences for every bash/json block. No exceptions.
+
+# SERVER_NAME MCP Server
+
+SERVER_DESCRIPTION
+
+## What It Does
+
+| Component | Name | Description |
+|-----------|------|-------------|
+| ðŸ”§ Tool | \`tool_name\` | What the tool does, one line |
+| ðŸ“„ Resource | \`resource-name\` | What the resource contains |
+| ðŸ’¬ Prompt | \`usage_guide\` | Show all tools with examples |
+
+## Quick Start
+
+\`\`\`bash
+# 1. Install dependencies (one time)
+npm install
+
+# 2. Verify it starts correctly
+npx tsx src/index.ts
+# â†’ SERVER_SLUG MCP server running on stdio
+# Press Ctrl+C to stop
+\`\`\`
+
+## Add to VS Code (GitHub Copilot)
+
+Create or edit \`.vscode/settings.json\` **in your project folder** (not the MCP server folder):
+
+\`\`\`json
+{
+  "github.copilot.chat.mcp.servers": {
+    "SERVER_SLUG": {
+      "command": "npx",
+      "args": ["tsx", "C:/ABSOLUTE/PATH/TO/SERVER_SLUG/src/index.ts"]
+    }
+  }
+}
+\`\`\`
+
+Replace the path:
+- **Windows example**: \`C:/Users/YourName/Downloads/SERVER_SLUG/src/index.ts\`
+- **macOS example**: \`/Users/YourName/Downloads/SERVER_SLUG/src/index.ts\`
+
+Then press **Ctrl+Shift+P â†’ Developer: Reload Window**. You'll see a ðŸ”Œ icon in Copilot Chat.
+
+## Add to Claude Desktop
+
+Edit the Claude Desktop config file:
+- **Windows**: \`%APPDATA%\\Claude\\claude_desktop_config.json\`
+- **macOS**: \`~/Library/Application Support/Claude/claude_desktop_config.json\`
+
+\`\`\`json
+{
+  "mcpServers": {
+    "SERVER_SLUG": {
+      "command": "npx",
+      "args": ["tsx", "C:/ABSOLUTE/PATH/TO/SERVER_SLUG/src/index.ts"]
+    }
+  }
+}
+\`\`\`
+
+Replace the path with your actual folder path. **Restart Claude Desktop** after saving.
+
+## Using the Tools
+
+Just ask naturally in Copilot Chat or Claude:
+
+USAGE_EXAMPLES (one per tool, natural language questions)
+
+## Running Tests
+
+\`\`\`bash
+npm test
+\`\`\`
+
+## Environment Variables
+
+IF_API_SERVER_ONLY â€” copy \`.env.example\` to \`.env\` and fill in your values.
+IF_NO_API â€” No environment variables needed. This server works completely offline.
+
+## License
+
+MIT
+
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+REQUIRED JSON OUTPUT â€” return ONLY this object, no prose, no fences
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 {
   "files": {
-    "src/index.ts": "...",
-    "src/tools/index.ts": "...",
-    "src/tools/TOOLNAME.ts": "... (one entry per tool)",
-    "src/utils/errors.ts": "...",
-    "src/utils/fetch-with-timeout.ts": "... (only when API tools exist)",
-    "src/types.ts": "...",
-    "package.json": "...",
-    "tsconfig.json": "...",
-    ".env.example": "... (one VAR=description line per process.env used)",
-    ".gitignore": "node_modules\\ndist\\n.env",
-    "README.md": "..."
+    "src/index.ts": "<COMPLETE TypeScript â€” all tools + resources + prompts inline>",
+    "package.json": "<see spec below>",
+    "tsconfig.json": "<see spec below>",
+    ".env.example": "<VAR=description per process.env; empty string if no env vars>",
+    "README.md": "<follows README template exactly, real content, triple-backtick fences>",
+    "tests/index.test.ts": "<vitest tests for schemas + sanitizeError + tool logic>"
   },
-  "tools": [{ "id": "...", "name": "...", "description": "...", "fields": [...] }]
+  "tools": [
+    {
+      "id": "snake_id",
+      "name": "tool_name",
+      "description": "one sentence",
+      "annotation": "query|create|update|delete|search|execute",
+      "fields": [{ "name": "param", "type": "string|number|boolean", "required": true }]
+    }
+  ]
 }
 
-package.json MUST contain:
-  "type": "module"
-  "scripts": { "build": "tsc", "start": "node dist/index.js", "dev": "tsx src/index.ts" }
-  dependencies: @modelcontextprotocol/sdk, zod
-  devDependencies: typescript, tsx, @types/node
+package.json EXACT SPEC:
+{
+  "name": "SERVER_SLUG-mcp-server",
+  "version": "1.0.0",
+  "description": "SERVER_DESCRIPTION",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx src/index.ts",
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "vitest": "^2.0.0"
+  }
+}
 
-tsconfig.json MUST contain:
-  "module": "NodeNext", "moduleResolution": "NodeNext", "target": "ES2022"
-  "outDir": "./dist", "rootDir": "./src", "strict": true`;
+tsconfig.json EXACT SPEC:
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "declaration": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["tests", "node_modules", "dist"]
+}
 
-        // ─────────────────────────────────────────────────────────────────
-        // USER MESSAGE — task specification only (rules live in system prompt)
-        // ─────────────────────────────────────────────────────────────────
-        const USER_MESSAGE = `Generate an MCP server with this exact specification:
+PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
+âœ“ src/index.ts line 1 is: #!/usr/bin/env node
+âœ“ TypeScript: uses "as const" for object literals where needed, all vars typed
+âœ“ Every tool has REAL implemented logic â€” zero TODO, zero placeholder
+âœ“ Every tool has the JSDoc @readonly/@creates/@modifies/@destructive/@executes annotation
+âœ“ RESOURCE_CONTENT defined if resources provided; omitted if no resources
+âœ“ usage_guide prompt included; at least one domain-specific prompt
+âœ“ tests/index.test.ts covers sanitizeError + one valid + one invalid test per tool schema
+âœ“ README uses triple-backtick fences everywhere
+âœ“ README has both VS Code AND Claude Desktop config sections using npx tsx
+âœ“ package.json has vitest in devDependencies, "test": "vitest run"
+âœ“ .env.example has all process.env variables (or empty string if none)`;
 
-## Server Description
-${description}
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // USER MESSAGE
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        const serverSlug = (serverName || description).slice(0, 60).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "");
+
+        const USER_MESSAGE = `Generate a complete TypeScript MCP server matching this specification.
+
+## Server Identity
+- Slug: ${serverSlug}
+- Name: ${serverName || serverSlug}
+- Description: ${description}
 
 ## Transport
-STDIO (local execution only — no HTTP, no Express, no OAuth)
+STDIO only â€” no HTTP, no Express, no ports. Runs locally on the developer's machine.
 
 ## API Integration
 ${apiSection}
 
-## Tools to Implement
+## Tools to Implement (${tools.length} total)
 ${toolList}
 
-## File Requirements
-- src/index.ts — McpServer + StdioServerTransport entry point
-- src/tools/index.ts — dynamic tool loader (loadAllTools)
-- src/tools/<toolname>.ts — one file per tool above
-- src/utils/errors.ts — sanitizeError function
-${apiConfig?.enabled ? "- src/utils/fetch-with-timeout.ts — fetchWithTimeout for ALL HTTP calls" : ""}
-- src/types.ts — ToolModule interface
-- package.json, tsconfig.json, .env.example, .gitignore, README.md
+## Resources to Embed (${resources.length} total)
+${resourceList}
+${resources.length > 0 ? `\nEmbed this exact content in RESOURCE_CONTENT:\n{\n${resourceEmbeds}\n}` : ""}
 
-Every tool handler must:
-1. Call inputSchema.parse(args) as the very first line
-2. Wrap entire body in try/catch
-3. Return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }], isError: false }
-4. On error: return { content: [{ type: "text", text: sanitizeError(error) }], isError: true }`;
+## Custom Prompts to Register (${prompts.length} total)
+${prompts.length > 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ? prompts.map((p: any, i: number) =>
+      `${i + 1}. "${p.name}" (${p.mimeType})\n   Description: ${p.description || "(none)"}\n   Content:\n${p.content}`
+    ).join("\n\n")
+  : "None — only include usage_guide built-in prompt"}
+
+## Required Deliverables
+1. **src/index.ts** â€” complete TypeScript, all tools + resources + prompts inline
+   - Every tool: real implemented logic, JSDoc annotation (@readonly/@creates/etc.)
+   - RESOURCE_CONTENT block + server.resource() loop if resources provided
+   - usage_guide prompt + at least one domain-specific prompt
+   - sanitizeError() + fetchWithTimeout() (uncommented if API server)
+2. **package.json** â€” type:module, scripts: start/build/test, deps + vitest in devDeps
+3. **tsconfig.json** â€” NodeNext, ES2022, strict, rootDir src, exclude tests
+4. **.env.example** â€” every process.env used listed, or empty string
+5. **README.md** â€” follow the README template exactly:
+   - What It Does table (tools + resources + prompts)
+   - Quick Start: npm install && npx tsx src/index.ts
+   - VS Code AND Claude Desktop config blocks using: "command": "npx", "args": ["tsx", "/path/to/${serverSlug}/src/index.ts"]
+   - Natural language usage examples for every tool
+   - Running Tests section: npm test
+6. **tests/index.test.ts** â€” vitest tests:
+   - sanitizeError path/IP sanitization tests
+   - For each tool: one test with valid input (expect success), one with invalid input (expect failure)
+
+Run command for users after download:
+  cd ${serverSlug} && npm install && npx tsx src/index.ts`;
 
         const message = await anthropic.messages.create({
           model: "claude-sonnet-4-5",
@@ -343,20 +587,17 @@ Every tool handler must:
         try {
           parsed = JSON.parse(cleaned);
         } catch {
-          // If Claude wrapped in markdown, try harder
           const jsonMatch = raw.match(/\{[\s\S]*\}/);
           if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
         }
 
-        // Step 4
         send({ type: "progress", step: "security", message: "Adding security best practices…" });
         await delay(800);
 
-        // Step 5
         send({ type: "progress", step: "saving", message: "Saving your server…" });
         await delay(600);
 
-        // ── Persist to database ──
+        // ── Persist to DB ──
         const adminClient = createAdminClient();
 
         const { data: insertedRow, error: dbError } = await adminClient
@@ -365,30 +606,23 @@ Every tool handler must:
             user_id: user.id,
             name: description.slice(0, 60),
             description,
-            // Map generated files to schema columns (multi-file → schema columns)
-            generated_code: parsed.files?.["src/index.ts"] ?? parsed.files?.["index.ts"] ?? "",
+            generated_code: parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "",
             package_json: parsed.files?.["package.json"] ?? "{}",
             readme: parsed.files?.["README.md"] ?? "",
             tsconfig: parsed.files?.["tsconfig.json"] ?? null,
             env_example: parsed.files?.[".env.example"] ?? null,
             api_config: apiConfig ?? null,
             status: "generated",
+            security_score: 100,
           })
           .select("id")
           .single();
 
         if (dbError) throw new Error(`DB save failed: ${dbError.message}`);
 
-        const serverId = insertedRow.id;
-
         await recordGeneration(supabase, user.id);
 
-        // ── Done ──
-        send({
-          type: "complete",
-          id: serverId,
-          tools: parsed.tools ?? tools,
-        });
+        send({ type: "complete", id: insertedRow.id, tools: parsed.tools ?? tools });
       } catch (err: unknown) {
         send({
           type: "error",

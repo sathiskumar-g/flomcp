@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react";
-import { useGeneratorStore, type ToolDefinition } from "@/lib/stores/generator-store";
+import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,11 +18,14 @@ import {
   FileText,
   Globe,
   Wrench,
+  BookOpen,
   Clock,
   AlertTriangle,
   CheckCircle2,
   Loader2,
   Key,
+  MessageSquare,
+  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +51,7 @@ const PROGRESS_STEPS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Step4Review() {
-  const { description, apiConfig, tools, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
+  const { description, serverName, apiConfig, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export function Step4Review() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, apiConfig, tools }),
+        body: JSON.stringify({ description, serverName, apiConfig, tools, resources, prompts }),
       });
 
       if (!res.ok) {
@@ -129,6 +132,17 @@ export function Step4Review() {
 
       {/* Summary cards */}
       <div className="space-y-4">
+        {/* 0 — Server Name (if set) */}
+        {serverName && (
+          <SummaryCard
+            icon={<Server className="h-4 w-4" />}
+            title="Server Name"
+            badge="Step 1"
+          >
+            <p className="text-sm font-mono font-medium">{serverName}</p>
+          </SummaryCard>
+        )}
+
         {/* 1 — Description */}
         <SummaryCard
           icon={<FileText className="h-4 w-4" />}
@@ -210,6 +224,64 @@ export function Step4Review() {
               </div>
             ))}
           </div>
+        </SummaryCard>
+
+        {/* 4 — Resources & Prompts */}
+        <SummaryCard
+          icon={<BookOpen className="h-4 w-4" />}
+          title={resources.length > 0 ? `Resources (${resources.length})` : "Resources"}
+          badge="Step 4"
+        >
+          {resources.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No resources added</p>
+          ) : (
+            <div className="space-y-1.5">
+              {resources.map((r) => (
+                <div key={r.id} className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2">
+                  <BookOpen className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-mono font-medium">{r.name || "(unnamed)"}</p>
+                    {r.description && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{r.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {r.mimeType} · {r.content.length.toLocaleString()} chars
+                      {r.toolScope !== "all" && <span className="ml-1 text-primary">· scoped</span>}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SummaryCard>
+
+        {/* 5 — Prompts */}
+        <SummaryCard
+          icon={<MessageSquare className="h-4 w-4" />}
+          title={prompts.length > 0 ? `Prompts (${prompts.length})` : "Prompts"}
+          badge="Step 4"
+        >
+          {prompts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No prompts added</p>
+          ) : (
+            <div className="space-y-1.5">
+              {prompts.map((p: PromptDefinition) => (
+                <div key={p.id} className="flex items-start gap-2 rounded-md bg-muted/30 px-3 py-2">
+                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-mono font-medium">{p.name || "(unnamed)"}</p>
+                    {p.description && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{p.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {p.mimeType} · {p.content.length.toLocaleString()} chars
+                      {p.toolScope !== "all" && <span className="ml-1 text-primary">· scoped</span>}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </SummaryCard>
       </div>
 

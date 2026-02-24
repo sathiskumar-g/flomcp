@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +25,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import type { User } from "@supabase/supabase-js";
 
 interface MCPServer {
   id: string;
@@ -39,25 +37,18 @@ interface MCPServer {
 
 export default function ServersPage() {
   const router = useRouter();
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const { data: { user: u } } = await supabase.auth.getUser();
-      if (!u) { router.push("/auth/signin"); return; }
-      setUser(u);
-
-      const { data } = await supabase
-        .from("mcp_servers")
-        .select("id, name, description, status, created_at, downloaded")
-        .eq("user_id", u.id)
-        .order("created_at", { ascending: false });
-
-      setServers((data as MCPServer[]) ?? []);
+      const res = await fetch("/api/servers");
+      if (res.status === 401) { router.push("/auth/signin"); return; }
+      if (res.ok) {
+        const json = await res.json();
+        setServers(json.servers ?? []);
+      }
       setLoading(false);
     }
     load();
@@ -65,7 +56,7 @@ export default function ServersPage() {
 
   async function handleDelete(id: string) {
     setDeleting(id);
-    await supabase.from("mcp_servers").delete().eq("id", id);
+    await fetch(`/api/servers?id=${id}`, { method: "DELETE" });
     setServers((prev) => prev.filter((s) => s.id !== id));
     setDeleting(null);
   }

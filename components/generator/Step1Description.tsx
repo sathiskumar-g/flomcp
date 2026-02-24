@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
@@ -50,12 +51,15 @@ const MIN_CHARS = 50;
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Step1Description() {
-  const { description, setDescription, nextStep } = useGeneratorStore();
+  const { serverName, setServerName, description, setDescription, nextStep } = useGeneratorStore();
   const [touched, setTouched] = useState(false);
 
   const charCount = description.length;
-  const isValid = charCount >= MIN_CHARS;
-  const showError = touched && !isValid;
+  const isNameValid = serverName.trim().length >= 3;
+  const isDescValid = charCount >= MIN_CHARS;
+  const isValid = isNameValid && isDescValid;
+  const showNameError = touched && !isNameValid;
+  const showDescError = touched && !isDescValid;
 
   const charColor =
     charCount > MAX_CHARS
@@ -68,15 +72,50 @@ export function Step1Description() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold">Describe your MCP server</h2>
+        <h2 className="text-xl font-semibold">Create your MCP server</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          The more detail you provide, the better the generated code will be.
-          Include what tools it needs, which APIs to connect to, and how it should handle errors.
+          Give it a name, then describe what it should do in detail.
         </p>
       </div>
 
-      {/* Textarea */}
+      {/* Server name */}
       <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Server name <span className="text-destructive">*</span>
+        </label>
+        <Input
+          placeholder="e.g. GitHub Assistant, Weather Tools, Slack Bot"
+          value={serverName}
+          onChange={(e) =>
+            setServerName(
+              e.target.value
+                .replace(/[^a-zA-Z0-9 _-]/g, "")
+                .slice(0, 60)
+            )
+          }
+          onBlur={() => setTouched(true)}
+          className={cn(
+            "text-sm",
+            showNameError && "border-red-500 focus-visible:ring-red-500"
+          )}
+        />
+        {showNameError ? (
+          <span className="flex items-center gap-1.5 text-xs text-red-500">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Minimum 3 characters
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            Short, descriptive name for your server (letters, numbers, spaces)
+          </span>
+        )}
+      </div>
+
+      {/* Description textarea */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Description <span className="text-destructive">*</span>
+        </label>
         <Textarea
           value={description}
           onChange={(e) => {
@@ -89,11 +128,11 @@ export function Step1Description() {
           rows={7}
           className={cn(
             "resize-none text-sm leading-relaxed",
-            showError && "border-red-500 focus-visible:ring-red-500"
+            showDescError && "border-red-500 focus-visible:ring-red-500"
           )}
         />
         <div className="flex items-center justify-between">
-          {showError ? (
+          {showDescError ? (
             <span className="flex items-center gap-1.5 text-xs text-red-500">
               <AlertCircle className="h-3.5 w-3.5" />
               At least {MIN_CHARS} characters required to get quality output

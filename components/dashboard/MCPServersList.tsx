@@ -11,9 +11,8 @@
  *  - limit?: number   — cap results (used on dashboard home page preview)
  */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +44,9 @@ interface MCPServer {
   name: string;
   description: string | null;
   status: "generated" | "downloaded" | "archived" | "failed";
-  security_score: number | null;
-  tokens_used: number | null;
-  cost_usd: number | null;
+  security_score: number | null | undefined;
+  tokens_used: number | null | undefined;
+  cost_usd: number | null | undefined;
   downloaded: boolean;
   created_at: string;
 }
@@ -64,11 +63,11 @@ interface MCPServersListProps {
  * Returns Tailwind color classes for a numeric security score.
  * green ≥ 80 | yellow ≥ 50 | red < 50 | gray for null
  */
-function getSecurityScoreStyle(score: number | null): {
+function getSecurityScoreStyle(score: number | null | undefined): {
   badge: string;
   label: string;
 } {
-  if (score === null) return { badge: "bg-muted text-muted-foreground", label: "N/A" };
+  if (score == null) return { badge: "bg-muted text-muted-foreground", label: "N/A" };
   if (score >= 80) return { badge: "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30", label: `${score}/100` };
   if (score >= 50) return { badge: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30", label: `${score}/100` };
   return { badge: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30", label: `${score}/100` };
@@ -95,8 +94,6 @@ function formatDate(iso: string): string {
 
 export function MCPServersList({ userId, limit }: MCPServersListProps) {
   const router = useRouter();
-  // useMemo gives a stable client reference — avoids stale closure in useCallback
-  const supabase = useMemo(() => createClient(), []);
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,26 +103,18 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
     setLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from("mcp_servers")
-        .select("id, name, description, status, security_score, tokens_used, cost_usd, downloaded, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data, error: queryError } = await query;
-      if (queryError) throw queryError;
-      setServers(data as MCPServer[]);
+      const res = await fetch(`/api/servers${limit ? `?limit=${limit}` : ""}`);
+      if (!res.ok) throw new Error("Failed to load servers");
+      const json = await res.json();
+      const data: MCPServer[] = json.servers ?? [];
+      setServers(limit ? data.slice(0, limit) : data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load servers";
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [supabase, userId, limit]);
+  }, [limit]);
 
   useEffect(() => {
     fetchServers();
@@ -134,13 +123,8 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
   const handleDelete = async (serverId: string) => {
     setDeletingId(serverId);
     try {
-      const { error: deleteError } = await supabase
-        .from("mcp_servers")
-        .delete()
-        .eq("id", serverId)
-        .eq("user_id", userId); // Extra safety: only delete own rows
-
-      if (deleteError) throw deleteError;
+      const res = await fetch(`/api/servers?id=${serverId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       setServers((prev) => prev.filter((s) => s.id !== serverId));
     } catch (err: unknown) {
       console.error("Delete error:", err);

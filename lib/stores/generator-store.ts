@@ -25,11 +25,36 @@ export interface ConfigOption {
   value: string;
 }
 
+export type ToolAnnotation = "query" | "create" | "update" | "delete" | "search" | "execute";
+
 export interface ToolDefinition {
   id: string;
   name: string;
   description: string;
   fields: SchemaField[];
+  annotation?: ToolAnnotation;
+}
+
+export type ResourceMimeType = "text/plain" | "text/markdown" | "application/json";
+export type PromptMimeType = "text/plain" | "text/markdown";
+export type ToolScope = "all" | string; // "all" or a tool id
+
+export interface ResourceDefinition {
+  id: string;
+  name: string;           // slug: "company-overview"
+  description: string;    // human label shown to LLM
+  content: string;        // the actual text content
+  mimeType: ResourceMimeType;
+  toolScope: ToolScope;   // "all" or specific tool id
+}
+
+export interface PromptDefinition {
+  id: string;
+  name: string;           // slug: "sales-context"
+  description: string;
+  content: string;
+  mimeType: PromptMimeType;
+  toolScope: ToolScope;
 }
 
 export interface ApiConfig {
@@ -48,9 +73,10 @@ export interface GeneratedResult {
 
 export interface GeneratorState {
   // ── Navigation ──
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4 | 5 | 6;
 
   // ── Step 1: Description ──
+  serverName: string;
   description: string;
 
   // ── Step 2: API Config ──
@@ -60,7 +86,11 @@ export interface GeneratorState {
   tools: ToolDefinition[];
   suggestionsLoading: boolean;
 
-  // ── Step 5: Post-generation ──
+  // ── Step 4: Resources & Prompts ──
+  resources: ResourceDefinition[];
+  prompts: PromptDefinition[];
+
+  // ── Step 6: Post-generation ──
   generatedResult: GeneratedResult | null;
 
   // ── Actions ──
@@ -69,6 +99,7 @@ export interface GeneratorState {
   prevStep: () => void;
 
   // Step 1
+  setServerName: (name: string) => void;
   setDescription: (desc: string) => void;
 
   // Step 2
@@ -90,7 +121,19 @@ export interface GeneratorState {
   updateTool: (id: string, patch: Partial<Omit<ToolDefinition, "id">>) => void;
   removeTool: (id: string) => void;
 
-  // Step 5
+  // Step 4 — resources
+  addResource: () => void;
+  updateResource: (id: string, patch: Partial<Omit<ResourceDefinition, "id">>) => void;
+  removeResource: (id: string) => void;
+  addResourceFromFile: (file: File) => void;
+
+  // Step 4 — prompts
+  addPrompt: () => void;
+  updatePrompt: (id: string, patch: Partial<Omit<PromptDefinition, "id">>) => void;
+  removePrompt: (id: string) => void;
+  addPromptFromFile: (file: File) => void;
+
+  // Step 6
   setGeneratedResult: (result: GeneratedResult) => void;
   addToolField: (toolId: string) => void;
   updateToolField: (toolId: string, fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
@@ -134,12 +177,52 @@ const DEFAULT_API_CONFIG: ApiConfig = {
   configOptions: [],
 };
 
+function defaultResource(): ResourceDefinition {
+  return {
+    id: uid(),
+    name: "",
+    description: "",
+    content: "",
+    mimeType: "text/plain",
+    toolScope: "all",
+  };
+}
+
+function defaultPrompt(): PromptDefinition {
+  return {
+    id: uid(),
+    name: "",
+    description: "",
+    content: "",
+    mimeType: "text/plain",
+    toolScope: "all",
+  };
+}
+
+function mimeTypeFromFilename(filename: string): ResourceMimeType {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "md" || ext === "mdx") return "text/markdown";
+  if (ext === "json") return "application/json";
+  return "text/plain";
+}
+
+function slugFromFilename(filename: string): string {
+  return filename
+    .toLowerCase()
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 const INITIAL_STATE = {
   step: 1 as const,
+  serverName: "",
   description: "",
   apiConfig: DEFAULT_API_CONFIG,
   tools: [defaultTool()],
   suggestionsLoading: false,
+  resources: [] as ResourceDefinition[],
+  prompts: [] as PromptDefinition[],
   generatedResult: null as GeneratedResult | null,
 };
 
@@ -151,11 +234,12 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   // Navigation
   setStep: (step) => set({ step }),
   nextStep: () =>
-    set((s) => ({ step: Math.min(5, s.step + 1) as 1 | 2 | 3 | 4 | 5 })),
+    set((s) => ({ step: Math.min(6, s.step + 1) as 1 | 2 | 3 | 4 | 5 | 6 })),
   prevStep: () =>
-    set((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 | 4 | 5 })),
+    set((s) => ({ step: Math.max(1, s.step - 1) as 1 | 2 | 3 | 4 | 5 | 6 })),
 
   // Step 1
+  setServerName: (serverName) => set({ serverName }),
   setDescription: (description) => set({ description }),
 
   // Step 2 — api config
@@ -261,9 +345,66 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
       ),
     })),
 
-  // Step 5
+  // Step 4 — resources
+  addResource: () =>
+    set((s) => ({ resources: [...s.resources, defaultResource()] })),
+  updateResource: (id, patch) =>
+    set((s) => ({
+      resources: s.resources.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    })),
+  removeResource: (id) =>
+    set((s) => ({ resources: s.resources.filter((r) => r.id !== id) })),
+  addResourceFromFile: (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = (e.target?.result as string) ?? "";
+      const mimeType = mimeTypeFromFilename(file.name);
+      const slug = slugFromFilename(file.name);
+      const resource: ResourceDefinition = {
+        id: uid(),
+        name: slug,
+        description: "",
+        content,
+        mimeType,
+        toolScope: "all",
+      };
+      useGeneratorStore.setState((s) => ({ resources: [...s.resources, resource] }));
+    };
+    reader.readAsText(file);
+  },
+
+  // Step 4 — prompts
+  addPrompt: () =>
+    set((s) => ({ prompts: [...s.prompts, defaultPrompt()] })),
+  updatePrompt: (id, patch) =>
+    set((s) => ({
+      prompts: s.prompts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    })),
+  removePrompt: (id) =>
+    set((s) => ({ prompts: s.prompts.filter((p) => p.id !== id) })),
+  addPromptFromFile: (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = (e.target?.result as string) ?? "";
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const mimeType: PromptMimeType = ext === "md" ? "text/markdown" : "text/plain";
+      const slug = slugFromFilename(file.name);
+      const prompt: PromptDefinition = {
+        id: uid(),
+        name: slug,
+        description: "",
+        content,
+        mimeType,
+        toolScope: "all",
+      };
+      useGeneratorStore.setState((s) => ({ prompts: [...s.prompts, prompt] }));
+    };
+    reader.readAsText(file);
+  },
+
+  // Step 6
   setGeneratedResult: (generatedResult) => set({ generatedResult }),
 
   // Reset
-  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], generatedResult: null, suggestionsLoading: false }),
+  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], generatedResult: null, suggestionsLoading: false }),
 }));
