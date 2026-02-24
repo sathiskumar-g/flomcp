@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const message = await client.messages.create({
-      model: "claude-3-5-haiku-20241022",
+      model: "claude-sonnet-4-5",
       max_tokens: 1024,
       temperature: 0.3,
       system: `You are an MCP (Model Context Protocol) tool design expert.
@@ -69,9 +69,10 @@ Include 1-4 fields per tool — only the essential parameters.`,
 
     return NextResponse.json({ tools });
   } catch (err) {
-    console.error("[suggest-tools]", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[suggest-tools]", message);
     return NextResponse.json(
-      { error: "Failed to generate tool suggestions" },
+      { error: `Failed to generate tool suggestions: ${message}` },
       { status: 500 }
     );
   }

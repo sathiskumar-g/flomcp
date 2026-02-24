@@ -11,7 +11,8 @@
  *  - limit?: number   — cap results (used on dashboard home page preview)
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Download,
+  ArrowRight,
   Trash2,
   Shield,
   Clock,
@@ -93,7 +94,9 @@ function formatDate(iso: string): string {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export function MCPServersList({ userId, limit }: MCPServersListProps) {
-  const supabase = createClient();
+  const router = useRouter();
+  // useMemo gives a stable client reference — avoids stale closure in useCallback
+  const supabase = useMemo(() => createClient(), []);
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +125,7 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
     } finally {
       setLoading(false);
     }
-  }, [userId, limit]);
+  }, [supabase, userId, limit]);
 
   useEffect(() => {
     fetchServers();
@@ -202,7 +205,11 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
         const isDeleting = deletingId === server.id;
 
         return (
-          <Card key={server.id} className="transition-all hover:shadow-md">
+          <Card
+            key={server.id}
+            className="transition-all hover:shadow-md hover:border-border cursor-pointer"
+            onClick={() => router.push(`/dashboard/servers/${server.id}`)}
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -248,15 +255,14 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
-                  {/* Download — placeholder until Phase 2 */}
+                  {/* View server detail */}
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled
-                    title="Available after generation"
+                    onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/servers/${server.id}`); }}
                   >
-                    <Download className="mr-1.5 h-3.5 w-3.5" />
-                    Download
+                    <ArrowRight className="mr-1.5 h-3.5 w-3.5" />
+                    View
                   </Button>
 
                   {/* Delete */}
