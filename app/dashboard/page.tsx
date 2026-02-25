@@ -37,7 +37,9 @@ function DashboardContent() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        // getSession() reads from local cookies — instant, no network call
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
           const { data } = await supabase

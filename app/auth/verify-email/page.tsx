@@ -27,8 +27,9 @@ export default function VerifyEmailPage() {
     setMessage("");
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user from local session (no network call)
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
       if (!user) {
         setError("Please sign in first.");

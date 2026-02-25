@@ -8,11 +8,13 @@
  */
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
+import { validateGeneratorStep1 } from "@/lib/validate-input";
 import { Lightbulb, ChevronRight, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +59,7 @@ export function Step1Description() {
   const charCount = description.length;
   const isNameValid = serverName.trim().length >= 3;
   const isDescValid = charCount >= MIN_CHARS;
+  // Basic length gates (for live UI feedback)
   const isValid = isNameValid && isDescValid;
   const showNameError = touched && !isNameValid;
   const showDescError = touched && !isDescValid;
@@ -188,7 +191,19 @@ export function Step1Description() {
         <Button
           onClick={() => {
             setTouched(true);
-            if (isValid) nextStep();
+            if (!isValid) return;
+
+            // Deep quality check — catches gibberish/random keysmash
+            const check = validateGeneratorStep1(serverName, description);
+            if (!check.valid) {
+              toast.warning("Please improve your input", {
+                description: check.reason,
+                duration: 8000,
+              });
+              return;
+            }
+
+            nextStep();
           }}
           disabled={!isValid}
           className="min-w-[160px]"

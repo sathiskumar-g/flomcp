@@ -10,9 +10,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // getSession() reads JWT locally — ZERO network calls. Middleware already refreshed.
   const authClient = createServerClient();
-  const { data: { user }, error: authErr } = await authClient.auth.getUser();
-  if (authErr || !user) {
+  const { data: { session } } = await authClient.auth.getSession();
+  const user = session?.user;
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -20,13 +22,22 @@ export async function GET(
   const { data, error } = await admin
     .from("mcp_servers")
     .select(
-      "id, name, description, status, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded"
+      "id, name, description, status, security_score, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded"
     )
     .eq("id", params.id)
     .eq("user_id", user.id) // ownership check
     .single();
 
   if (error || !data) {
+    // Distinguish DB errors (timeout/network) from actual "not found"
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 = "JSON object requested, multiple (or no) rows returned" = not found
+      console.error("DB query error for server", params.id, error);
+      return NextResponse.json(
+        { error: "Failed to fetch server. Please try again." },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({ error: "Server not found" }, { status: 404 });
   }
 
@@ -42,8 +53,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const authClient = createServerClient();
-  const { data: { user }, error: authErr } = await authClient.auth.getUser();
-  if (authErr || !user) {
+  const { data: { session } } = await authClient.auth.getSession();
+  const user = session?.user;
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

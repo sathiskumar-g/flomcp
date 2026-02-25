@@ -142,8 +142,9 @@ export default async function AdminCostsPage() {
   // ── Auth check ──
   const supabaseUser = createServerClient();
   const {
-    data: { user },
-  } = await supabaseUser.auth.getUser();
+    data: { session },
+  } = await supabaseUser.auth.getSession();
+  const user = session?.user;
 
   if (!user) redirect("/auth/signin");
 

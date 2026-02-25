@@ -4,6 +4,8 @@
  * Uses @supabase/ssr 0.8.x getAll/setAll cookie API.
  * Works in Server Components, API Route Handlers, and Server Actions.
  * For client-side usage, use lib/supabase.ts instead.
+ *
+ * IPv4 connectivity is handled globally by next.config.js (setGlobalDispatcher).
  */
 
 import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
@@ -16,6 +18,16 @@ export function createServerClient() {
   const cookieStore = cookies();
 
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      // 15s timeout — global dispatcher in next.config.js forces IPv4.
+      fetch: (url, options) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+          clearTimeout(timer)
+        );
+      },
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

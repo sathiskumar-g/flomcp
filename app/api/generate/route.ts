@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
 import { createServerClient } from "@/lib/supabase-server";
+import { validateGeneratorStep1 } from "@/lib/validate-input";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -19,10 +20,11 @@ function delay(ms: number) {
 // â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function POST(req: NextRequest) {
+  // getSession() reads JWT from cookies locally — ZERO network calls.
+  // The middleware already refreshed the token via getUser() before we get here.
   const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -30,6 +32,15 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { description, serverName = "", apiConfig, tools, resources = [], prompts = [] } = body;
+
+  // — Input quality guard — rejects gibberish before spending any Claude tokens —
+  const inputCheck = validateGeneratorStep1(serverName, description);
+  if (!inputCheck.valid) {
+    return new Response(
+      JSON.stringify({ error: inputCheck.reason ?? "Invalid input", code: "INVALID_INPUT" }),
+      { status: 422 }
+    );
+  }
 
   // â”€â”€ Rate limit â”€â”€
   const rateCheck = await checkRateLimit(supabase, user.id);
@@ -63,7 +74,7 @@ export async function POST(req: NextRequest) {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ? `\n   Parameters: ${t.fields.map((f: any) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ")}`
               : ""
-          }`
+          }${t.exampleOutput?.trim() ? `\n   Expected output: ${t.exampleOutput.trim()}` : ""}`
         ).join("\n");
 
         const apiSection = apiConfig?.enabled
@@ -604,7 +615,7 @@ Run command for users after download:
           .from("mcp_servers")
           .insert({
             user_id: user.id,
-            name: description.slice(0, 60),
+            name: (serverName || description).slice(0, 60),
             description,
             generated_code: parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "",
             package_json: parsed.files?.["package.json"] ?? "{}",

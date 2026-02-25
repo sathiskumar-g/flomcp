@@ -3,9 +3,9 @@
 /**
  * ProtectedRoute Component
  * 
- * A wrapper component that protects routes requiring authentication
- * Fixed: Removed getSession() call that was causing AbortError
- * Now uses getUser() which is more reliable in client components
+ * A wrapper component that protects routes requiring authentication.
+ * Uses getSession() for instant local JWT check (no network call).
+ * The middleware handles token refresh before this component runs.
  */
 
 import { useEffect, useState } from "react";
@@ -33,12 +33,14 @@ export function ProtectedRoute({
 
     const checkAuth = async () => {
       try {
-        // Use getUser() instead of getSession() to avoid AbortError
-        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        // getSession() reads from local cookies — instant, no network call.
+        // Middleware already refreshed the token before this page loaded.
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
 
         if (!mounted) return;
 
-        if (error || !currentUser) {
+        if (!currentUser) {
           router.push('/auth/signin');
           return;
         }

@@ -1,0 +1,120 @@
+{
+    "description": "Create an MCP server that provides basic calculator tools for Claude. It should support addition, subtraction, multiplication, and division of two numbers. Division should handle divide-by-zero gracefully and return a clear error message. Each tool should accept two numeric inputs (a and b) and return the numeric result. Include input validation to reject non-numeric values.",
+    "serverName": "Calculator Tools",
+    "apiConfig": {
+        "enabled": false,
+        "baseUrl": "",
+        "authType": "none",
+        "apiDocUrl": "",
+        "inputSchema": [],
+        "configOptions": []
+    },
+    "tools": [
+        {
+            "id": "uzknpx8",
+            "name": "add",
+            "description": "Adds two numbers together and returns the sum. Use this when you need to perform addition operations.",
+            "fields": [
+                {
+                    "id": "8eaainn",
+                    "name": "a",
+                    "type": "number",
+                    "required": true,
+                    "description": "The first number to add"
+                },
+                {
+                    "id": "7z5yqdl",
+                    "name": "b",
+                    "type": "number",
+                    "required": true,
+                    "description": "The second number to add"
+                }
+            ]
+        },
+        {
+            "id": "q3f44ep",
+            "name": "subtract",
+            "description": "Subtracts the second number from the first number and returns the difference. Use this when you need to perform subtraction operations.",
+            "fields": [
+                {
+                    "id": "i984hi4",
+                    "name": "a",
+                    "type": "number",
+                    "required": true,
+                    "description": "The number to subtract from"
+                },
+                {
+                    "id": "j72g3ax",
+                    "name": "b",
+                    "type": "number",
+                    "required": true,
+                    "description": "The number to subtract"
+                }
+            ]
+        },
+        {
+            "id": "11ii8vh",
+            "name": "multiply",
+            "description": "Multiplies two numbers together and returns the product. Use this when you need to perform multiplication operations.",
+            "fields": [
+                {
+                    "id": "38k6p6o",
+                    "name": "a",
+                    "type": "number",
+                    "required": true,
+                    "description": "The first number to multiply"
+                },
+                {
+                    "id": "yj3bfxr",
+                    "name": "b",
+                    "type": "number",
+                    "required": true,
+                    "description": "The second number to multiply"
+                }
+            ]
+        },
+        {
+            "id": "swjii8j",
+            "name": "divide",
+            "description": "Divide a by b",
+            "fields": [
+                {
+                    "id": "9yel13u",
+                    "name": "a",
+                    "type": "number",
+                    "required": true,
+                    "description": ""
+                },
+                {
+                    "id": "tlpgzr5",
+                    "name": "b",
+                    "type": "number",
+                    "required": true,
+                    "description": ""
+                }
+            ],
+            
+            "exampleOutput": "{ \"result\": 2.5 } or { \"error\": \"Division by zero\" }"
+        }
+    ],
+    "resources": [
+        {
+            "id": "zaswuyt",
+            "name": "calculator-history",
+            "description": "\tReturns the last 10 calculation results performed in this session",
+            "content": "{\n  \"history\": [\n    { \"id\": 1, \"operation\": \"add\", \"a\": 10, \"b\": 5, \"result\": 15, \"timestamp\": \"2026-02-25T10:00:00Z\" },\n    { \"id\": 2, \"operation\": \"multiply\", \"a\": 6, \"b\": 7, \"result\": 42, \"timestamp\": \"2026-02-25T10:01:00Z\" },\n    { \"id\": 3, \"operation\": \"divide\", \"a\": 100, \"b\": 4, \"result\": 25, \"timestamp\": \"2026-02-25T10:02:00Z\" },\n    { \"id\": 4, \"operation\": \"subtract\", \"a\": 50, \"b\": 18, \"result\": 32, \"timestamp\": \"2026-02-25T10:03:00Z\" },\n    { \"id\": 5, \"operation\": \"divide\", \"a\": 9, \"b\": 0, \"result\": null, \"error\": \"Division by zero\", \"timestamp\": \"2026-02-25T10:04:00Z\" }\n  ],\n  \"total\": 5,\n  \"session_id\": \"calc-session-abc123\"\n}",
+            "mimeType": "application/json",
+            "toolScope": "all"
+        }
+    ],
+    "prompts": [
+        {
+            "id": "oswnhs1",
+            "name": "solve-equation",
+            "description": "Given a simple arithmetic expression, break it into steps and solve using the calculator tools",
+            "content": "Solve this step by step using the calculator tools: {{expression}}",
+            "mimeType": "text/plain",
+            "toolScope": "all"
+        }
+    ]
+}

@@ -56,4 +56,97 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* ── Sonner toast overrides — match dark product theme ── */
+  [data-sonner-toaster] {
+    --normal-bg: hsl(222.2 47.4% 9%);
+    --normal-border: hsl(217.2 32.6% 17.5%);
+    --normal-text: hsl(210 40% 98%);
+  }
+
+  /* Base toast card */
+  [data-sonner-toast] {
+    border-radius: 0.6rem !important;
+    border-width: 1px !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.45) !important;
+  }
+
+  /* Move close button to top-right */
+  [data-sonner-toast] [data-close-button] {
+    left: auto !important;
+    right: 0 !important;
+    top: 0 !important;
+    border-radius: 0 0.6rem 0 0.4rem !important;
+    border-top: none !important;
+    border-right: none !important;
+    border-left: 1px solid !important;
+    border-bottom: 1px solid !important;
+    border-color: inherit !important;
+    background: transparent !important;
+    opacity: 0.6 !important;
+    transition: opacity 0.15s !important;
+  }
+
+  [data-sonner-toast] [data-close-button]:hover {
+    opacity: 1 !important;
+    background: hsl(217.2 32.6% 17.5% / 0.6) !important;
+  }
+
+  /* Description text — slightly muted */
+  [data-sonner-toast] [data-description] {
+    opacity: 0.82 !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Warning — amber toned, slightly different from default richColors yellow */
+  [data-sonner-toast][data-type="warning"] {
+    background: hsl(35 80% 10%) !important;
+    border-color: hsl(35 80% 22%) !important;
+    color: hsl(38 90% 88%) !important;
+  }
+
+  [data-sonner-toast][data-type="warning"] [data-close-button] {
+    border-color: hsl(35 80% 22%) !important;
+  }
+
+  /* Error */
+  [data-sonner-toast][data-type="error"] {
+    background: hsl(0 70% 8%) !important;
+    border-color: hsl(0 60% 22%) !important;
+    color: hsl(0 80% 90%) !important;
+  }
+
+  [data-sonner-toast][data-type="error"] [data-close-button] {
+    border-color: hsl(0 60% 22%) !important;
+  }
+
+  /* Success */
+  [data-sonner-toast][data-type="success"] {
+    background: hsl(142 50% 7%) !important;
+    border-color: hsl(142 40% 18%) !important;
+    color: hsl(142 60% 88%) !important;
+  }
+
+  [data-sonner-toast][data-type="success"] [data-close-button] {
+    border-color: hsl(142 40% 18%) !important;
+  }
+
+  /*
+   * Fix tap/touch on Windows trackpad and touch screens.
+   * Without this, browsers add a ~300ms delay waiting for double-tap-to-zoom,
+   * making buttons feel unresponsive to taps (only physical clicks work).
+   */
+  button,
+  a,
+  [role="button"],
+  label,
+  select,
+  input[type="submit"],
+  input[type="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    touch-action: manipulation;
+  }
 }

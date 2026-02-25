@@ -6,6 +6,8 @@
  * Uses SUPABASE_SERVICE_ROLE_KEY which bypasses Row Level Security.
  * Only use for admin operations and internal tooling.
  *
+ * IPv4 connectivity is handled globally by next.config.js (setGlobalDispatcher).
+ *
  * Usage:
  *   import { createAdminClient } from '@/lib/supabase-admin'
  *   const supabase = createAdminClient()
@@ -30,6 +32,16 @@ export function createAdminClient() {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
+    },
+    global: {
+      // 20s timeout for DB writes — global dispatcher in next.config.js forces IPv4.
+      fetch: (url, options) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 20000);
+        return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+          clearTimeout(timer)
+        );
+      },
     },
   });
 }

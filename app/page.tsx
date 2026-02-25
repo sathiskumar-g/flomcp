@@ -38,9 +38,11 @@ export default function Home() {
     
     const checkUser = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        // getSession() reads from local cookies — instant, NO network call.
+        // This is all we need to check "am I logged in?" on the landing page.
+        const { data: { session } } = await supabase.auth.getSession();
         if (isMounted) {
-          setUser(currentUser);
+          setUser(session?.user ?? null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -174,8 +176,18 @@ export default function Home() {
               // Show nothing while checking auth
               <div className="h-9 w-32" />
             ) : user ? (
-              // User is logged in - show user menu
-              <UserMenu user={user} />
+              // User is logged in — show dashboard button + user menu
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => router.push('/dashboard')}
+                  className="bg-primary hover:bg-primary/90 gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  Go to Dashboard
+                </Button>
+                <UserMenu user={user} />
+              </>
             ) : (
               // User is not logged in - show auth buttons
               <>

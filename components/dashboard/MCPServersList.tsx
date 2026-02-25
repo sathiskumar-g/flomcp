@@ -184,7 +184,7 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
   return (
     <div className="space-y-3">
       {servers.map((server) => {
-        const securityStyle = getSecurityScoreStyle(server.security_score);
+        const securityStyle = getSecurityScoreStyle(server.security_score ?? 100);
         const statusStyle = getStatusStyle(server.status);
         const isDeleting = deletingId === server.id;
 

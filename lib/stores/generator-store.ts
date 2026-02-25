@@ -33,6 +33,7 @@ export interface ToolDefinition {
   description: string;
   fields: SchemaField[];
   annotation?: ToolAnnotation;
+  exampleOutput?: string; // optional sample response / output description
 }
 
 export type ResourceMimeType = "text/plain" | "text/markdown" | "application/json";
@@ -155,6 +156,7 @@ function defaultTool(): ToolDefinition {
     name: "",
     description: "",
     fields: [defaultField()],
+    exampleOutput: "",
   };
 }
 

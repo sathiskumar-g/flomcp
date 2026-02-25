@@ -15,6 +15,7 @@ import {
 } from "@/lib/stores/generator-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -203,7 +204,7 @@ type ToolCardProps = {
   isExpanded: boolean;
   canRemove: boolean;
   onToggleExpand: () => void;
-  onUpdate: (patch: Partial<Pick<ToolDefinition, "name" | "description">>) => void;
+  onUpdate: (patch: Partial<Pick<ToolDefinition, "name" | "description" | "exampleOutput">>) => void;
   onRemove: () => void;
   onAddField: () => void;
   onUpdateField: (fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
@@ -328,6 +329,23 @@ function ToolCard({
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Expected Output / Sample Response{" "}
+              <span className="normal-case text-muted-foreground/60 font-normal">(optional)</span>
+            </label>
+            <Textarea
+              value={tool.exampleOutput ?? ""}
+              onChange={(e) => onUpdate({ exampleOutput: e.target.value })}
+              placeholder={`e.g. { "id": 123, "status": "active", "name": "Acme Corp" }\n\nor describe it: "Returns a list of customer objects with id, name, email and plan."`}
+              rows={3}
+              className="text-xs font-mono resize-none"
+            />
+            <p className="text-xs text-muted-foreground">
+              Paste a real API response or describe the return shape — Claude will generate more accurate parsing logic.
+            </p>
           </div>
         </CardContent>
       )}
