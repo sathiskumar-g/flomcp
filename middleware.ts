@@ -6,13 +6,9 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * Strategy:
  * - If NO session cookie → skip ALL network calls (zero latency for anonymous users)
- * - If session cookie EXISTS → call getUser() with a 5-second timeout.
- *   On success the refreshed token is forwarded via request cookies so API
- *   routes can call getSession() locally without any network call.
- * - On failure → fall back to getSession() (local JWT decode, no network).
- *
- * The matcher now includes /api/* so that token refresh happens BEFORE API
- * routes run. API routes themselves use getSession() (instant, no network).
+ * - If session cookie EXISTS → call getSession() which decodes JWT locally.
+ *   Only makes a network call when the token is expired and needs refresh.
+ *   Much faster than getUser() which ALWAYS hits Supabase.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -22,10 +18,11 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       global: {
-        // 5-second fetch timeout — fail fast so the request isn't blocked for 10s+
+        // 3-second fetch timeout — only used for token refresh (expired JWT).
+        // getSession() is instant for fresh tokens (no network call).
         fetch: (url: string | URL | Request, options?: RequestInit) => {
           const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 5000);
+          const timer = setTimeout(() => controller.abort(), 3000);
           return fetch(url, { ...options, signal: controller.signal }).finally(() =>
             clearTimeout(timer)
           );
@@ -56,24 +53,24 @@ export async function middleware(request: NextRequest) {
   let user = null;
 
   if (hasSessionCookie) {
-    // Session cookie present — try getUser() to refresh the access token.
+    // getSession() decodes the JWT locally — instant, zero network calls
+    // for fresh tokens. Only makes a network call if the access token is
+    // expired and needs to be refreshed via the refresh token.
+    // Much faster than getUser() which ALWAYS calls the Supabase auth server.
     try {
-      const { data } = await supabase.auth.getUser();
-      user = data.user;
+      const { data: { session } } = await supabase.auth.getSession();
+      user = session?.user ?? null;
     } catch {
-      // Network timeout or error — fall back to local session decode.
-      // The token won't refresh this request, but user won't be kicked out.
-      try {
-        const { data } = await supabase.auth.getSession();
-        user = data.session?.user ?? null;
-      } catch {
-        user = null;
-      }
+      // Token refresh failed (network down) — treat as unauthenticated.
+      // User will be redirected to signin and can re-authenticate.
+      user = null;
     }
   }
 
   // Protect /dashboard — redirect unauthenticated users to signin
-  if (!user && !hasSessionCookie && request.nextUrl.pathname.startsWith("/dashboard")) {
+  // Check ONLY !user (not hasSessionCookie). If cookie exists but is corrupted/expired
+  // and both getUser() and getSession() failed, user=null → redirect to signin.
+  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/signin";
     return NextResponse.redirect(url);
@@ -99,6 +96,7 @@ export const config = {
     "/dashboard/:path*",
     "/auth/:path*",
     "/login",
-    "/api/:path*",
+    // No "/api/:path*" — API routes handle their own auth.
+    // Running middleware on every API call added unnecessary latency.
   ],
 };

@@ -70,6 +70,10 @@ export interface ApiConfig {
 export interface GeneratedResult {
   id: string;
   tools: ToolDefinition[];
+  /** From `type: "security"` SSE event */
+  securityScore?: number;
+  securityGrade?: string;
+  blockDownload?: boolean;
 }
 
 export interface GeneratorState {

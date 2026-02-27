@@ -10,10 +10,9 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // getSession() reads JWT locally — ZERO network calls. Middleware already refreshed.
-  const authClient = createServerClient();
-  const { data: { session } } = await authClient.auth.getSession();
-  const user = session?.user;
+  const supabase = createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -52,9 +51,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const authClient = createServerClient();
-  const { data: { session } } = await authClient.auth.getSession();
-  const user = session?.user;
+  const supabase = createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

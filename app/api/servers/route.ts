@@ -7,10 +7,9 @@ import { createAdminClient } from "@/lib/supabase-admin";
  * Returns all MCP servers belonging to the authenticated user, newest first.
  */
 export async function GET(_req: NextRequest) {
-  // getSession() reads JWT locally — ZERO network calls. Middleware already refreshed.
-  const authClient = createServerClient();
-  const { data: { session } } = await authClient.auth.getSession();
-  const user = session?.user;
+  const supabase = createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -35,9 +34,9 @@ export async function GET(_req: NextRequest) {
  * Deletes a single server belonging to the authenticated user.
  */
 export async function DELETE(req: NextRequest) {
-  const authClient = createServerClient();
-  const { data: { session } } = await authClient.auth.getSession();
-  const user = session?.user;
+  const supabase = createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

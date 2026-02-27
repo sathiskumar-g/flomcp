@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
 import { createServerClient } from "@/lib/supabase-server";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
+import { runSecurityValidation } from "@/lib/security/validator";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -17,14 +18,85 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ─── Robust Claude JSON extractor ────────────────────────────────────────────
+// Stage 1: strip fence → direct parse
+// Stage 2: find outermost { … } → parse
+// Stage 3: per-file regex extraction (handles JSON truncated mid-string)
+// Stage 4: throw – never silently swallow a parse failure
+
+const KNOWN_FILE_KEYS = [
+  "src/index.ts",
+  "index.js",
+  "package.json",
+  "tsconfig.json",
+  ".env.example",
+  "README.md",
+  "tests/index.test.ts",
+] as const;
+
+function parseClaudeOutput(
+  raw: string
+): { files?: Record<string, string>; tools?: object[] } {
+  // Stage 1 – strip optional markdown fence, direct parse
+  const cleaned = raw
+    .replace(/^```json\r?\n?/m, "")
+    .replace(/^```\r?\n?/m, "")
+    .replace(/\r?\n?```$/m, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch { /* fall through */ }
+
+  // Stage 2 – locate outermost { … }
+  const first = cleaned.indexOf("{");
+  const last = cleaned.lastIndexOf("}");
+  if (first !== -1 && last > first) {
+    try {
+      return JSON.parse(cleaned.slice(first, last + 1));
+    } catch { /* fall through */ }
+  }
+
+  // Stage 3 – per-file regex extraction (handles truncated JSON strings)
+  // Matches: "key": "...JSON-escaped content..." including partially truncated values
+  const files: Record<string, string> = {};
+  for (const key of KNOWN_FILE_KEYS) {
+    // Escape special regex chars in the key (handles slashes, dots)
+    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\//g, "\\/");
+    // Try complete string first (unescaped closing quote)
+    const completeRe = new RegExp(`"${escapedKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, "s");
+    const completeMatch = cleaned.match(completeRe);
+    if (completeMatch) {
+      try { files[key] = JSON.parse(`"${completeMatch[1]}"`); }
+      catch { files[key] = completeMatch[1]; }
+      continue;
+    }
+    // Partial: value runs to end-of-string (truncated response)
+    const partialRe = new RegExp(`"${escapedKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`, "s");
+    const partialMatch = cleaned.match(partialRe);
+    if (partialMatch) {
+      // Decode escape sequences in the partial content
+      try { files[key] = JSON.parse(`"${partialMatch[1].replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\\\/g, "\\").replace(/\\"/g, '"')}"`); }
+      catch { files[key] = partialMatch[1]; }
+    }
+  }
+  if (Object.keys(files).length > 0) {
+    return { files };
+  }
+
+  // Stage 4 – complete failure, surface details for debugging
+  const snippet = raw.slice(0, 300).replace(/\n/g, " ");
+  throw new Error(
+    `Claude returned unparseable output. First 300 chars: ${snippet}`
+  );
+}
+
 // â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function POST(req: NextRequest) {
-  // getSession() reads JWT from cookies locally — ZERO network calls.
-  // The middleware already refreshed the token via getUser() before we get here.
+  // getSession() reads JWT from cookies locally — no network call
   const supabase = createServerClient();
   const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
+  const user = session?.user ?? null;
 
   if (!user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -583,30 +655,62 @@ ${prompts.length > 0
 Run command for users after download:
   cd ${serverSlug} && npm install && npx tsx src/index.ts`;
 
-        const message = await anthropic.messages.create({
-          model: "claude-sonnet-4-5",
-          max_tokens: 8096,
-          temperature: 0.3,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: USER_MESSAGE }],
-        });
+        // Extended output beta – raises the per-request output cap to 16 000 tokens
+        // which prevents JSON truncation for large servers (the main cause of
+        // "Unterminated string in JSON" errors at ~8 096 token limit).
+        const message = await anthropic.beta.messages.create(
+          {
+            model: "claude-sonnet-4-5",
+            max_tokens: 16000,
+            temperature: 0.3,
+            system: SYSTEM_PROMPT,
+            messages: [{ role: "user", content: USER_MESSAGE }],
+            betas: ["output-128k-2025-02-19"],
+          }
+        );
 
-        const raw = message.content[0].type === "text" ? message.content[0].text : "{}";
-        const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const raw = message.content[0].type === "text" ? message.content[0].text : "";
+        if (!raw) throw new Error("Claude returned an empty response");
 
-        let parsed: { files?: Record<string, string>; tools?: object[] } = {};
-        try {
-          parsed = JSON.parse(cleaned);
-        } catch {
-          const jsonMatch = raw.match(/\{[\s\S]*\}/);
-          if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+        const parsed = parseClaudeOutput(raw);
+
+        // Guard: index.ts must not be empty – catches silent parse failures
+        const generatedIndexTs =
+          parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "";
+        if (!generatedIndexTs.trim()) {
+          throw new Error(
+            "Generation failed: src/index.ts is empty. " +
+            "Claude may have returned malformed JSON. Please try again."
+          );
         }
 
-        send({ type: "progress", step: "security", message: "Adding security best practices…" });
-        await delay(800);
+        // ── Run 22-check security validation ──────────────────────────────────
+        send({ type: "progress", step: "security", message: "Running 22 security checks…" });
+
+        const generatedPackageJson = parsed.files?.["package.json"] ?? "{}";
+        const generatedTsconfig = parsed.files?.["tsconfig.json"] ?? null;
+        const generatedEnvExample = parsed.files?.[".env.example"] ?? null;
+
+        const securityReport = runSecurityValidation({
+          indexTs: generatedIndexTs,
+          packageJson: generatedPackageJson,
+          tsconfig: generatedTsconfig ?? undefined,
+          envExample: generatedEnvExample ?? undefined,
+        });
+
+        // Send score to client immediately so UI can react
+        send({
+          type: "security",
+          score: securityReport.score,
+          grade: securityReport.grade,
+          passedChecks: securityReport.passedChecks,
+          failedChecks: securityReport.failedChecks,
+          blockDownload: securityReport.blockDownload,
+          report: securityReport,
+        });
 
         send({ type: "progress", step: "saving", message: "Saving your server…" });
-        await delay(600);
+        await delay(400);
 
         // ── Persist to DB ──
         const adminClient = createAdminClient();
@@ -617,14 +721,15 @@ Run command for users after download:
             user_id: user.id,
             name: (serverName || description).slice(0, 60),
             description,
-            generated_code: parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "",
-            package_json: parsed.files?.["package.json"] ?? "{}",
+            generated_code: generatedIndexTs,
+            package_json: generatedPackageJson,
             readme: parsed.files?.["README.md"] ?? "",
-            tsconfig: parsed.files?.["tsconfig.json"] ?? null,
-            env_example: parsed.files?.[".env.example"] ?? null,
+            tsconfig: generatedTsconfig,
+            env_example: generatedEnvExample,
             api_config: apiConfig ?? null,
             status: "generated",
-            security_score: 100,
+            security_score: securityReport.score,
+            security_report: securityReport,
           })
           .select("id")
           .single();
@@ -633,7 +738,14 @@ Run command for users after download:
 
         await recordGeneration(supabase, user.id);
 
-        send({ type: "complete", id: insertedRow.id, tools: parsed.tools ?? tools });
+        send({
+          type: "complete",
+          id: insertedRow.id,
+          tools: parsed.tools ?? tools,
+          securityScore: securityReport.score,
+          securityGrade: securityReport.grade,
+          blockDownload: securityReport.blockDownload,
+        });
       } catch (err: unknown) {
         send({
           type: "error",

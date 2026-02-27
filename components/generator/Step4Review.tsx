@@ -64,6 +64,11 @@ export function Step4Review() {
     setCompletedSteps(new Set());
     setActiveStep(null);
 
+    // Accumulate security data from the `type:"security"` SSE event
+    let securityScore: number | undefined;
+    let securityGrade: string | undefined;
+    let blockDownload: boolean | undefined;
+
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -99,6 +104,11 @@ export function Step4Review() {
               setCompletedSteps((prev) => new Set([...prev, activeStep]));
             }
             setActiveStep(event.step);
+          } else if (event.type === "security") {
+            // Store security result — will be attached to generatedResult below
+            securityScore = event.score as number;
+            securityGrade = event.grade as string;
+            blockDownload = event.blockDownload as boolean;
           } else if (event.type === "complete") {
             // Mark all steps done
             setCompletedSteps(new Set(PROGRESS_STEPS.map((s) => s.key)));
@@ -106,6 +116,9 @@ export function Step4Review() {
             setGeneratedResult({
               id: event.id,
               tools: (event.tools ?? tools) as ToolDefinition[],
+              securityScore,
+              securityGrade,
+              blockDownload,
             });
             nextStep(); // → Step 5: PostGenerationReview
             return;

@@ -42,11 +42,16 @@ export function UserMenu({ user }: UserMenuProps) {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      await supabase.auth.signOut();
+      // Sign out via server-side proxy (clears cookies reliably)
+      await fetch("/api/auth/signout", { method: "POST" });
       router.push('/');
       router.refresh();
     } catch (error) {
       console.error('Logout error:', error);
+      // Fallback: try direct signOut (clears local state at least)
+      try { await supabase.auth.signOut(); } catch {}
+      router.push('/');
+      router.refresh();
     } finally {
       setLoggingOut(false);
     }

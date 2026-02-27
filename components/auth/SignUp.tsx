@@ -90,27 +90,41 @@ export function SignUp() {
     }
 
     try {
-      // Create user with email verification required
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
+      // Sign up via server-side auth proxy (IPv4 fix + retry logic).
+      // Browser → localhost/api/auth/signup → Server → Supabase
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          metadata: {
             tos_accepted: true,
             security_acknowledged: true,
             responsibility_accepted: true,
-          }
-        }
+          },
+        }),
       });
 
-      if (signUpError) throw signUpError;
+      const result = await res.json();
+
+      if (!res.ok) {
+        if (result.code === "network_error" || res.status === 503) {
+          setError(
+            "Unable to reach the authentication server. The server will retry automatically — please try again in a moment."
+          );
+        } else {
+          setError(result.error || "Failed to create account. Please try again.");
+        }
+        setLoading(false);
+        return;
+      }
 
       // Success! User must verify email before accessing the platform
       setSuccess(true);
     } catch (err: any) {
       console.error('Sign up error:', err);
-      setError(err.message || "Failed to create account. Please try again.");
+      setError("Cannot connect to the application server. Is the dev server running?");
     } finally {
       setLoading(false);
     }
@@ -144,7 +158,11 @@ export function SignUp() {
       if (oauthError) throw oauthError;
     } catch (err: any) {
       console.error('Google sign up error:', err);
-      setError(err.message || "Failed to sign up with Google. Please try again.");
+      if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
+        setError("Network error — cannot reach Google sign-up. Please check your connection or try email sign-up.");
+      } else {
+        setError(err.message || "Failed to sign up with Google. Please try again.");
+      }
       setLoading(false);
     }
   };

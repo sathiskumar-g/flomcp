@@ -21,9 +21,10 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // User state
+  // User state — start with checkingAuth=false so buttons show IMMEDIATELY.
+  // Auth resolves in background; if user is logged in, button swaps to Dashboard.
   const [user, setUser] = useState<User | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(false);
   
   // Modal state for custom development
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,18 +39,18 @@ export default function Home() {
     
     const checkUser = async () => {
       try {
-        // getSession() reads from local cookies — instant, NO network call.
-        // This is all we need to check "am I logged in?" on the landing page.
-        const { data: { session } } = await supabase.auth.getSession();
-        if (isMounted) {
-          setUser(session?.user ?? null);
+        // Race getSession() against a 3-second timeout.
+        // If network is down, we just show "Sign In" — no freeze.
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
+        if (isMounted && result && 'data' in result) {
+          setUser(result.data.session?.user ?? null);
         }
       } catch (error) {
+        // Network error — silently ignore, show Sign In button
         console.error('Auth check error:', error);
-      } finally {
-        if (isMounted) {
-          setCheckingAuth(false);
-        }
       }
     };
 
@@ -172,10 +173,7 @@ export default function Home() {
             </Button>
             
             {/* Conditionally show UserMenu or Auth buttons */}
-            {checkingAuth ? (
-              // Show nothing while checking auth
-              <div className="h-9 w-32" />
-            ) : user ? (
+            {user ? (
               // User is logged in — show dashboard button + user menu
               <>
                 <Button

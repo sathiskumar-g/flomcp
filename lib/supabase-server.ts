@@ -19,10 +19,11 @@ export function createServerClient() {
 
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     global: {
-      // 15s timeout — global dispatcher in next.config.js forces IPv4.
+      // 12s timeout — global dispatcher forces IPv4. Long enough for slow ISP
+      // connections to Supabase, short enough to fail fast on real outages.
       fetch: (url, options) => {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 15000);
+        const timer = setTimeout(() => controller.abort(), 12000);
         return fetch(url, { ...options, signal: controller.signal }).finally(() =>
           clearTimeout(timer)
         );

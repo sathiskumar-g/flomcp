@@ -15,12 +15,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, AlertCircle, CheckCircle2, Wifi, WifiOff } from "lucide-react";
 
 export function SignIn() {
   const [email, setEmail] = useState("");
@@ -29,7 +29,6 @@ export function SignIn() {
   const [error, setError] = useState("");
   const [resetSent, setResetSent] = useState(false);
   
-  const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
 
@@ -42,9 +41,11 @@ export function SignIn() {
   }, [searchParams]);
 
   /**
-   * Handle email/password sign in
-   * - Checks if email is verified
-   * - Shows warning if not verified
+   * Handle email/password sign in — via server-side auth proxy.
+   *
+   * The browser calls /api/auth/signin (localhost, always works).
+   * The server relays to Supabase with IPv4 fix + retry logic.
+   * This eliminates browser → Supabase network issues entirely.
    */
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,29 +53,39 @@ export function SignIn() {
     setLoading(true);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (signInError) throw signInError;
+      const result = await res.json();
 
-      // Check if email is verified
-      if (data.user && !data.user.email_confirmed_at) {
-        setError(
-          "Please verify your email address before signing in. Check your inbox for the verification link."
-        );
+      if (!res.ok) {
+        if (result.code === "email_not_verified") {
+          setError(
+            "Please verify your email address before signing in. Check your inbox for the verification link."
+          );
+        } else if (result.code === "network_error" || res.status === 503) {
+          setError(
+            "Unable to reach the authentication server. The server will retry automatically — please try again in a moment."
+          );
+        } else {
+          setError(result.error || "Invalid email or password. Please try again.");
+        }
         setLoading(false);
         return;
       }
 
-      // Success! Refresh the router cache so middleware sees the new cookie,
-      // then navigate to dashboard.
-      router.refresh();
-      router.push('/dashboard');
+      // Success! Cookies are set by the server (via Set-Cookie headers).
+      // Hard navigate to dashboard — ensures clean state, fresh middleware run,
+      // and no stale client-side cache. Faster than router.refresh() + router.push()
+      // which triggers TWO sequential middleware runs.
+      window.location.href = '/dashboard';
     } catch (err: any) {
       console.error('Sign in error:', err);
-      setError(err.message || "Invalid email or password. Please try again.");
+      // This only happens if localhost itself is unreachable (dev server down)
+      setError("Cannot connect to the application server. Is the dev server running?");
     } finally {
       setLoading(false);
     }
@@ -99,14 +110,17 @@ export function SignIn() {
       if (oauthError) throw oauthError;
     } catch (err: any) {
       console.error('Google sign in error:', err);
-      setError(err.message || "Failed to sign in with Google. Please try again.");
+      if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
+        setError("Network error — cannot reach Google sign-in. Please check your connection or try email sign-in.");
+      } else {
+        setError(err.message || "Failed to sign in with Google. Please try again.");
+      }
       setLoading(false);
     }
   };
 
   /**
-   * Handle password reset email
-   * - Sends reset link to user's email
+   * Handle password reset email — via server-side auth proxy.
    */
   const handleForgotPassword = async () => {
     if (!email) {
@@ -118,16 +132,22 @@ export function SignIn() {
     setLoading(true);
 
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
 
-      if (resetError) throw resetError;
+      const result = await res.json();
 
-      setResetSent(true);
+      if (!res.ok) {
+        setError(result.error || "Failed to send reset email. Please try again.");
+      } else {
+        setResetSent(true);
+      }
     } catch (err: any) {
       console.error('Password reset error:', err);
-      setError(err.message || "Failed to send reset email. Please try again.");
+      setError("Cannot connect to the application server. Please try again.");
     } finally {
       setLoading(false);
     }

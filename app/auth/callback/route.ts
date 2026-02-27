@@ -16,7 +16,9 @@ import type { NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next') || '/dashboard';
+  const rawNext = requestUrl.searchParams.get('next') || '/dashboard';
+  // Sanitize: must start with / and not // (prevents open redirect)
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
 
   if (code) {
     const supabase = createServerClient();
@@ -27,9 +29,9 @@ export async function GET(request: NextRequest) {
       
       if (error) {
         console.error('Auth callback error:', error);
-        // Redirect to error page with message
+        // Use error codes, not raw messages (messages leak in URL/logs/referrer)
         return NextResponse.redirect(
-          `${requestUrl.origin}/auth/error?message=${encodeURIComponent(error.message)}`
+          `${requestUrl.origin}/auth/error?error=auth_exchange_failed`
         );
       }
 

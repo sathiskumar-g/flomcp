@@ -22,9 +22,11 @@ import {
   ChevronDown,
   ChevronUp,
   Code2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { SecurityScorePill } from "@/components/security/SecurityBadge";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -35,7 +37,7 @@ export function PostGenerationReview() {
 
   if (!generatedResult) return null;
 
-  const { id, tools } = generatedResult;
+  const { id, tools, securityScore, blockDownload } = generatedResult;
 
   function handleAccept() {
     reset();
@@ -66,6 +68,11 @@ export function PostGenerationReview() {
           Claude has generated your server. Review the tools below —
           accept them or go back to make adjustments.
         </p>
+        {securityScore != null && (
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <SecurityScorePill score={securityScore ?? null} />
+          </div>
+        )}
       </div>
 
       {/* Server ID chip */}
@@ -147,6 +154,20 @@ export function PostGenerationReview() {
           })}
         </div>
       </div>
+
+      {/* Block-download warning */}
+      {blockDownload && (
+        <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 px-4 py-3 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-orange-500 flex-shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-orange-600">Security Score Below Threshold</p>
+            <p className="text-xs text-muted-foreground">
+              This server scored {securityScore}/100 — below the 70-point minimum for download.
+              View the full security report on the server page to see what needs fixing.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Note */}
       <p className="text-xs text-center text-muted-foreground">

@@ -24,6 +24,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
+import { SecurityReport as SecurityReportComponent } from "@/components/security/SecurityReport";
+import type { SecurityReport } from "@/lib/security/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +49,7 @@ interface MCPServer {
   api_config: Record<string, unknown> | null;
   created_at: string;
   downloaded: boolean;
+  security_report: SecurityReport | null;
 }
 
 // ─── File tabs ────────────────────────────────────────────────────────────────
@@ -75,6 +84,8 @@ export default function ServerDetailPage() {
   const [copiedVscode, setCopiedVscode] = useState(false);
   const [vscodeOpen, setVscodeOpen] = useState(false);
   const [claudeOpen, setClaudeOpen] = useState(false);
+  const [isRevalidating, setIsRevalidating] = useState(false);
+  const [securityModalOpen, setSecurityModalOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -150,6 +161,31 @@ export default function ServerDetailPage() {
     });
   }
 
+  // Re-run security validation via /api/validate
+  async function handleRevalidate() {
+    if (!server || isRevalidating) return;
+    setIsRevalidating(true);
+    try {
+      const res = await fetch("/api/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serverId: id }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setServer((prev) =>
+          prev
+            ? { ...prev, security_score: json.report.score, security_report: json.report }
+            : prev
+        );
+        // Auto-open modal once analysis is done
+        setSecurityModalOpen(true);
+      }
+    } finally {
+      setIsRevalidating(false);
+    }
+  }
+
   // Config JSON generators
   const serverSlug = server.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   const claudeConfig = JSON.stringify(
@@ -218,12 +254,32 @@ export default function ServerDetailPage() {
           )}
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <p className="text-xs text-muted-foreground">Generated {createdDate}</p>
-            {server.security_score != null && (
-              <div className="flex items-center gap-1 text-xs">
-                <Shield className="h-3 w-3 text-green-500" />
-                <span className="text-green-600 font-medium">{server.security_score}/100</span>
-                <span className="text-muted-foreground">security score</span>
-              </div>
+            {server.security_score != null ? (
+              <button
+                onClick={() => setSecurityModalOpen(true)}
+                className={cn(
+                  "flex items-center gap-1 text-xs rounded-full border px-2 py-0.5 transition-colors hover:bg-muted/60",
+                  server.security_score >= 85 && "border-green-500/30 text-green-600 bg-green-500/5",
+                  server.security_score >= 70 && server.security_score < 85 && "border-blue-500/30 text-blue-600 bg-blue-500/5",
+                  server.security_score >= 55 && server.security_score < 70 && "border-yellow-500/30 text-yellow-600 bg-yellow-500/5",
+                  server.security_score < 55 && "border-red-500/30 text-red-600 bg-red-500/5",
+                )}
+              >
+                <Shield className="h-3 w-3" />
+                <span className="font-medium">{server.security_score}/100</span>
+                <span className="opacity-70">· View Report</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleRevalidate}
+                disabled={isRevalidating}
+                className="flex items-center gap-1 text-xs rounded-full border border-border px-2 py-0.5 text-muted-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
+              >
+                {isRevalidating
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <Shield className="h-3 w-3" />}
+                {isRevalidating ? "Analysing…" : "Run Security Analysis"}
+              </button>
             )}
           </div>
         </div>
@@ -275,6 +331,62 @@ export default function ServerDetailPage() {
           </pre>
         </CardContent>
       </Card>
+
+      {/* Security Report Modal */}
+      <Dialog open={securityModalOpen} onOpenChange={setSecurityModalOpen}>
+        <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/60 flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Shield className="h-4 w-4 text-primary" />
+              Security Report
+              {server.security_score != null && (
+                <span className={cn(
+                  "ml-1 text-sm font-semibold",
+                  server.security_score >= 85 && "text-green-600",
+                  server.security_score >= 70 && server.security_score < 85 && "text-blue-600",
+                  server.security_score >= 55 && server.security_score < 70 && "text-yellow-600",
+                  server.security_score < 55 && "text-red-600",
+                )}>
+                  — {server.security_score}/100
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {server.security_report ? (
+              <SecurityReportComponent
+                report={server.security_report}
+                onRevalidate={handleRevalidate}
+                isRevalidating={isRevalidating}
+                showRecommendations
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-muted/50 border border-border">
+                  <Shield className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">No security report yet</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                    This server was generated before security scanning. Run an analysis to see all 22 checks.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleRevalidate}
+                  disabled={isRevalidating}
+                  className="gap-2"
+                >
+                  {isRevalidating
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Shield className="h-4 w-4" />}
+                  {isRevalidating ? "Running analysis…" : "Run Security Analysis"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Connect section */}
       <Card className="border border-border/70">
