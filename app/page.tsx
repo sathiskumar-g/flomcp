@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import type { User } from "@supabase/supabase-js";
 import { ChevronDown } from "lucide-react";
 import { CODE_FILES } from "@/lib/showcase-files";
+import { ProInterestForm } from "@/components/pro/ProInterestForm";
+import { EnterpriseContactForm } from "@/components/pro/EnterpriseContactForm";
 
 const FAQ_ITEMS = [
   { q: "How do I generate an MCP server with FloMCP?", a: "Sign up for a free account, describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — schemas, handlers, error handling, and README included. No manual setup required." },
@@ -54,44 +56,26 @@ const CREDIT_PACKS = [
   { name: "Studio",   credits: "+100", price: "$30", priceNum: 30 },
 ];
 
-const PRO_FEATURE_OPTIONS = [
-  "Python support",
-  "50 credits/month",
-  "MCP security audit & auto-fix",
-  "Team collaboration",
-  "OpenAPI auto-import",
-  "Custom templates",
-];
-
 function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [email, setEmail] = useState("");
-  const [useCase, setUseCase] = useState("");
-  const [volume, setVolume] = useState("");
-  const [features, setFeatures] = useState<string[]>([]);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !containerRef.current) return;
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusable = Array.from(containerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
-
-  const toggleFeature = (f: string) =>
-    setFeatures((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, useCase, volume, features, type: "pro_interest" }),
-      });
-      setSubmitted(true);
-    } catch {
-      setSubmitted(true); // still show success — don't block UX on network error
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div
@@ -101,7 +85,7 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
       aria-labelledby="pro-modal-title"
       onClick={onClose}
     >
-      <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+      <div ref={containerRef} className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
             <h2 id="pro-modal-title" className="text-xl font-bold">Get early access to Pro</h2>
@@ -111,75 +95,7 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-
-        {submitted ? (
-          <div className="text-center py-8 space-y-3">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-            <p className="font-semibold">You're on the list!</p>
-            <p className="text-sm text-muted-foreground">We'll email you when Pro launches. Early access users get 30 days free.</p>
-            <button onClick={onClose} className="text-sm text-primary hover:underline">Close</button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="pro-email" className="text-sm font-medium">Your email</label>
-              <input
-                id="pro-email"
-                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="pro-usecase" className="text-sm font-medium">What kind of MCP servers are you building?</label>
-              <input
-                id="pro-usecase"
-                type="text" value={useCase} onChange={(e) => setUseCase(e.target.value)}
-                placeholder="e.g. REST API wrapper, database tools, internal tooling..."
-                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">How many MCP servers per month?</label>
-              <div className="flex gap-2 flex-wrap">
-                {["1–3", "4–10", "10+", "Not sure"].map((v) => (
-                  <button key={v} type="button"
-                    onClick={() => setVolume(v)}
-                    aria-pressed={volume === v}
-                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                      volume === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/60"
-                    }`}>
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">What would unlock Pro for you?</label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {PRO_FEATURE_OPTIONS.map((f) => (
-                  <button key={f} type="button"
-                    onClick={() => toggleFeature(f)}
-                    aria-pressed={features.includes(f)}
-                    className={`px-3 py-1.5 rounded-md text-xs border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                      features.includes(f) ? "bg-primary/10 border-primary text-primary" : "border-border hover:border-primary/40"
-                    }`}>
-                    {features.includes(f) && <span className="mr-1" aria-hidden="true">✓</span>}{f}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button type="submit" disabled={loading || !email}
-              className="w-full py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
-              {loading ? "Joining..." : "Join Early Access List →"}
-            </button>
-          </form>
-        )}
+        <ProInterestForm onSuccess={onClose} />
       </div>
     </div>
   );
@@ -238,40 +154,25 @@ function CodeEditorShowcase() {
 }
 
 function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [entEmail, setEntEmail] = useState("");
-  const [entDesc, setEntDesc] = useState("");
-  const [entTimeline, setEntTimeline] = useState("weeks");
-  const [entSubmitted, setEntSubmitted] = useState(false);
-  const [entLoading, setEntLoading] = useState(false);
-  const [entError, setEntError] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !containerRef.current) return;
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusable = Array.from(containerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEntLoading(true);
-    setEntError("");
-    try {
-      const res = await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: entEmail,
-          problem: entDesc,
-          interest: "enterprise",
-          urgency: entTimeline,
-          description: entDesc,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to submit");
-      setEntSubmitted(true);
-    } catch (err: any) {
-      setEntError(err.message || "Something went wrong. Please try again.");
-    } finally {
-      setEntLoading(false);
-    }
-  };
 
   return (
     <div
@@ -282,6 +183,7 @@ function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void
       onClick={onClose}
     >
       <div
+        ref={containerRef}
         className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
@@ -298,74 +200,7 @@ function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void
             <X className="h-5 w-5" />
           </button>
         </div>
-
-        {entSubmitted ? (
-          <div className="py-6 text-center space-y-3">
-            <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
-            <p className="font-semibold text-lg">Request received!</p>
-            <p className="text-sm text-muted-foreground">We&apos;ll reach out to <strong>{entEmail}</strong> within 24 hours.</p>
-            <button onClick={onClose} className="text-sm text-primary underline underline-offset-2">Close</button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label htmlFor="ent-email" className="text-sm font-medium">Work Email *</label>
-              <input
-                id="ent-email"
-                type="email"
-                required
-                placeholder="you@company.com"
-                value={entEmail}
-                onChange={(e) => setEntEmail(e.target.value)}
-                disabled={entLoading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="ent-desc" className="text-sm font-medium">Describe your MCP server needs *</label>
-              <textarea
-                id="ent-desc"
-                required
-                rows={4}
-                placeholder="What integrations, APIs, or workflows do you need covered? Any security or compliance requirements?"
-                value={entDesc}
-                onChange={(e) => setEntDesc(e.target.value)}
-                disabled={entLoading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label htmlFor="ent-timeline" className="text-sm font-medium">Timeline</label>
-              <select
-                id="ent-timeline"
-                value={entTimeline}
-                onChange={(e) => setEntTimeline(e.target.value)}
-                disabled={entLoading}
-                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <option value="asap">ASAP — need this week</option>
-                <option value="weeks">A few weeks</option>
-                <option value="month">Within a month</option>
-                <option value="planning">Still planning</option>
-              </select>
-            </div>
-
-            {entError && (
-              <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{entError}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={entLoading}
-              className="w-full h-10 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {entLoading ? "Sending…" : "Send Enquiry"}
-              {!entLoading && <ArrowRight className="h-4 w-4" />}
-            </button>
-          </form>
-        )}
+        <EnterpriseContactForm onSuccess={onClose} />
       </div>
     </div>
   );

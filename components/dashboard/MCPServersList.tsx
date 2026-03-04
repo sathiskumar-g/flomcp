@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +26,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import {
   ArrowRight,
   Trash2,
@@ -98,6 +99,8 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MCPServer | null>(null);
+  const [deleteInput, setDeleteInput] = useState("");
 
   const fetchServers = useCallback(async () => {
     setLoading(true);
@@ -120,14 +123,18 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
     fetchServers();
   }, [fetchServers]);
 
-  const handleDelete = async (serverId: string) => {
-    setDeletingId(serverId);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
     try {
-      const res = await fetch(`/api/servers?id=${serverId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      setServers((prev) => prev.filter((s) => s.id !== serverId));
-    } catch (err: unknown) {
-      console.error("Delete error:", err);
+      const res = await fetch(`/api/servers?id=${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) { toast.error("Failed to delete server. Please try again."); return; }
+      setServers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      toast.success(`"${deleteTarget.name}" has been deleted.`);
+      setDeleteTarget(null);
+      setDeleteInput("");
+    } catch {
+      toast.error("Network error. Please try again.");
     } finally {
       setDeletingId(null);
     }
@@ -182,6 +189,7 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
 
   // ── Server list ──
   return (
+    <>
     <div className="space-y-3">
       {servers.map((server) => {
         const securityStyle = getSecurityScoreStyle(server.security_score);
@@ -250,42 +258,20 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
                   </Button>
 
                   {/* Delete */}
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isDeleting}
-                        onClick={(e) => e.stopPropagation()}
-                        className="border-red-500/60 text-red-600 hover:bg-red-500/10 hover:border-red-500 dark:text-red-400"
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                        )}
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete MCP Server?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete <strong>{server.name}</strong>.
-                          This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(server.id)}
-                          className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(server); setDeleteInput(""); }}
+                    className="border-red-500/60 text-red-600 hover:bg-red-500/10 hover:border-red-500 dark:text-red-400"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Delete
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -293,5 +279,42 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
         );
       })}
     </div>
+
+      {/* Type-to-confirm delete dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteInput(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete MCP Server?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-medium text-foreground">&quot;{deleteTarget?.name}&quot;</span> and all its files. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-medium text-foreground">{deleteTarget?.name}</span> to confirm:
+            </p>
+            <Input
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder={deleteTarget?.name ?? ""}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setDeleteTarget(null); setDeleteInput(""); }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600 text-white"
+              disabled={!!deletingId || deleteInput.trim() !== deleteTarget?.name}
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+            >
+              {deletingId ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Server
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

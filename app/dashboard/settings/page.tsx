@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -19,6 +18,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ProInterestForm } from "@/components/pro/ProInterestForm";
+import { EnterpriseContactForm } from "@/components/pro/EnterpriseContactForm";
 
 import {
   User, Lock, Briefcase, FileText, Key, LogOut, ShieldAlert,
@@ -182,8 +186,10 @@ function ProfileSection({ profileRole, setProfileRole, savingRole, onSave }: {
   );
 }
 
-function SubscriptionSection() {
+function SubscriptionSection({ userEmail }: { userEmail?: string }) {
   const currentPlan = "free";
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [enterpriseModalOpen, setEnterpriseModalOpen] = useState(false);
   return (
     <div>
       <SectionHeader title="Subscription" description="Manage your plan and billing." />
@@ -234,12 +240,26 @@ function SubscriptionSection() {
                 </li>
               ))}
             </ul>
-            <Link href="/#pricing">
-              <Button className="w-full gap-2">
-                <Crown className="h-4 w-4" />
-                Get Pro — $29/mo
-              </Button>
-            </Link>
+            <Button className="w-full gap-2" onClick={() => setProModalOpen(true)}>
+              <Crown className="h-4 w-4" />
+              Get Pro — $29/mo
+            </Button>
+
+            {/* Early access modal */}
+            <Dialog open={proModalOpen} onOpenChange={setProModalOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Get early access to Pro</DialogTitle>
+                  <DialogDescription>
+                    Early access users get 30 days free + dedicated onboarding.
+                  </DialogDescription>
+                </DialogHeader>
+                <ProInterestForm
+                  initialEmail={userEmail}
+                  onSuccess={() => setProModalOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -268,11 +288,25 @@ function SubscriptionSection() {
                 </li>
               ))}
             </ul>
-            <a href="mailto:support@flomcp.com?subject=Enterprise%20MCP%20enquiry">
-              <Button variant="outline" className="w-full gap-2">
+            <Button variant="outline" className="w-full gap-2" onClick={() => setEnterpriseModalOpen(true)}>
                 <ArrowRight className="h-4 w-4" />Contact Us for Enterprise
               </Button>
-            </a>
+
+            {/* Enterprise contact modal */}
+            <Dialog open={enterpriseModalOpen} onOpenChange={setEnterpriseModalOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Enterprise — Contact Us</DialogTitle>
+                  <DialogDescription>
+                    Tell us what you need and we&apos;ll respond within 24 hours.
+                  </DialogDescription>
+                </DialogHeader>
+                <EnterpriseContactForm
+                  initialEmail={userEmail}
+                  onSuccess={() => setEnterpriseModalOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -369,6 +403,18 @@ export default function SettingsPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<SectionId>("account");
+
+  // Sync active section with URL hash (e.g. /settings#subscription)
+  useEffect(() => {
+    const VALID: SectionId[] = ["account", "security", "profile", "subscription", "legal", "api", "signout", "danger"];
+    function applyHash() {
+      const hash = window.location.hash.replace("#", "") as SectionId;
+      if (VALID.includes(hash)) setActiveSection(hash);
+    }
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
   // Account
   const [displayName, setDisplayName] = useState("");
@@ -566,7 +612,7 @@ export default function SettingsPage() {
             savingRole={savingRole} onSave={handleSaveRole} />
         );
       case "subscription":
-        return <SubscriptionSection />;
+        return <SubscriptionSection userEmail={email} />;
       case "legal":
         return <LegalSection termsAccepted={termsAccepted} />;
       case "api":
@@ -637,7 +683,7 @@ export default function SettingsPage() {
                       <AlertDialogAction
                         disabled={deleting || deleteConfirmInput.trim().toLowerCase() !== email.toLowerCase()}
                         onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
-                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600 gap-2">
+                        className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white gap-2">
                         {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         {deleting ? "Deleting…" : "Yes, delete my account"}
                       </AlertDialogAction>
@@ -667,7 +713,7 @@ export default function SettingsPage() {
         <aside className="w-52 shrink-0 border-r border-border/40 pr-4 mr-6">
           <nav className="space-y-0.5">
             {NAV_ITEMS.map(({ id, label, icon: Icon, danger }) => (
-              <button key={id} onClick={() => setActiveSection(id)}
+              <button key={id} onClick={() => { setActiveSection(id); window.location.hash = id; }}
                 className={cn(
                   "w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left",
                   activeSection === id

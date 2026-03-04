@@ -85,6 +85,7 @@ function DashboardContent() {
 
   // BUG-006: prefer full_name from Google OAuth user_metadata over email prefix
   const displayName =
+    user?.user_metadata?.display_name ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||

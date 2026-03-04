@@ -438,7 +438,7 @@ export default function DashboardLibraryPage() {
                   index={idx}
                   expanded={expandedIds.has(prompt.id)}
                   onToggle={() => toggleExpand(prompt.id)}
-                  onDelete={() => deletePrompt(prompt.id)}
+                  onDelete={() => { deletePrompt(prompt.id); toast.success("Prompt deleted."); }}
                   onSave={(patch) => updatePrompt(prompt.id, patch)}
                   onCopy={() => handleCopyPrompt(prompt.id, prompt.text)}
                   copied={copiedId === prompt.id}

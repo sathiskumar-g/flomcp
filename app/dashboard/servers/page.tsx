@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Sparkles,
   Loader2,
@@ -23,9 +24,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface MCPServer {
   id: string;
@@ -49,6 +50,8 @@ export default function ServersPage() {
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MCPServer | null>(null);
+  const [deleteInput, setDeleteInput] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -63,11 +66,25 @@ export default function ServersPage() {
     load();
   }, []);
 
-  async function handleDelete(id: string) {
-    setDeleting(id);
-    await fetch(`/api/servers?id=${id}`, { method: "DELETE" });
-    setServers((prev) => prev.filter((s) => s.id !== id));
-    setDeleting(null);
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(deleteTarget.id);
+    try {
+      const res = await fetch(`/api/servers?id=${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        toast.error("Failed to delete server. Please try again.");
+        setDeleting(null);
+        return;
+      }
+      setServers((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      toast.success(`"${deleteTarget.name}" has been deleted.`);
+      setDeleteTarget(null);
+      setDeleteInput("");
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setDeleting(null);
+    }
   }
 
   return (
@@ -155,37 +172,17 @@ export default function ServersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 border-red-500/50 text-red-500 hover:bg-red-500/10 hover:border-red-500"
-                        >
-                          {deleting === server.id
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Trash2 className="h-4 w-4" />
-                          }
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete this server?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            &quot;{server.name}&quot; will be permanently deleted. This cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-red-500 hover:bg-red-600"
-                            onClick={() => handleDelete(server.id)}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 border-red-500/50 text-red-500 hover:bg-red-500/10 hover:border-red-500"
+                      onClick={() => { setDeleteTarget(server); setDeleteInput(""); }}
+                    >
+                      {deleting === server.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Trash2 className="h-4 w-4" />
+                      }
+                    </Button>
                     <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-1" />
                   </div>
                 </CardContent>
@@ -194,6 +191,42 @@ export default function ServersPage() {
           })}
         </div>
       )}
+
+      {/* Type-to-confirm delete dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteInput(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this server?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <span className="font-medium text-foreground">&quot;{deleteTarget?.name}&quot;</span> and all its files. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-medium text-foreground">{deleteTarget?.name}</span> to confirm:
+            </p>
+            <Input
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder={deleteTarget?.name ?? ""}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setDeleteTarget(null); setDeleteInput(""); }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600 text-white"
+              disabled={!!deleting || deleteInput.trim() !== deleteTarget?.name}
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Server
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

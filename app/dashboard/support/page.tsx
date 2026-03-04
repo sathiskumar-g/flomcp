@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase";
 import {
   Card,
   CardContent,
@@ -41,6 +42,8 @@ import {
   Clock,
   AlertTriangle,
   ChevronRight,
+  Paperclip,
+  X,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -104,6 +107,8 @@ export default function SupportPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
   const [submitting, setSubmitting] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const MAX_ATTACH = 3;
   const [touched, setTouched] = useState({ subject: false, category: false, description: false, priority: false });
 
   // Derived validation
@@ -150,10 +155,43 @@ export default function SupportPage() {
 
     setSubmitting(true);
     try {
+      // ── Upload attachments to Supabase Storage ──────────────────────────────
+      let attachmentNote = "";
+      if (attachments.length > 0) {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        const uploadedUrls: string[] = [];
+
+        for (const file of attachments) {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `${user?.id ?? "anon"}/${Date.now()}-${safeName}`;
+          const { error } = await supabase.storage
+            .from("support-attachments")
+            .upload(path, file, { upsert: false });
+          if (!error) {
+            const { data: urlData } = supabase.storage
+              .from("support-attachments")
+              .getPublicUrl(path);
+            if (urlData?.publicUrl) {
+              uploadedUrls.push(`${urlData.publicUrl}|${file.name}`);
+            }
+          }
+        }
+
+        if (uploadedUrls.length > 0) {
+          attachmentNote = `\n\n---\nAttachment URLs: ${uploadedUrls.join(", ")}`;
+        }
+      }
+
       const res = await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, category, description, priority }),
+        body: JSON.stringify({
+          subject,
+          category,
+          description: description + attachmentNote,
+          priority,
+        }),
       });
 
       const data = await res.json();
@@ -169,6 +207,7 @@ export default function SupportPage() {
       setCategory("");
       setDescription("");
       setPriority("medium");
+      setAttachments([]);
       setTouched({ subject: false, category: false, description: false, priority: false });
     } catch {
       toast.error("Network error. Please try again.");
@@ -288,6 +327,57 @@ export default function SupportPage() {
               </div>
             </div>
 
+            {/* Attachments */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium leading-none">
+                Attachments{" "}
+                <span className="text-muted-foreground font-normal">(optional — images or videos)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <label className={attachments.length >= MAX_ATTACH || submitting ? "cursor-not-allowed opacity-50" : "cursor-pointer"}>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    className="sr-only"
+                    disabled={submitting || attachments.length >= MAX_ATTACH}
+                    onChange={(e) => {
+                      const incoming = Array.from(e.target.files ?? []);
+                      setAttachments((prev) => [...prev, ...incoming].slice(0, MAX_ATTACH));
+                      e.target.value = "";
+                    }}
+                  />
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Attach files
+                  </span>
+                </label>
+                <span className="text-xs text-muted-foreground">Up to {MAX_ATTACH} files · 10 MB each</span>
+              </div>
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {attachments.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs"
+                    >
+                      <span className="truncate max-w-[140px] text-foreground">{f.name}</span>
+                      <span className="text-muted-foreground">({(f.size / 1024).toFixed(0)} KB)</span>
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => setAttachments((a) => a.filter((_, idx) => idx !== i))}
+                        className="ml-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={`Remove ${f.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <Button type="submit" disabled={submitting || !isFormValid} className="w-full sm:w-auto">
               {submitting ? (
                 <>
@@ -373,57 +463,152 @@ export default function SupportPage() {
 
       {/* ── Ticket Detail Dialog ── */}
       <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-        <DialogContent className="max-w-lg">
-          {selectedTicket && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-base">
-                  <Ticket className="h-4 w-4 text-muted-foreground" />
-                  Ticket #{selectedTicket.id.slice(0, 8).toUpperCase()}
-                </DialogTitle>
-                <DialogDescription>
-                  Submitted {formatDate(selectedTicket.created_at)}
-                </DialogDescription>
-              </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+          {selectedTicket && (() => {
+            // Split description body from attachment URL note
+            const URL_SEP = "\n\n---\nAttachment URLs:";
+            const LEGACY_SEP = "\n\n---\nAttachments:";
+            const urlSepIdx = selectedTicket.description.indexOf(URL_SEP);
+            const legacySepIdx = selectedTicket.description.indexOf(LEGACY_SEP);
 
-              <div className="space-y-4 pt-2">
-                {/* Status + Priority */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  {statusBadge(selectedTicket.status)}
-                  {priorityBadge(selectedTicket.priority)}
-                  <span className="text-xs text-muted-foreground capitalize">
-                    {selectedTicket.category.replace("-", " ")}
-                  </span>
-                </div>
+            const sepIdx = urlSepIdx !== -1 ? urlSepIdx : legacySepIdx;
+            const sepStr = urlSepIdx !== -1 ? URL_SEP : LEGACY_SEP;
+            const hasUrls = urlSepIdx !== -1;
 
-                {/* Subject */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
-                    Subject
-                  </p>
-                  <p className="text-sm font-medium">{selectedTicket.subject}</p>
-                </div>
+            const descBody = sepIdx === -1
+              ? selectedTicket.description
+              : selectedTicket.description.slice(0, sepIdx);
+            const attachLine = sepIdx === -1
+              ? null
+              : selectedTicket.description.slice(sepIdx + sepStr.length).trim();
 
-                {/* Description */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
-                    Description
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80">
-                    {selectedTicket.description}
-                  </p>
-                </div>
+            // Parse "publicUrl|filename, ..." for new format, or "name (XX KB), ..." for legacy
+            const attachments = attachLine
+              ? attachLine.split(",").map((s) => {
+                  const trimmed = s.trim();
+                  if (hasUrls) {
+                    const pipeIdx = trimmed.lastIndexOf("|");
+                    if (pipeIdx !== -1) {
+                      return { url: trimmed.slice(0, pipeIdx), name: trimmed.slice(pipeIdx + 1) };
+                    }
+                    return { url: trimmed, name: trimmed.split("/").pop() ?? trimmed };
+                  }
+                  // Legacy text-only
+                  const m = trimmed.match(/^(.+?)\s*(\(\d+ KB\))?$/);
+                  return { url: null, name: m ? m[1].trim() : trimmed };
+                })
+              : [];
 
-                {/* Full ID */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
-                    Ticket ID
-                  </p>
-                  <p className="font-mono text-xs text-muted-foreground">{selectedTicket.id}</p>
+            return (
+              <>
+                <DialogHeader className="flex-shrink-0">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    <Ticket className="h-4 w-4 text-muted-foreground" />
+                    Ticket #{selectedTicket.id.slice(0, 8).toUpperCase()}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Submitted {formatDate(selectedTicket.created_at)}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 pt-2 overflow-y-auto flex-1 pr-1">
+                  {/* Status + Priority */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {statusBadge(selectedTicket.status)}
+                    {priorityBadge(selectedTicket.priority)}
+                    <span className="text-xs text-muted-foreground capitalize">
+                      {selectedTicket.category.replace("-", " ")}
+                    </span>
+                  </div>
+
+                  {/* Subject */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
+                      Subject
+                    </p>
+                    <p className="text-sm font-medium">{selectedTicket.subject}</p>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
+                      Description
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80">
+                      {descBody}
+                    </p>
+                  </div>
+
+                  {/* Attachments */}
+                  {attachments.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Attachments ({attachments.length})
+                      </p>
+                      <div className="space-y-3">
+                        {attachments.map((a, i) => {
+                          const isImage = /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.name);
+                          const isVideo = /\.(mp4|mov|webm|avi|mkv)$/i.test(a.name);
+                          return (
+                            <div key={i} className="rounded-lg border border-border/60 overflow-hidden bg-muted/10">
+                              {/* Preview */}
+                              {a.url && isImage && (
+                                <div className="bg-muted/20 flex items-center justify-center p-2">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={a.url}
+                                    alt={a.name}
+                                    className="max-h-72 max-w-full rounded object-contain"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              )}
+                              {a.url && isVideo && (
+                                <div className="bg-black flex items-center justify-center">
+                                  <video
+                                    src={a.url}
+                                    controls
+                                    className="max-h-64 max-w-full w-full"
+                                    preload="metadata"
+                                  />
+                                </div>
+                              )}
+                              {/* Footer bar */}
+                              <div className="flex items-center justify-between px-3 py-2 border-t border-border/40 bg-muted/20">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <Paperclip className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                  <span className="text-xs font-medium truncate">{a.name}</span>
+                                </div>
+                                {a.url && (
+                                  <a
+                                    href={a.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:underline flex-shrink-0 ml-2"
+                                  >
+                                    Open original
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Full ID */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
+                      Ticket ID
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">{selectedTicket.id}</p>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

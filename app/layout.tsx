@@ -228,7 +228,6 @@ export default function RootLayout({
           position="top-center"
           theme="dark"
           richColors
-          closeButton
           toastOptions={{ duration: 6000 }}
         />
       </body>

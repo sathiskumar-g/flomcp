@@ -20,7 +20,7 @@ export async function GET(
   const { data, error } = await admin
     .from("mcp_servers")
     .select(
-      "id, name, description, status, security_score, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded"
+      "id, name, description, status, security_score, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded, security_report, generation_input, user_feedback"
     )
     .eq("id", params.id)
     .eq("user_id", user.id) // ownership check

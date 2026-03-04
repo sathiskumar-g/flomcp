@@ -7,7 +7,7 @@
  * State managed by Zustand (useGeneratorStore).
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
 import { useDrafts, type SavedDraft } from "@/lib/use-drafts";
@@ -20,7 +20,7 @@ import { PostGenerationReview } from "@/components/generator/PostGenerationRevie
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Plus, FileText, Trash2, FolderOpen, Clock } from "lucide-react";
+import { Plus, FileText, Trash2, FolderOpen, Clock, Loader2 } from "lucide-react";
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
 
@@ -45,8 +45,14 @@ export default function GeneratePage() {
 function GenerateWizard() {
   const step = useGeneratorStore((s) => s.step);
   const loadDraft = useGeneratorStore((s) => s.loadDraft);
+  const reset = useGeneratorStore((s) => s.reset);
+  const navigatingToServer = useGeneratorStore((s) => s.navigatingToServer);
   // BUG-011: clamp so step indicator never renders out-of-bounds circles
   const clampedStep = Math.min(step, 5);
+
+  // Reset store when this page unmounts (after navigation away) so step 1
+  // never flashes while the overlay is still visible on the old page.
+  useEffect(() => () => { reset(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { drafts, deleteDraft } = useDrafts();
   const [mode, setMode] = useState<"new" | "drafts">("new");
@@ -65,6 +71,19 @@ function GenerateWizard() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Full-screen overlay while navigating to server page — lives here so
+          it persists even when step changes back to 1 during navigate */}
+      {navigatingToServer && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-background/90 backdrop-blur-sm">
+          <div className="h-16 w-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="font-semibold">Loading your server…</p>
+            <p className="text-sm text-muted-foreground">Taking you to the code.</p>
+          </div>
+        </div>
+      )}
       <div className="flex gap-0 flex-1 min-h-0">
 
         {/* ── Left Sidebar ── */}

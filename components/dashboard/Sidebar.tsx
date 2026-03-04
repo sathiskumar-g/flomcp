@@ -57,6 +57,7 @@ export function Sidebar() {
   }, []);
 
   const sidebarDisplayName =
+    sidebarUser?.user_metadata?.display_name ||
     sidebarUser?.user_metadata?.full_name ||
     sidebarUser?.user_metadata?.name ||
     sidebarUser?.email?.split('@')[0] ||

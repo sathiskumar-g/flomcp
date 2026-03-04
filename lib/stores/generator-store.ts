@@ -97,6 +97,7 @@ export interface GeneratorState {
 
   // ── Step 6: Post-generation ──
   generatedResult: GeneratedResult | null;
+  navigatingToServer: boolean;
 
   // ── Actions ──
   setStep: (step: 1 | 2 | 3 | 4 | 5) => void;
@@ -140,6 +141,7 @@ export interface GeneratorState {
 
   // Step 6
   setGeneratedResult: (result: GeneratedResult) => void;
+  setNavigatingToServer: (v: boolean) => void;
   addToolField: (toolId: string) => void;
   updateToolField: (toolId: string, fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
   removeToolField: (toolId: string, fieldId: string) => void;
@@ -233,6 +235,7 @@ const INITIAL_STATE = {
   resources: [] as ResourceDefinition[],
   prompts: [] as PromptDefinition[],
   generatedResult: null as GeneratedResult | null,
+  navigatingToServer: false,
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -429,5 +432,6 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
     }),
 
   // Reset
-  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], generatedResult: null, suggestionsLoading: false }),
+  setNavigatingToServer: (v) => set({ navigatingToServer: v }),
+  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], generatedResult: null, suggestionsLoading: false, navigatingToServer: false }),
 }));

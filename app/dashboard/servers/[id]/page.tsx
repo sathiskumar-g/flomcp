@@ -22,11 +22,16 @@ import {
   ChevronUp,
   MonitorPlay,
   FlaskConical,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
 import { SecurityReport as SecurityReportComponent } from "@/components/security/SecurityReport";
 import type { SecurityReport } from "@/lib/security/types";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +69,7 @@ interface MCPServer {
     resources: Array<{ name: string; description: string; mimeType: string; contentLength: number }>;
     prompts: Array<{ name: string; description: string; mimeType: string; contentLength: number }>;
   } | null;
+  user_feedback: { rating: "up" | "down"; comment: string | null; submittedAt: string } | null;
 }
 
 // ─── File tabs ────────────────────────────────────────────────────────────────
@@ -102,6 +108,10 @@ export default function ServerDetailPage() {
   const [configJsonOpen, setConfigJsonOpen] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [securityModalOpen, setSecurityModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [fbRating, setFbRating] = useState<"up" | "down" | null>(null);
+  const [fbComment, setFbComment] = useState("");
+  const [fbSent, setFbSent] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -115,6 +125,13 @@ export default function ServerDetailPage() {
     }
     load();
   }, [id]);
+
+  // Auto-prompt for feedback after 1 minute if not yet given
+  useEffect(() => {
+    if (!server || server.user_feedback || fbSent) return;
+    const t = setTimeout(() => setFeedbackModalOpen(true), 30_000);
+    return () => clearTimeout(t);
+  }, [server, fbSent]);
 
   if (loading) {
     return (
@@ -175,6 +192,7 @@ export default function ServerDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ downloaded: true, downloaded_at: new Date().toISOString() }),
     });
+    toast.success("Server downloaded successfully.");
   }
 
   // Re-run security validation via /api/validate
@@ -196,10 +214,30 @@ export default function ServerDetailPage() {
         );
         // Auto-open modal once analysis is done
         setSecurityModalOpen(true);
+        toast.success("Security analysis complete.");
+      } else {
+        toast.error("Security analysis failed. Please try again.");
       }
+    } catch {
+      toast.error("Network error. Please try again.");
     } finally {
       setIsRevalidating(false);
     }
+  }
+
+  async function handleFeedbackSubmit() {
+    if (!fbRating) return;
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serverId: id, rating: fbRating, comment: fbComment.trim() || null }),
+    }).catch(() => {});
+    setFbSent(true);
+    setFeedbackModalOpen(false);
+    setServer((prev) =>
+      prev ? { ...prev, user_feedback: { rating: fbRating, comment: fbComment.trim() || null, submittedAt: new Date().toISOString() } } : prev
+    );
+    toast.success("Thanks for your feedback!");
   }
 
   // Config JSON generators
@@ -421,6 +459,73 @@ export default function ServerDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Feedback Modal (auto-opens after 1 minute) */}
+      <Dialog open={feedbackModalOpen} onOpenChange={setFeedbackModalOpen}>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              How was the generation?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <p className="text-sm text-muted-foreground">
+              Now that you&apos;ve seen your server code, let us know how the generation turned out.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFbRating("up")}
+                className={cn(
+                  "flex-1 flex flex-col items-center gap-2 rounded-lg border px-4 py-3 text-sm transition-all",
+                  fbRating === "up"
+                    ? "border-green-500 bg-green-500/10 text-green-600 dark:text-green-400"
+                    : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                )}
+              >
+                <ThumbsUp className="h-5 w-5" />
+                Looks good!
+              </button>
+              <button
+                type="button"
+                onClick={() => setFbRating("down")}
+                className={cn(
+                  "flex-1 flex flex-col items-center gap-2 rounded-lg border px-4 py-3 text-sm transition-all",
+                  fbRating === "down"
+                    ? "border-red-500 bg-red-500/10 text-red-500 dark:text-red-400"
+                    : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                )}
+              >
+                <ThumbsDown className="h-5 w-5" />
+                Needs work
+              </button>
+            </div>
+            {fbRating && (
+              <Textarea
+                placeholder="Any specific comments? (optional)"
+                value={fbComment}
+                onChange={(e) => setFbComment(e.target.value)}
+                rows={3}
+                maxLength={500}
+                className="text-sm resize-none"
+              />
+            )}
+            <div className="flex gap-2 justify-end pt-1">
+              <Button variant="ghost" size="sm" onClick={() => setFeedbackModalOpen(false)}>
+                Skip
+              </Button>
+              <Button
+                size="sm"
+                disabled={!fbRating}
+                onClick={handleFeedbackSubmit}
+              >
+                Submit Feedback
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Connect section */}
       <Card className="border border-border/70">
         <CardHeader className="pb-3">
@@ -624,6 +729,89 @@ export default function ServerDetailPage() {
             )}
           </CardContent>
         )}
+      </Card>
+
+      {/* Generation Feedback */}
+      <Card className="border border-border/70">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            Generation Feedback
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {server.user_feedback || fbSent ? (
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className={cn(
+                "flex items-center justify-center w-12 h-12 rounded-full",
+                (server.user_feedback?.rating ?? fbRating) === "up"
+                  ? "bg-green-500/10 border border-green-500/20"
+                  : "bg-red-500/10 border border-red-500/20"
+              )}>
+                {(server.user_feedback?.rating ?? fbRating) === "up"
+                  ? <ThumbsUp className="h-5 w-5 text-green-500" />
+                  : <ThumbsDown className="h-5 w-5 text-red-500" />}
+              </div>
+              <div>
+                <p className="text-sm font-medium">Feedback submitted — thank you!</p>
+                {(server.user_feedback?.comment || fbComment) && (
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                    &ldquo;{server.user_feedback?.comment ?? fbComment}&rdquo;
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                How did this server generation perform? Your feedback helps us improve the AI output.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFbRating("up")}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-1.5 rounded-lg border px-4 py-3 text-sm transition-all",
+                    fbRating === "up"
+                      ? "border-green-500 bg-green-500/10 text-green-600 dark:text-green-400"
+                      : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  )}
+                >
+                  <ThumbsUp className="h-5 w-5" />
+                  Looks good!
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFbRating("down")}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-1.5 rounded-lg border px-4 py-3 text-sm transition-all",
+                    fbRating === "down"
+                      ? "border-red-500 bg-red-500/10 text-red-500 dark:text-red-400"
+                      : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  )}
+                >
+                  <ThumbsDown className="h-5 w-5" />
+                  Needs work
+                </button>
+              </div>
+              {fbRating && (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Specific comments? (optional) — e.g. tools were off, wrong API pattern…"
+                    value={fbComment}
+                    onChange={(e) => setFbComment(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="text-sm resize-none"
+                  />
+                  <Button size="sm" onClick={handleFeedbackSubmit}>
+                    Submit Feedback
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );
