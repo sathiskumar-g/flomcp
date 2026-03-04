@@ -191,7 +191,7 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
         return (
           <Card
             key={server.id}
-            className="transition-all hover:shadow-md hover:border-border cursor-pointer"
+            className="transition-all duration-150 hover:translate-x-1 hover:shadow-md hover:border-border/80 cursor-pointer"
             onClick={() => router.push(`/dashboard/servers/${server.id}`)}
           >
             <CardHeader className="pb-3">
@@ -256,7 +256,8 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
                         variant="outline"
                         size="sm"
                         disabled={isDeleting}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                        onClick={(e) => e.stopPropagation()}
+                        className="border-red-500/60 text-red-600 hover:bg-red-500/10 hover:border-red-500 dark:text-red-400"
                       >
                         {isDeleting ? (
                           <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

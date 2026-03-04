@@ -11,8 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const supabase = createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -52,8 +51,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const supabase = createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

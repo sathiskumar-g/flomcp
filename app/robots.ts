@@ -6,12 +6,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/admin/'],
+        disallow: ['/api/', '/admin/', '/dashboard/', '/auth/'],
       },
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/'],
+        disallow: ['/api/', '/dashboard/', '/auth/'],
       },
     ],
     sitemap: 'https://flomcp.com/sitemap.xml',

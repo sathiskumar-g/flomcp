@@ -109,7 +109,7 @@ export default function ServersPage() {
             return (
               <Card
                 key={server.id}
-                className="border border-border/70 hover:border-border transition-colors cursor-pointer group"
+                className="border border-border/70 hover:border-border hover:shadow-sm transition-all duration-150 cursor-pointer group"
                 onClick={() => router.push(`/dashboard/servers/${server.id}`)}
               >
                 <CardContent className="flex items-center gap-4 py-4 px-5">
@@ -145,9 +145,9 @@ export default function ServersPage() {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-8 w-8 border-red-500/50 text-red-500 hover:bg-red-500/10 hover:border-red-500"
                         >
                           {deleting === server.id
                             ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -173,7 +173,7 @@ export default function ServersPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-150 group-hover:translate-x-1" />
                   </div>
                 </CardContent>
               </Card>

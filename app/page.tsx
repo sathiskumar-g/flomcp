@@ -9,8 +9,378 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Code2, Zap, Shield, CheckCircle2, ArrowRight, Clock, Users, Database, FileCode, Sparkles, Target, X, LogIn } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/auth/UserMenu";
 import type { User } from "@supabase/supabase-js";
+import { ChevronDown } from "lucide-react";
+import { CODE_FILES } from "@/lib/showcase-files";
+
+const FAQ_ITEMS = [
+  { q: "How do I generate an MCP server with FloMCP?", a: "Sign up for a free account, describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — schemas, handlers, error handling, and README included. No manual setup required." },
+  { q: "What is an MCP server and why do I need one?", a: "An MCP server exposes your tools, APIs, and databases to AI assistants like Claude and GitHub Copilot. Without one, your AI can only use its training data. With one, it can query your database, call your APIs, and take real actions. FloMCP generates the server code so you don't have to write the boilerplate." },
+  { q: "How long does it take to build MCP online?", a: "As little as 1 minute with FloMCP versus 10+ hours manually. FloMCP automates every step from schema creation to error handling." },
+  { q: "Can I build MCP for Claude and Copilot?", a: "Yes — generated servers work with Claude Desktop, GitHub Copilot, Cursor, Windsurf, Cline, and any assistant supporting the MCP standard." },
+  { q: "Are FloMCP servers secure?", a: "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one." },
+  { q: "Can I use FloMCP for complex API integrations?", a: "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery." },
+  { q: "How does FloMCP compare to building MCP manually?", a: "Manual MCP development takes 10+ hours across boilerplate, schemas, error handling, testing, and documentation. FloMCP does it in under 2 minutes — with security checks built in." },
+  { q: "What makes FloMCP different from just asking Claude or ChatGPT?", a: "FloMCP is purpose-built for MCP: the generated code follows the MCP specification exactly, includes Zod schemas, passes 22 security checks, and comes with a working README and claude_desktop_config.json — not a generic snippet that still needs hours of debugging." },
+];
+
+const FREE_CREDIT_FEATURES = [
+  "5 credits — one-time, never expire",
+  "Full TypeScript source code",
+  "Security score on every server (22 checks)",
+  "Download ZIP + auto-generated docs",
+  "Works with Claude, Copilot & Cursor",
+  "MCP Library access",
+];
+
+const PRO_CREDIT_FEATURES = [
+  "50 credits / month",
+  "Half unused credits roll over (max 75)",
+  "Everything in Free",
+  "Priority generation queue",
+  "MCP Assistant — security audit",
+  "Credit top-up packs available",
+  "Team workspaces (up to 3 members)",
+  "Email support — 48h response",
+  "Early access to new features",
+];
+
+const CREDIT_PACKS = [
+  { name: "Boost",    credits: "+10",  price: "$5",  priceNum: 5  },
+  { name: "Standard", credits: "+25",  price: "$11", priceNum: 11 },
+  { name: "Growth",   credits: "+50",  price: "$18", priceNum: 18 },
+  { name: "Studio",   credits: "+100", price: "$30", priceNum: 30 },
+];
+
+const PRO_FEATURE_OPTIONS = [
+  "Python support",
+  "50 credits/month",
+  "MCP security audit & auto-fix",
+  "Team collaboration",
+  "OpenAPI auto-import",
+  "Custom templates",
+];
+
+function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [email, setEmail] = useState("");
+  const [useCase, setUseCase] = useState("");
+  const [volume, setVolume] = useState("");
+  const [features, setFeatures] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  if (!open) return null;
+
+  const toggleFeature = (f: string) =>
+    setFeatures((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, useCase, volume, features, type: "pro_interest" }),
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitted(true); // still show success — don't block UX on network error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Get early access to Pro</h2>
+            <p className="text-sm text-muted-foreground mt-1">Early access users get 30 days free + dedicated onboarding.</p>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {submitted ? (
+          <div className="text-center py-8 space-y-3">
+            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+            <p className="font-semibold">You're on the list!</p>
+            <p className="text-sm text-muted-foreground">We'll email you when Pro launches. Early access users get 30 days free.</p>
+            <button onClick={onClose} className="text-sm text-primary hover:underline">Close</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Your email</label>
+              <input
+                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">What kind of MCP servers are you building?</label>
+              <input
+                type="text" value={useCase} onChange={(e) => setUseCase(e.target.value)}
+                placeholder="e.g. REST API wrapper, database tools, internal tooling..."
+                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">How many MCP servers per month?</label>
+              <div className="flex gap-2 flex-wrap">
+                {["1–3", "4–10", "10+", "Not sure"].map((v) => (
+                  <button key={v} type="button"
+                    onClick={() => setVolume(v)}
+                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                      volume === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/60"
+                    }`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">What would unlock Pro for you?</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PRO_FEATURE_OPTIONS.map((f) => (
+                  <button key={f} type="button"
+                    onClick={() => toggleFeature(f)}
+                    className={`px-3 py-1.5 rounded-md text-xs border text-left transition-colors ${
+                      features.includes(f) ? "bg-primary/10 border-primary text-primary" : "border-border hover:border-primary/40"
+                    }`}>
+                    {features.includes(f) && <span className="mr-1">✓</span>}{f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading || !email}
+              className="w-full py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
+              {loading ? "Joining..." : "Join Early Access List →"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CodeEditorShowcase() {
+  const [activeFile, setActiveFile] = useState(0);
+  const file = CODE_FILES[activeFile];
+  return (
+    <div className="rounded-xl border border-border/60 bg-[#0d1117] overflow-hidden shadow-2xl text-sm font-mono">
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 border-b border-border/30 bg-[#161b22] overflow-x-auto">
+        <div className="flex items-center gap-1.5 px-4 shrink-0">
+          <span className="w-3 h-3 rounded-full bg-red-500/70" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
+          <span className="w-3 h-3 rounded-full bg-green-500/70" />
+        </div>
+        {CODE_FILES.map((f, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveFile(i)}
+            className={`px-4 py-2 text-xs whitespace-nowrap transition-colors border-r border-border/20 ${
+              i === activeFile
+                ? "bg-[#0d1117] text-white border-t-2 border-t-primary"
+                : "text-gray-400 hover:text-gray-200 hover:bg-[#0d1117]/60"
+            }`}
+          >
+            {f.name.split("/").pop()}
+          </button>
+        ))}
+        <div className="ml-auto px-3 py-1.5 shrink-0">
+          <span className="text-xs text-gray-500 select-none">{file.name}</span>
+        </div>
+      </div>
+      {/* Line numbers + code — read-only display, no textarea or input */}
+      <div className="flex overflow-auto max-h-[420px]">
+        <div className="select-none text-right pr-4 pl-4 py-4 text-gray-600 leading-6 text-xs bg-[#0d1117] border-r border-border/20">
+          {file.content.split("\n").map((_, i) => (
+            <div key={i}>{i + 1}</div>
+          ))}
+        </div>
+        <pre className="py-4 px-4 text-gray-300 leading-6 text-xs overflow-x-auto flex-1 whitespace-pre">
+          <code>{file.content}</code>
+        </pre>
+      </div>
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-4 py-1.5 bg-primary/5 border-t border-border/20 text-[11px] text-gray-500">
+        <span>Generated by FloMCP · Read-only</span>
+        <span className="capitalize">{file.lang}</span>
+      </div>
+    </div>
+  );
+}
+
+function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [entEmail, setEntEmail] = useState("");
+  const [entDesc, setEntDesc] = useState("");
+  const [entTimeline, setEntTimeline] = useState("weeks");
+  const [entSubmitted, setEntSubmitted] = useState(false);
+  const [entLoading, setEntLoading] = useState(false);
+  const [entError, setEntError] = useState("");
+
+  if (!open) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEntLoading(true);
+    setEntError("");
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: entEmail,
+          problem: entDesc,
+          interest: "enterprise",
+          urgency: entTimeline,
+          description: entDesc,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit");
+      setEntSubmitted(true);
+    } catch (err: any) {
+      setEntError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setEntLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="enterprise-modal-title"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 id="enterprise-modal-title" className="text-xl font-bold">Enterprise — Contact Us</h2>
+            <p className="text-sm text-muted-foreground mt-1">Tell us what you need and we&apos;ll respond within 24 hours.</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close enterprise enquiry form"
+            className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {entSubmitted ? (
+          <div className="py-6 text-center space-y-3">
+            <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+            <p className="font-semibold text-lg">Request received!</p>
+            <p className="text-sm text-muted-foreground">We&apos;ll reach out to <strong>{entEmail}</strong> within 24 hours.</p>
+            <button onClick={onClose} className="text-sm text-primary underline underline-offset-2">Close</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="ent-email" className="text-sm font-medium">Work Email *</label>
+              <input
+                id="ent-email"
+                type="email"
+                required
+                placeholder="you@company.com"
+                value={entEmail}
+                onChange={(e) => setEntEmail(e.target.value)}
+                disabled={entLoading}
+                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="ent-desc" className="text-sm font-medium">Describe your MCP server needs *</label>
+              <textarea
+                id="ent-desc"
+                required
+                rows={4}
+                placeholder="What integrations, APIs, or workflows do you need covered? Any security or compliance requirements?"
+                value={entDesc}
+                onChange={(e) => setEntDesc(e.target.value)}
+                disabled={entLoading}
+                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="ent-timeline" className="text-sm font-medium">Timeline</label>
+              <select
+                id="ent-timeline"
+                value={entTimeline}
+                onChange={(e) => setEntTimeline(e.target.value)}
+                disabled={entLoading}
+                className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <option value="asap">ASAP — need this week</option>
+                <option value="weeks">A few weeks</option>
+                <option value="month">Within a month</option>
+                <option value="planning">Still planning</option>
+              </select>
+            </div>
+
+            {entError && (
+              <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">{entError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={entLoading}
+              className="w-full h-10 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {entLoading ? "Sending…" : "Send Enquiry"}
+              {!entLoading && <ArrowRight className="h-4 w-4" />}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <div className="divide-y divide-border/60 border border-border/60 rounded-xl overflow-hidden">
+      {FAQ_ITEMS.map(({ q, a }, i) => (
+        <div key={i}>
+          <button
+            className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium hover:bg-muted/40 transition-colors"
+            onClick={() => setOpen(open === i ? null : i)}
+            aria-expanded={open === i}
+          >
+            <span>{q}</span>
+            <ChevronDown className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
+          </button>
+          {open === i && (
+            <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
+              {a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Home() {
   const router = useRouter();
@@ -20,7 +390,9 @@ export default function Home() {
   const [interest, setInterest] = useState<"product" | "freelance" | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [enterpriseOpen, setEnterpriseOpen] = useState(false);
+
   // User state — start with checkingAuth=false so buttons show IMMEDIATELY.
   // Auth resolves in background; if user is logged in, button swaps to Dashboard.
   const [user, setUser] = useState<User | null>(null);
@@ -88,7 +460,6 @@ export default function Home() {
           interest: type,
           urgency: null,
           description: null,
-          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : ''
         }),
       });
 
@@ -122,7 +493,6 @@ export default function Home() {
           interest: 'freelance',
           urgency,
           description: freelanceDescription,
-          userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : ''
         }),
       });
 
@@ -149,8 +519,7 @@ export default function Home() {
         'page_location': window.location.href
       });
     }
-    console.log('Demo button clicked', { timestamp: new Date() });
-    alert('Demo coming soon! We\'re working hard to show you how FloMCP generates production-ready MCP servers.');
+    router.push('/auth/signup');
   };
 
   return (
@@ -159,19 +528,22 @@ export default function Home() {
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-            <Code2 className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold">FloMCP</span>
+            <Logo height={32} />
           </div>
           <div className="flex items-center gap-3">
-            {/* Show demo button for everyone */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={trackDemoInterest}
+            {/* Always-visible nav links */}
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1"
             >
-              See Demo
-            </Button>
-            
+              Demo
+            </button>
+            <button
+              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1"
+            >
+              Pricing
+            </button>
             {/* Conditionally show UserMenu or Auth buttons */}
             {user ? (
               // User is logged in — show dashboard button + user menu
@@ -203,7 +575,7 @@ export default function Home() {
                   onClick={() => router.push('/auth/signup')}
                   className="bg-primary hover:bg-primary/90"
                 >
-                  Start Free Trial
+                  Start Free
                 </Button>
               </>
             )}
@@ -216,43 +588,42 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>Join 1,000+ developers building with MCP</span>
+            <span>The fastest way to build production-ready MCP servers</span>
           </div>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-            Create MCP Online
+            Build MCP Servers
             <br />
             <span className="bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              in Minutes, Not Hours
+              That Actually Work
             </span>
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            The quick MCP helper for developers. Build MCP online with our MCP flow generator. Create production-ready Model Context Protocol servers with complete schemas, error handling, and documentation instantly.
+            Describe what you need in plain English. FloMCP generates a complete, production-ready MCP server — Zod schemas, error handling, security checks, and Claude Desktop config included. No boilerplate. No guessing why tools don&apos;t show up.
           </p>
 
           {/* Time Savings Showcase */}
-          <div className="inline-flex flex-col gap-2 p-6 rounded-lg bg-card border-2 border-primary/20">
-            <div className="flex items-center gap-3 justify-center text-sm text-muted-foreground mb-2">
-              <Clock className="h-4 w-4" />
-              <span>Without FloMCP: <span className="line-through">10+ hours</span></span>
-            </div>
-            <div className="text-3xl font-bold text-primary">5 minutes</div>
-            <div className="text-sm text-muted-foreground">with FloMCP</div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border/60 text-sm">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="text-muted-foreground line-through">10+ hours</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="font-semibold text-primary">1+ minutes</span>
+            <span className="text-muted-foreground">with FloMCP</span>
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>Type-safe schemas included</span>
+              <span>22 security checks on every server</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>Error handling built-in</span>
+              <span>Works with Claude, Copilot &amp; Cursor</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>Ready for production</span>
+              <span>Download and run — no config needed</span>
             </div>
           </div>
 
@@ -262,17 +633,32 @@ export default function Home() {
               className="text-lg px-8" 
               onClick={() => router.push('/auth/signup')}
             >
-              Start Free Trial
+              Start Free — 5 Credits
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline" 
               className="text-lg px-8" 
-              onClick={trackDemoInterest}
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              Watch Demo
+              See How It Works
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* What is MCP — brief explainer for first-time visitors */}
+      <section className="container mx-auto px-4 py-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-8 py-6">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">What is MCP?</p>
+            <p className="text-base md:text-lg leading-relaxed text-foreground">
+              <strong>MCP (Model Context Protocol)</strong> is the open standard that lets AI assistants like Claude and GitHub Copilot call your tools, databases, and APIs in real time — instead of guessing from training data.
+            </p>
+            <p className="text-base md:text-lg leading-relaxed text-muted-foreground mt-2">
+              An <strong>MCP server</strong> is the code that exposes those capabilities. Building one from scratch means writing schemas, handlers, error handling, and config files — FloMCP generates all of it for you in under two minutes.
+            </p>
           </div>
         </div>
       </section>
@@ -281,7 +667,7 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
-            Why Use an MCP Helper to Build MCP Online?
+            Why Building MCP Servers Manually Is So Painful
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
             Creating MCP servers manually takes 10+ hours - every single time
@@ -343,19 +729,19 @@ export default function Home() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-3xl font-bold text-primary">10+ hrs</div>
-                    <div className="text-xs text-muted-foreground mt-1">Per server</div>
+                    <div className="text-xs text-muted-foreground mt-1">To write first server</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary">50+</div>
-                    <div className="text-xs text-muted-foreground mt-1">Lines of code</div>
+                    <div className="text-3xl font-bold text-primary">3 hrs</div>
+                    <div className="text-xs text-muted-foreground mt-1">Just to get schemas right</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary">10+</div>
-                    <div className="text-xs text-muted-foreground mt-1">Restarts to test</div>
+                    <div className="text-3xl font-bold text-primary">20+</div>
+                    <div className="text-xs text-muted-foreground mt-1">Restarts to test changes</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary">∞</div>
-                    <div className="text-xs text-muted-foreground mt-1">Debug cycles</div>
+                    <div className="text-3xl font-bold text-primary">0</div>
+                    <div className="text-xs text-muted-foreground mt-1">Clear docs on why tools don&apos;t appear</div>
                   </div>
                 </div>
               </div>
@@ -365,24 +751,24 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="container mx-auto px-4 py-16">
+      <section id="features" className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Quick MCP Creation - Everything You Need
+            What FloMCP Generates for You
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            Create MCP servers online with FloMCP MCP helper - production-ready in minutes
+            Every server includes the complete project structure — not just a snippet
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
               <CardHeader>
                 <Zap className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">Quick MCP Setup - 5 Minutes</CardTitle>
+                <CardTitle className="text-xl">Working Server in Under a Minute</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Build MCP online fast. Describe your integration in plain English. Get complete, working MCP server code with schemas, handlers, and documentation generated instantly.
+                  Describe your integration in plain English. FloMCP generates a complete server with schemas, handlers, error responses, and a README — ready to download and run.
                 </p>
               </CardContent>
             </Card>
@@ -402,11 +788,11 @@ export default function Home() {
             <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
               <CardHeader>
                 <FileCode className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">MCP Flow - Copy-Paste Ready</CardTitle>
+                <CardTitle className="text-xl">Download, Add Keys, Done</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Seamless MCP flow from creation to deployment. No configuration required. Download your MCP server, add your API keys, and start using it with Claude, Copilot, or any AI assistant.
+                  No configuration required. Download your server, add your API keys to the env file, and start using it with Claude, Copilot, or any MCP-compatible AI assistant.
                 </p>
               </CardContent>
             </Card>
@@ -483,6 +869,41 @@ export default function Home() {
                 </ul>
               </div>
             </div>
+          </div>
+
+          {/* Video / Tutorial Slot */}
+          <div id="how-it-works" className="mt-12">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold mb-2">See FloMCP in Action</h3>
+              <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under a minute — from plain English to working TypeScript code.</p>
+            </div>
+            {/* 16:9 video placeholder — drop a YouTube embed or GIF here */}
+            <div className="relative aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all">
+              <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-primary ml-0.5">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">Tutorial video coming soon</p>
+                <p className="text-xs text-muted-foreground mt-1">Embed your walkthrough video or GIF here</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Generated Code Showcase — read-only output preview */}
+          <div className="mt-10">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold mb-2">This is What FloMCP Generates</h3>
+              <p className="text-sm text-muted-foreground">
+                Real TypeScript MCP server code — 5 files, production-ready, right out of the box.
+                Browse the output below.
+              </p>
+            </div>
+            <CodeEditorShowcase />
+            <p className="text-center text-xs text-muted-foreground mt-3">
+              Read-only preview · Your generated code is fully downloadable
+            </p>
           </div>
         </div>
       </section>
@@ -583,7 +1004,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex-shrink-0">
-                <Button variant="outline" size="sm" onClick={() => document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })}>
+                <Button variant="outline" size="sm" onClick={() => router.push('/auth/signup')}>
                   Build Secure MCP Now
                 </Button>
               </div>
@@ -662,195 +1083,203 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Validation Form Section */}
-      <section id="waitlist" className="container mx-auto px-4 py-16">
+      {/* CTA Section */}
+      <section id="cta" className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">
-          {!submitted ? (
+          {user ? (
             <Card className="border-2 border-primary/30 shadow-lg">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl md:text-3xl">Get Early Access</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl">What would you like to build?</CardTitle>
                 <CardDescription className="text-base">
-                  Join 1,000+ developers building with MCP. Be first to know when we launch.
+                  Generate a server yourself or let us build it for you.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  size="lg"
+                  className="w-full h-12 text-base"
+                  onClick={() => router.push('/dashboard/generate')}
+                >
+                  Create MCP Server
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                  </div>
+                </div>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-12 text-base"
+                  onClick={() => setEnterpriseOpen(true)}
+                >
+                  I Need Custom MCP Development
+                  <Users className="ml-2 h-5 w-5" />
+                </Button>
+
+                <div className="flex gap-4 justify-center text-xs text-muted-foreground pt-1">
+                  <a href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</a>
+                  <a href="/dashboard/servers" className="hover:text-foreground transition-colors">My Servers</a>
+                  <a href="/dashboard/settings" className="hover:text-foreground transition-colors">Settings</a>
+                </div>
+              </CardContent>
+            </Card>
+          ) : !submitted ? (
+            <Card className="border-2 border-primary/30 shadow-lg">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl md:text-3xl">Start Building Today</CardTitle>
+                <CardDescription className="text-base">
+                  Generate your first production-ready MCP server in under a minute — free.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <form onSubmit={(e) => handleSubmit(e, "product")} className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-medium">
-                      Email Address
-                    </label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="h-11"
-                    />
-                  </div>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    size="lg"
+                    className="w-full h-12 text-base"
+                    onClick={() => router.push('/auth/signup')}
+                  >
+                    Create Free Account
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full h-12 text-base"
+                    onClick={() => router.push('/auth/signin')}
+                  >
+                    Sign In
+                  </Button>
+                </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="problem" className="text-sm font-medium">
-                      What challenges have you faced building MCP servers? *
-                    </label>
-                    <Textarea
-                      id="problem"
-                      placeholder="E.g., 'Too much boilerplate', 'Hard to test changes', 'No good examples', 'Authentication is complex'..."
-                      value={problem}
-                      onChange={(e) => setProblem(e.target.value)}
-                      required
-                      disabled={loading}
-                      rows={4}
-                      className="resize-none"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Your feedback helps us build exactly what developers need
-                    </p>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
                   </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or get in touch</span>
+                  </div>
+                </div>
 
-                  <div className="space-y-3 pt-4">
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 text-base" 
+                <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-12 text-base"
                       size="lg"
-                      disabled={loading}
                     >
-                      {loading && interest === "product" ? "Submitting..." : "Get Notified When We Launch"}
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      I Need Custom MCP Development
+                      <Users className="ml-2 h-5 w-5" />
                     </Button>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border" />
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl">Custom MCP Development</DialogTitle>
+                      <DialogDescription>
+                        Tell us about your project and we'll get back to you within 24 hours.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleFreelanceSubmit} className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <label htmlFor="freelance-email" className="text-sm font-medium">
+                          Email Address *
+                        </label>
+                        <Input
+                          id="freelance-email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={freelanceEmail}
+                          onChange={(e) => setFreelanceEmail(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
                       </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">Or</span>
-                      </div>
-                    </div>
 
-                    <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                      <DialogTrigger asChild>
-                        <Button 
-                          type="button"
-                          variant="outline" 
-                          className="w-full h-12 text-base" 
-                          size="lg"
+                      <div className="space-y-2">
+                        <label htmlFor="description" className="text-sm font-medium">
+                          Project Description *
+                        </label>
+                        <Textarea
+                          id="description"
+                          placeholder="Describe your MCP project needs, integrations required, timeline, etc."
+                          value={freelanceDescription}
+                          onChange={(e) => setFreelanceDescription(e.target.value)}
+                          required
+                          disabled={loading}
+                          rows={4}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="urgency" className="text-sm font-medium">
+                          Urgency
+                        </label>
+                        <select
+                          id="urgency"
+                          value={urgency}
+                          onChange={(e) => setUrgency(e.target.value)}
+                          disabled={loading}
+                          className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          I Need Custom MCP Development
-                          <Users className="ml-2 h-5 w-5" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[500px]">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl">Custom MCP Development</DialogTitle>
-                          <DialogDescription>
-                            Tell us about your project and we'll get back to you within 24 hours.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleFreelanceSubmit} className="space-y-4 mt-4">
-                          <div className="space-y-2">
-                            <label htmlFor="freelance-email" className="text-sm font-medium">
-                              Email Address *
-                            </label>
-                            <Input
-                              id="freelance-email"
-                              type="email"
-                              placeholder="your@email.com"
-                              value={freelanceEmail}
-                              onChange={(e) => setFreelanceEmail(e.target.value)}
-                              required
-                              disabled={loading}
-                            />
-                          </div>
+                          <option value="low">Low - Planning phase</option>
+                          <option value="medium">Medium - Next few weeks</option>
+                          <option value="high">High - ASAP</option>
+                          <option value="urgent">Urgent - Need this week</option>
+                        </select>
+                      </div>
 
-                          <div className="space-y-2">
-                            <label htmlFor="description" className="text-sm font-medium">
-                              Project Description *
-                            </label>
-                            <Textarea
-                              id="description"
-                              placeholder="Describe your MCP project needs, integrations required, timeline, etc."
-                              value={freelanceDescription}
-                              onChange={(e) => setFreelanceDescription(e.target.value)}
-                              required
-                              disabled={loading}
-                              rows={4}
-                            />
-                          </div>
+                      {error && (
+                        <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
+                          <p className="text-sm text-red-500">{error}</p>
+                        </div>
+                      )}
 
-                          <div className="space-y-2">
-                            <label htmlFor="urgency" className="text-sm font-medium">
-                              Urgency
-                            </label>
-                            <select
-                              id="urgency"
-                              value={urgency}
-                              onChange={(e) => setUrgency(e.target.value)}
-                              disabled={loading}
-                              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              <option value="low">Low - Planning phase</option>
-                              <option value="medium">Medium - Next few weeks</option>
-                              <option value="high">High - ASAP</option>
-                              <option value="urgent">Urgent - Need this week</option>
-                            </select>
-                          </div>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        size="lg"
+                        disabled={loading}
+                      >
+                        {loading ? "Submitting..." : "Submit Request"}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
 
-                          {error && (
-                            <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
-                              <p className="text-sm text-red-500">{error}</p>
-                            </div>
-                          )}
-
-                          <Button 
-                            type="submit" 
-                            className="w-full" 
-                            size="lg"
-                            disabled={loading}
-                          >
-                            {loading ? "Submitting..." : "Submit Request"}
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-
-                  {error && !isModalOpen && (
-                    <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
-                      <p className="text-sm text-red-500">{error}</p>
-                    </div>
-                  )}
-
-                  <p className="text-xs text-muted-foreground text-center pt-2">
-                    No spam, ever. Unsubscribe with one click. We'll email you when we launch.
-                  </p>
-                </form>
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  Free plan • 5 credits on signup • No credit card required.
+                </p>
               </CardContent>
             </Card>
           ) : (
             <Card className="border-2 border-green-500/30 bg-green-500/5">
               <CardContent className="pt-8 pb-8 text-center space-y-4">
                 <CheckCircle2 className="h-20 w-20 mx-auto text-green-500" />
-                <h3 className="text-2xl md:text-3xl font-bold">You're on the list!</h3>
+                <h3 className="text-2xl md:text-3xl font-bold">Request received!</h3>
                 <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                  {interest === "product" 
-                    ? "We'll notify you as soon as we launch. Your feedback will help us build the perfect tool for MCP development."
-                    : "We'll reach out within 24 hours to discuss your custom MCP server needs and how we can help."}
+                  We'll reach out within 24 hours to discuss your custom MCP server needs.
                 </p>
-                <div className="pt-6">
+                <div className="pt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button onClick={() => router.push('/auth/signup')}>
+                    Create Free Account
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setSubmitted(false);
-                      setEmail("");
-                      setProblem("");
                       setInterest(null);
                     }}
                   >
-                    Submit Another Response
+                    Submit Another Request
                   </Button>
                 </div>
               </CardContent>
@@ -859,138 +1288,151 @@ export default function Home() {
         </div>
       </section>
 
+      {/* MCP Library Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs mb-6">
+            <Database className="h-3.5 w-3.5 text-primary" />
+            <span>Free MCP Library</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore the MCP Library</h2>
+          <p className="text-muted-foreground mb-8 text-lg max-w-2xl mx-auto">
+            Browse 10+ curated open-source MCP servers and FloMCP-generated examples — ready to deploy or use as a starting point.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center mb-8">
+            {["GitHub MCP", "PostgreSQL MCP", "Filesystem MCP", "Brave Search", "Slack MCP", "Puppeteer MCP"].map((name) => (
+              <span key={name} className="px-3 py-1.5 rounded-full border border-border/60 bg-muted/30 text-sm text-muted-foreground">
+                {name}
+              </span>
+            ))}
+          </div>
+          <Button size="lg" variant="outline" className="gap-2" onClick={() => router.push(user ? '/dashboard/library' : '/library')}>
+            Browse Free MCP Library
+            <ArrowRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="container mx-auto px-4 py-16">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Credit-Based Pricing</h2>
+            <p className="text-muted-foreground text-lg">Pay for generations, not subscriptions you won&apos;t use.</p>
+          </div>
+
+          {/* Plan cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free */}
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="text-xl">Free</CardTitle>
+                <div className="text-3xl font-bold mt-2">$0</div>
+                <CardDescription>5 credits to get started — no card required</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {FREE_CREDIT_FEATURES.map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />{f}
+                  </div>
+                ))}
+                <Button className="w-full mt-4" variant="outline" onClick={() => router.push('/auth/signup')}>
+                  Start Free
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Pro */}
+            <Card className="border-2 border-primary/40 bg-primary/5 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">Most Popular</span>
+              </div>
+              <CardHeader>
+                <CardTitle className="text-xl">Pro</CardTitle>
+                <div className="text-3xl font-bold mt-2">$29<span className="text-base font-normal text-muted-foreground">/mo</span></div>
+                <CardDescription>For developers who ship regularly</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {PRO_CREDIT_FEATURES.map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />{f}
+                  </div>
+                ))}
+                <Button className="w-full mt-4" onClick={() => setProModalOpen(true)}>
+                  Get Pro — $29/mo
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise */}
+            <Card className="border-border/60">
+              <CardHeader>
+                <CardTitle className="text-xl">Enterprise</CardTitle>
+                <div className="text-3xl font-bold mt-2">Custom</div>
+                <CardDescription>Bespoke MCP servers built to spec</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Everything in Pro, plus:</p>
+                {[
+                  "Custom server built to your exact spec",
+                  "Private codebase delivery",
+                  "Security review + full documentation",
+                  "Ongoing maintenance option",
+                  "Dedicated support channel",
+                ].map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />{f}
+                  </div>
+                ))}
+                <Button className="w-full mt-4" variant="outline" onClick={() => setEnterpriseOpen(true)}>
+                  Get in Touch
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Credit top-up packs */}
+          <div className="mt-12">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-semibold">Credit Top-Up Packs</h3>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">Pro subscribers only</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">Coming soon</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-xs text-muted-foreground">Generation cost:</span>
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 font-medium">
+                🪙 1 credit &mdash; Simple server
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
+                🪙🪙 2 credits &mdash; Complex server
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {CREDIT_PACKS.map((pack) => (
+                <div key={pack.name} className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-center">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
+                  <p className="text-2xl font-bold">{pack.credits}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">credits</p>
+                  <p className="text-sm font-semibold text-primary mt-2">{pack.price}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">Top-up credits never expire and stack with your monthly allowance.</p>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
-      <section className="container mx-auto px-4 py-16 bg-secondary/20">
+      <section className="container mx-auto px-4 py-16 bg-secondary/20 rounded-2xl">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
             Frequently Asked Questions
           </h2>
-          <p className="text-center text-muted-foreground mb-12 text-lg">
+          <p className="text-center text-foreground/70 mb-12 text-lg">
             Everything you need to know about creating MCP online
           </p>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">How do I create MCP online?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  FloMCP lets you create MCP servers online in just minutes. Simply describe your requirements in plain English, and FloMCP generates production-ready Model Context Protocol server code with schemas, error handling, and documentation. No manual setup or configuration required.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">What is an MCP helper?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  An MCP helper is a tool that simplifies the process of building Model Context Protocol servers. FloMCP is a quick MCP helper that automates the entire creation process - from boilerplate code to schemas to testing. It saves you 10+ hours per project by generating everything you need automatically.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">How long does it take to build MCP online?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  With FloMCP, you can build MCP servers online in just 5 minutes. Manual MCP development typically takes 10+ hours including setup, schema creation, error handling implementation, and testing. FloMCP automates all of this for instant results.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">What is MCP flow and why does it matter?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  MCP flow refers to the streamlined workflow from idea to deployment. FloMCP provides a seamless MCP flow: describe your needs → generate code → download → deploy. Our quick MCP approach eliminates friction at every step, letting you focus on building features instead of wrestling with configuration.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Can I build MCP for Claude and Copilot?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Yes! FloMCP generates MCP servers that work with Claude Desktop, GitHub Copilot, and any AI assistant supporting the Model Context Protocol standard. Create MCP online once and use it everywhere - with Claude, Copilot, Cursor, Windsurf, Cline, and more.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Is there a quick MCP tutorial?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  FloMCP itself is the quickest MCP tutorial you'll find. Instead of spending hours reading documentation, you get hands-on, production-ready code instantly. Study the generated code to learn MCP best practices, schema structures, and error handling patterns - all by example.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Are FloMCP servers secure?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Yes. Recent analysis found that 8,000+ MCP servers contain security vulnerabilities like SSRF, command injection, and hardcoded secrets. FloMCP generates secure, OWASP-compliant code with proper input validation, zero hardcoded credentials, bounded execution, and protection against common MCP vulnerabilities from day one.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">What is MCP flow in FloMCP?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  MCP flow in FloMCP refers to our seamless workflow: describe your integration needs → FloMCP generates complete MCP server code → download → deploy. The entire MCP flow takes just 5 minutes from idea to working integration, with no manual configuration or boilerplate coding required.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">How does FloMCP compare to building MCP manually?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Manual MCP development takes 10+ hours: writing boilerplate (1-2 hrs), creating JSON schemas (2-3 hrs), implementing error handling (2 hrs), testing with AI restarts (3+ hrs), and documentation (1-2 hrs). FloMCP automates all of this in 5 minutes - that's 120x faster with better code quality and security.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Can I use FloMCP for complex API integrations?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Absolutely. FloMCP excels at complex integrations. Build MCP servers for REST APIs, GraphQL, databases, file systems, webhooks, and more. The MCP helper automatically generates authentication flows, rate limiting, error recovery, and schema validation - everything production systems need.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">What makes FloMCP the best quick MCP tool?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  FloMCP is purpose-built for speed and quality. Unlike generic code generators, we focus exclusively on secure MCP development with AI-specific optimizations. You get type-safe schemas, comprehensive error handling, built-in validation, zero security vulnerabilities, and production-ready code - not just basic templates.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <FaqAccordion />
         </div>
       </section>
 
@@ -1004,33 +1446,22 @@ export default function Home() {
                 <span className="text-lg font-bold">FloMCP</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
-                Create MCP online in minutes. Quick MCP helper for developers building Model Context Protocol servers.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Keywords: create mcp online, build mcp online, mcp helper, quick mcp, mcp flow, mcp generator
+                FloMCP generates production-ready MCP servers from plain English. Works with Claude, GitHub Copilot, Cursor, and Windsurf.
               </p>
             </div>
             
             <div>
               <h4 className="font-semibold mb-3 text-sm">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#waitlist" className="hover:text-foreground transition-colors">Get Early Access</a></li>
+                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="/docs/getting-started" className="hover:text-foreground transition-colors">Documentation</a></li>
+                <li><a href="/auth/signup" className="hover:text-foreground transition-colors">Start Free</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-3 text-sm">Resources</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">MCP Specification</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Examples</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Support</a></li>
-              </ul>
-              
-              <h4 className="font-semibold mb-3 text-sm mt-6">Legal</h4>
+              <h4 className="font-semibold mb-3 text-sm">Legal</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
                   <a 
@@ -1065,6 +1496,10 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Pro Interest Modal */}
+      <ProInterestModal open={proModalOpen} onClose={() => setProModalOpen(false)} />
+      <EnterpriseModal open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} />
     </main>
   );
 }

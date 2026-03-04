@@ -44,10 +44,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth check
   const supabase = createServerClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const serverId = body.serverId.trim();
 
     // Use adminClient to bypass RLS — ownership is enforced manually via
-    // .eq("user_id", session.user.id), same pattern as GET /api/servers/[id]
+    // .eq("user_id", user.id), same pattern as GET /api/servers/[id]
     const adminClient = createAdminClient();
     const { data: server, error: fetchErr } = await adminClient
       .from("mcp_servers")
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         "id, user_id, generated_code, package_json, tsconfig, env_example"
       )
       .eq("id", serverId)
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .single();
 
     if (fetchErr || !server) {

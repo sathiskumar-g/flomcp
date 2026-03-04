@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://flomcp.com'),
-  title: "FloMCP - Create MCP Online | Build MCP Servers in Minutes | MCP Helper & Generator",
-  description: "Create MCP servers online with FloMCP - the quick MCP helper. Build Model Context Protocol servers in 5 minutes. Secure MCP generator for Claude, Copilot. MCP flow automation, instant MCP builder. Save 10+ hours. Try the best MCP creation tool - build MCP online now!",
+  title: "FloMCP — MCP Server Generator | Build Production-Ready MCP Servers",
+  description: "Generate complete, production-ready MCP servers from plain English. Zod schemas, error handling, and security checks included. Works with Claude, GitHub Copilot, Cursor, and Windsurf.",
   keywords: [
     // Primary keywords
     "create mcp online", "build mcp online", "mcp helper", "mcp flow", "quick mcp",
@@ -38,8 +38,8 @@ export const metadata: Metadata = {
     canonical: "https://flomcp.com",
   },
   openGraph: {
-    title: "FloMCP - Create MCP Online | MCP Helper & Generator",
-    description: "Build MCP servers online in minutes. Quick MCP helper tool for developers. Generate production-ready Model Context Protocol servers instantly.",
+    title: "FloMCP — MCP Server Generator",
+    description: "Generate complete MCP servers from plain English. Zod schemas, error handling, security checks — download and run in minutes.",
     type: "website",
     url: "https://flomcp.com",
     siteName: "FloMCP",
@@ -55,8 +55,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FloMCP - Create MCP Online | Build MCP Servers in Minutes",
-    description: "Quick MCP helper tool. Build Model Context Protocol servers online. Save 10+ hours with automated MCP generation.",
+    title: "FloMCP — MCP Server Generator",
+    description: "Generate production-ready MCP servers from plain English. Works with Claude, Copilot, Cursor. 22 security checks on every server.",
     images: ["/twitter-image.png"],
     creator: "@flomcp",
   },
@@ -92,17 +92,12 @@ export default function RootLayout({
       "price": "0",
       "priceCurrency": "USD"
     },
-    "description": "Create MCP servers online. Build Model Context Protocol servers in minutes with automated generation, complete schemas, and production-ready code.",
+    "description": "Generate production-ready MCP servers from plain English. Zod schemas, error handling, and 22 security checks included. Works with Claude, GitHub Copilot, Cursor, and Windsurf.",
     "operatingSystem": "Web",
     "url": "https://flomcp.com",
     "author": {
       "@type": "Organization",
       "name": "FloMCP"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "1247"
     }
   };
 
@@ -111,8 +106,8 @@ export default function RootLayout({
     "@type": "Organization",
     "name": "FloMCP",
     "url": "https://flomcp.com",
-    "logo": "https://flomcp.com/logo.png",
-    "description": "Quick MCP helper tool for developers. Build Model Context Protocol servers online.",
+    "logo": "https://flomcp.com/logo-dark.png",
+    "description": "MCP server generator for developers. Generate production-ready Model Context Protocol servers with security checks built in.",
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "Customer Support",
@@ -126,26 +121,26 @@ export default function RootLayout({
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "How do I create MCP online?",
+        "name": "How do I generate an MCP server with FloMCP?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "FloMCP lets you create MCP servers online in minutes. Simply describe your requirements, and FloMCP generates production-ready Model Context Protocol server code with schemas, error handling, and documentation."
+          "text": "Sign up for a free account (no card required), describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — Zod schemas, handlers, error handling, and README included. Download and run immediately."
         }
       },
       {
         "@type": "Question",
-        "name": "What is an MCP helper?",
+        "name": "What is an MCP server and why do I need one?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "An MCP helper is a tool that simplifies building Model Context Protocol servers. FloMCP is a quick MCP helper that automates boilerplate code generation, saving you 10+ hours per project."
+          "text": "An MCP server exposes your tools, APIs, and databases to AI assistants like Claude and GitHub Copilot. Without one, your AI only uses its training data. With one, it can query your database, call your APIs, and take real actions in real time. FloMCP generates the complete server code so you don't have to write the boilerplate yourself."
         }
       },
       {
         "@type": "Question",
-        "name": "How long does it take to build MCP online?",
+        "name": "How long does it take to build an MCP server with FloMCP?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "With FloMCP, you can build MCP servers online in just 5 minutes. Without FloMCP, manual MCP development takes 10+ hours including setup, schemas, and testing."
+          "text": "As little as 1 minute with FloMCP, compared to 10+ hours writing one manually. FloMCP handles schemas, error handling, security checks, and README generation automatically."
         }
       },
       {
@@ -162,9 +157,9 @@ export default function RootLayout({
   const howToJsonLd = {
     "@context": "https://schema.org",
     "@type": "HowTo",
-    "name": "How to Create MCP Server Online with FloMCP",
-    "description": "Step-by-step guide to build MCP servers online using FloMCP MCP helper tool in just 5 minutes",
-    "totalTime": "PT5M",
+    "name": "How to Build an MCP Server with FloMCP",
+    "description": "Step-by-step guide to generating a production-ready MCP server with FloMCP — from plain English description to working TypeScript code",
+    "totalTime": "PT2M",
     "tool": [{
       "@type": "HowToTool",
       "name": "FloMCP - MCP Helper & Generator"
@@ -173,7 +168,7 @@ export default function RootLayout({
       {
         "@type": "HowToStep",
         "name": "Sign up for FloMCP",
-        "text": "Create your free FloMCP account to access the quick MCP builder",
+        "text": "Create your free FloMCP account — 5 credits included, no card required",
         "position": 1
       },
       {

@@ -13,7 +13,7 @@ import { Step1Description } from "@/components/generator/Step1Description";
 import { Step2APIConfig } from "@/components/generator/Step2APIConfig";
 import { Step3ToolConfig } from "@/components/generator/Step3ToolConfig";
 import { Step4Resources } from "@/components/generator/Step4Resources";
-import { Step4Review } from "@/components/generator/Step4Review";
+import { Step5Review } from "@/components/generator/Step5Review";
 import { PostGenerationReview } from "@/components/generator/PostGenerationReview";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,8 @@ export default function GeneratePage() {
 
 function GenerateWizard() {
   const step = useGeneratorStore((s) => s.step);
+  // BUG-011: clamp so step indicator never renders out-of-bounds circles
+  const clampedStep = Math.min(step, 5);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-start justify-center pt-8 pb-16 px-4">
@@ -62,8 +64,8 @@ function GenerateWizard() {
 
           {STEPS.map((s, idx) => {
             const num = idx + 1;
-            const isActive = num === step;
-            const isDone = num < step;
+            const isActive = num === clampedStep;
+            const isDone = num < clampedStep;
 
             return (
               <div
@@ -119,7 +121,7 @@ function GenerateWizard() {
           {step === 2 && <Step2APIConfig />}
           {step === 3 && <Step3ToolConfig />}
           {step === 4 && <Step4Resources />}
-          {step === 5 && <Step4Review />}
+          {step === 5 && <Step5Review />}
           {step === 6 && <PostGenerationReview />}
         </div>
 

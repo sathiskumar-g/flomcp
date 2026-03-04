@@ -5,6 +5,12 @@ import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
 import { createServerClient } from "@/lib/supabase-server";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
 import { runSecurityValidation } from "@/lib/security/validator";
+import { estimateCredits } from "@/lib/credits";
+import { ensureCreditRow, deductCredits, refundCredits } from "@/lib/credits-service";
+import type { ToolDefinition, ResourceDefinition, PromptDefinition, ApiConfig } from "@/lib/stores/generator-store";
+
+// Allow this route up to 5 minutes on Vercel Pro/Enterprise (streaming response)
+export const maxDuration = 300;
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -37,11 +43,10 @@ const KNOWN_FILE_KEYS = [
 function parseClaudeOutput(
   raw: string
 ): { files?: Record<string, string>; tools?: object[] } {
-  // Stage 1 – strip optional markdown fence, direct parse
+  // Stage 1 – strip optional markdown fence(s), direct parse (BUG-018: global flag handles nested fences)
   const cleaned = raw
-    .replace(/^```json\r?\n?/m, "")
-    .replace(/^```\r?\n?/m, "")
-    .replace(/\r?\n?```$/m, "")
+    .replace(/^```(?:json)?\r?\n?/gm, "")
+    .replace(/\r?\n?```$/gm, "")
     .trim();
   try {
     return JSON.parse(cleaned);
@@ -79,6 +84,17 @@ function parseClaudeOutput(
       catch { files[key] = partialMatch[1]; }
     }
   }
+  // BUG-008: Generic fallback — extract ALL "key": "value" pairs missed by known-key loop
+  const genericRe = new RegExp('"([^"\\\\]+)"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"', 'gs');
+  let gm: RegExpExecArray | null;
+  while ((gm = genericRe.exec(cleaned)) !== null) {
+    const k = gm[1];
+    if (!(k in files)) {
+      try { files[k] = JSON.parse(`"${gm[2]}"`); }
+      catch { files[k] = gm[2]; }
+    }
+  }
+
   if (Object.keys(files).length > 0) {
     return { files };
   }
@@ -93,17 +109,32 @@ function parseClaudeOutput(
 // â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function POST(req: NextRequest) {
-  // getSession() reads JWT from cookies locally — no network call
+  // getUser() validates the JWT against Supabase servers — prevents revoked token bypass
   const supabase = createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
+  // BUG-007: Check email verification via session rather than denormalised column
+  if (!user.email_confirmed_at) {
+    return new Response(
+      JSON.stringify({ error: "Please verify your email address before generating.", code: "EMAIL_UNVERIFIED" }),
+      { status: 403 }
+    );
+  }
+
   const body = await req.json();
-  const { description, serverName = "", apiConfig, tools, resources = [], prompts = [] } = body;
+  const { description, serverName = "", apiConfig, tools = [], resources = [], prompts = [] } = body;
+
+  // BUG-001: Guard — tools must be a non-empty array
+  if (!Array.isArray(tools) || tools.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "At least one tool is required", code: "INVALID_INPUT" }),
+      { status: 422 }
+    );
+  }
 
   // — Input quality guard — rejects gibberish before spending any Claude tokens —
   const inputCheck = validateGeneratorStep1(serverName, description);
@@ -114,7 +145,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // â”€â”€ Rate limit â”€â”€
+  // ── Rate limit (anti-abuse: hourly/daily/cooldown) ──
   const rateCheck = await checkRateLimit(supabase, user.id);
   if (!rateCheck.allowed) {
     return new Response(
@@ -123,20 +154,55 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // â”€â”€ SSE stream â”€â”€
+  // ── Credit check & deduction ──
+  // Deduct before stream starts so we can return 402 synchronously.
+  // On generation failure the catch block inside the stream refunds.
+  await ensureCreditRow(user.id);
+  const creditCost = estimateCredits({
+    tools:     tools     as ToolDefinition[],
+    resources: resources as ResourceDefinition[],
+    prompts:   prompts   as PromptDefinition[],
+    apiConfig: apiConfig as ApiConfig,
+  }).cost;
+
+  const deductResult = await deductCredits(
+    user.id,
+    creditCost,
+    null,
+    String(creditCost) as "1" | "2"
+  );
+
+  if (!deductResult.ok) {
+    const status = deductResult.error === "insufficient_credits" ? 402 : 500;
+    return new Response(
+      JSON.stringify({
+        error: deductResult.error === "insufficient_credits"
+          ? `Not enough credits. This generation costs ${creditCost} credit${creditCost > 1 ? "s" : ""}. Your balance: ${deductResult.balanceAfter}.`
+          : "Credit system error — please try again.",
+        code: deductResult.error === "insufficient_credits" ? "INSUFFICIENT_CREDITS" : "CREDIT_ERROR",
+        balance: deductResult.balanceAfter,
+        cost: creditCost,
+      }),
+      { status }
+    );
+  }
+
+  // Capture deduction amounts for refund inside the stream's catch block
+  const creditDeduct = {
+    monthlyUsed: deductResult.monthlyUsed,
+    bonusUsed:   deductResult.bonusUsed,
+  };
+
+  // ── SSE stream ──
   const stream = new ReadableStream({
     async start(controller) {
       const send = (data: object) =>
         controller.enqueue(new TextEncoder().encode(encode(data)));
 
       try {
-        send({ type: "progress", step: "analyzing", message: "Analyzing your requirementsâ€¦" });
-        await delay(1200);
-
-        send({ type: "progress", step: "schema", message: "Designing tool schemasâ€¦" });
-        await delay(1000);
-
-        send({ type: "progress", step: "coding", message: "Writing TypeScript codeâ€¦" });
+        send({ type: "progress", step: "analyzing", message: "Analyzing your requirements\u2026" });
+        send({ type: "progress", step: "schema", message: "Designing tool schemas\u2026" });
+        send({ type: "progress", step: "coding", message: "Writing TypeScript code\u2026" });
 
         // Build tool list string
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -655,19 +721,36 @@ ${prompts.length > 0
 Run command for users after download:
   cd ${serverSlug} && npm install && npx tsx src/index.ts`;
 
-        // Extended output beta – raises the per-request output cap to 16 000 tokens
-        // which prevents JSON truncation for large servers (the main cause of
-        // "Unterminated string in JSON" errors at ~8 096 token limit).
-        const message = await anthropic.beta.messages.create(
-          {
-            model: "claude-sonnet-4-5",
-            max_tokens: 16000,
-            temperature: 0.3,
-            system: SYSTEM_PROMPT,
-            messages: [{ role: "user", content: USER_MESSAGE }],
-            betas: ["output-128k-2025-02-19"],
-          }
+        // BUG-004: 120s timeout — prevents SSE stream hanging indefinitely if Anthropic API stalls
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 120000)
         );
+
+        // Keepalive: send SSE comment every 8s so proxies/Vercel don't kill the idle connection
+        // while waiting for the Anthropic response (which can take 30-90s for 16K token output)
+        const keepAlive = setInterval(() => {
+          try { controller.enqueue(new TextEncoder().encode(": keepalive\n\n")); } catch { /* stream closed */ }
+        }, 8000);
+
+        // Extended output beta – raises the per-request output cap to 16 000 tokens
+        let message: Awaited<ReturnType<typeof anthropic.beta.messages.create>>;
+        try {
+          message = await Promise.race([
+            anthropic.beta.messages.create(
+              {
+                model: "claude-sonnet-4-5",
+                max_tokens: 16000,
+                temperature: 0.3,
+                system: SYSTEM_PROMPT,
+                messages: [{ role: "user", content: USER_MESSAGE }],
+                betas: ["output-128k-2025-02-19"],
+              }
+            ),
+            timeoutPromise,
+          ]);
+        } finally {
+          clearInterval(keepAlive);
+        }
 
         const raw = message.content[0].type === "text" ? message.content[0].text : "";
         if (!raw) throw new Error("Claude returned an empty response");
@@ -747,6 +830,14 @@ Run command for users after download:
           blockDownload: securityReport.blockDownload,
         });
       } catch (err: unknown) {
+        // Refund credits — user should not be charged for a failed generation
+        await refundCredits(
+          user.id,
+          creditDeduct.monthlyUsed,
+          creditDeduct.bonusUsed,
+          null,
+          "generation_error_refund"
+        );
         send({
           type: "error",
           message: err instanceof Error ? err.message : "Generation failed",

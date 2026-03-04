@@ -15,7 +15,7 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { MCPServersList } from "@/components/dashboard/MCPServersList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Shield, Clock, Zap, ArrowRight, TrendingUp } from "lucide-react";
+import { Sparkles, Shield, Clock, Zap, ArrowRight, TrendingUp, Server, BarChart2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface UsageStats {
@@ -25,7 +25,7 @@ interface UsageStats {
   last_generation_cooldown_until: string | null;
 }
 
-const FREE_TIER_LIMIT = 2;
+const FREE_TIER_LIMIT = 5;
 
 function DashboardContent() {
   const router = useRouter();
@@ -33,6 +33,8 @@ function DashboardContent() {
   const [user, setUser] = useState<User | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [serverCount, setServerCount] = useState<number | null>(null);
+  const [avgSecurityScore, setAvgSecurityScore] = useState<number | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -42,12 +44,31 @@ function DashboardContent() {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
-          const { data } = await supabase
-            .from("user_usage")
-            .select("generation_count_month, tier, last_generation_at, last_generation_cooldown_until")
-            .eq("user_id", currentUser.id)
-            .single();
-          setUsage(data);
+          const [usageResult, serversResult] = await Promise.all([
+            supabase
+              .from("user_usage")
+              .select("generation_count_month, tier, last_generation_at, last_generation_cooldown_until")
+              .eq("user_id", currentUser.id)
+              .maybeSingle(),
+            supabase
+              .from("mcp_servers")
+              .select("security_score")
+              .eq("user_id", currentUser.id)
+              .limit(100),
+          ]);
+          setUsage(usageResult.data);
+          const servers = serversResult.data ?? [];
+          setServerCount(servers.length);
+          // BUG-005: filter nulls before averaging to avoid NaN
+          const validScores = servers.filter((s) => s.security_score != null);
+          if (validScores.length > 0) {
+            const avg = Math.round(
+              validScores.reduce((sum, s) => sum + s.security_score!, 0) / validScores.length
+            );
+            setAvgSecurityScore(avg);
+          } else {
+            setAvgSecurityScore(null);
+          }
         }
       } catch (err) {
         console.error("Error loading dashboard data:", err);
@@ -58,7 +79,12 @@ function DashboardContent() {
     loadData();
   }, []);
 
-  const displayName = user?.email?.split("@")[0] || "Developer";
+  // BUG-006: prefer full_name from Google OAuth user_metadata over email prefix
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Developer";
   const generationsUsed = usage?.generation_count_month ?? 0;
   const generationsRemaining = Math.max(0, FREE_TIER_LIMIT - generationsUsed);
   const isInCooldown = usage?.last_generation_cooldown_until
@@ -100,12 +126,12 @@ function DashboardContent() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Generations */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Credits */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Generations</CardTitle>
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Credits</CardTitle>
+            <span className="text-base">🪙</span>
           </CardHeader>
           <CardContent>
             {loadingStats ? (
@@ -113,7 +139,7 @@ function DashboardContent() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {generationsUsed}
+                  {generationsRemaining}
                   <span className="text-muted-foreground text-lg font-normal">
                     /{FREE_TIER_LIMIT}
                   </span>
@@ -126,8 +152,8 @@ function DashboardContent() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {generationsRemaining === 0
-                    ? "Monthly limit reached"
-                    : `${generationsRemaining} remaining this month`}
+                    ? "All credits used"
+                    : `${generationsRemaining} credit${generationsRemaining !== 1 ? "s" : ""} remaining`}
                 </p>
               </>
             )}
@@ -149,7 +175,7 @@ function DashboardContent() {
                   {usage?.tier ?? "Free"}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {usage?.tier === "pro" ? "Unlimited generations" : "2 generations / month"}
+                  {usage?.tier === "pro" ? "50 credits/month" : "5 credits (one-time)"}
                 </p>
               </>
             )}
@@ -195,6 +221,60 @@ function DashboardContent() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Total Servers Created */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Servers Created</CardTitle>
+            <Server className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loadingStats ? (
+              <div className="h-8 w-12 bg-muted animate-pulse rounded" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{serverCount ?? 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {serverCount === 1 ? "MCP server generated" : "MCP servers generated"}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Average Security Score */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Avg Security Score</CardTitle>
+            <BarChart2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loadingStats ? (
+              <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+            ) : avgSecurityScore === null ? (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <p className="text-xs text-muted-foreground mt-1">No servers yet</p>
+              </>
+            ) : (
+              <>
+                <div
+                  className={`text-2xl font-bold ${
+                    avgSecurityScore >= 80
+                      ? "text-green-500"
+                      : avgSecurityScore >= 50
+                      ? "text-yellow-500"
+                      : "text-red-500"
+                  }`}
+                >
+                  {avgSecurityScore}
+                  <span className="text-muted-foreground text-lg font-normal">/100</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Across all your servers</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Generate CTA */}
@@ -219,7 +299,7 @@ function DashboardContent() {
           >
             <Sparkles className="mr-2 h-5 w-5" />
             {generationsRemaining === 0
-              ? "Limit Reached"
+              ? "No Credits Left"
               : isInCooldown
               ? `Wait ${getCooldownText()}`
               : "Start Generating"}

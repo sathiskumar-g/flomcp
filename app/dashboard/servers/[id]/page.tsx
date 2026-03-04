@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp,
   MonitorPlay,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
@@ -254,39 +255,56 @@ export default function ServerDetailPage() {
           )}
           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
             <p className="text-xs text-muted-foreground">Generated {createdDate}</p>
-            {server.security_score != null ? (
-              <button
-                onClick={() => setSecurityModalOpen(true)}
-                className={cn(
-                  "flex items-center gap-1 text-xs rounded-full border px-2 py-0.5 transition-colors hover:bg-muted/60",
-                  server.security_score >= 85 && "border-green-500/30 text-green-600 bg-green-500/5",
-                  server.security_score >= 70 && server.security_score < 85 && "border-blue-500/30 text-blue-600 bg-blue-500/5",
-                  server.security_score >= 55 && server.security_score < 70 && "border-yellow-500/30 text-yellow-600 bg-yellow-500/5",
-                  server.security_score < 55 && "border-red-500/30 text-red-600 bg-red-500/5",
-                )}
-              >
-                <Shield className="h-3 w-3" />
-                <span className="font-medium">{server.security_score}/100</span>
-                <span className="opacity-70">· View Report</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleRevalidate}
-                disabled={isRevalidating}
-                className="flex items-center gap-1 text-xs rounded-full border border-border px-2 py-0.5 text-muted-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
-              >
-                {isRevalidating
-                  ? <Loader2 className="h-3 w-3 animate-spin" />
-                  : <Shield className="h-3 w-3" />}
-                {isRevalidating ? "Analysing…" : "Run Security Analysis"}
-              </button>
-            )}
           </div>
         </div>
-        <Button onClick={handleDownloadAll} className="flex-shrink-0">
-          <Download className="mr-2 h-4 w-4" />
-          Download All Files
-        </Button>
+        <div className="flex items-center gap-2">
+          {server.security_score != null ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSecurityModalOpen(true)}
+              className={cn(
+                "flex-shrink-0 gap-1.5 text-xs",
+                server.security_score >= 85 && "border-green-500/40 text-green-700 hover:bg-green-500/10 dark:text-green-400",
+                server.security_score >= 70 && server.security_score < 85 && "border-blue-500/40 text-blue-700 hover:bg-blue-500/10 dark:text-blue-400",
+                server.security_score >= 55 && server.security_score < 70 && "border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 dark:text-yellow-400",
+                server.security_score < 55 && "border-red-500/40 text-red-700 hover:bg-red-500/10 dark:text-red-400",
+              )}
+              aria-label="View security report"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              {server.security_score}/100 · View Report
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRevalidate}
+              disabled={isRevalidating}
+              className="flex-shrink-0 gap-1.5 text-xs"
+              aria-label="Run security analysis"
+            >
+              {isRevalidating
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Shield className="h-3.5 w-3.5" />}
+              {isRevalidating ? "Analysing…" : "Security Analysis"}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/dashboard/servers/${id}/test`)}
+            className="flex-shrink-0 gap-1.5 text-xs border-blue-500/40 text-blue-700 hover:bg-blue-500/10 dark:text-blue-400"
+            aria-label="Open mock test page"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            Test Tools
+          </Button>
+          <Button size="sm" onClick={handleDownloadAll} className="flex-shrink-0 gap-1.5 text-xs">
+            <Download className="h-3.5 w-3.5" />
+            Download All Files
+          </Button>
+        </div>
       </div>
 
       {/* File viewer */}

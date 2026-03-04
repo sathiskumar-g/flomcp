@@ -8,8 +8,7 @@ import { createAdminClient } from "@/lib/supabase-admin";
  */
 export async function GET(_req: NextRequest) {
   const supabase = createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -35,8 +34,7 @@ export async function GET(_req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   const supabase = createServerClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

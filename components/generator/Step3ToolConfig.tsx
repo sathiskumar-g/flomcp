@@ -13,6 +13,7 @@ import {
   type ToolDefinition,
   type SchemaField,
 } from "@/lib/stores/generator-store";
+import { estimateCredits } from "@/lib/credits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +42,9 @@ export function Step3ToolConfig() {
   const {
     description,
     tools,
+    resources,
+    prompts,
+    apiConfig,
     suggestionsLoading,
     setTools,
     setSuggestionsLoading,
@@ -171,6 +176,25 @@ export function Step3ToolConfig() {
           )}
         </Button>
       )}
+
+      {/* Credit complexity badge */}
+      {!suggestionsLoading && tools.length > 0 && (() => {
+        const estimate = estimateCredits({ tools, resources, prompts, apiConfig });
+        return (
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-2.5 text-sm">
+            <Zap className={cn("h-4 w-4 flex-shrink-0", estimate.isComplex ? "text-amber-500" : "text-primary")} />
+            <span className="text-muted-foreground">Generation cost:</span>
+            <span className={cn("font-semibold", estimate.isComplex ? "text-amber-500" : "text-primary")}>
+              {estimate.cost} credit{estimate.cost > 1 ? "s" : ""}
+            </span>
+            {estimate.isComplex && (
+              <span className="text-xs text-muted-foreground ml-1 hidden sm:inline">
+                (complex — {estimate.reasons.join(", ")})
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Validation hint */}
       {!suggestionsLoading && !allValid && tools.length > 0 && (

@@ -7,8 +7,9 @@
  * Fires POST /api/generate to trigger Claude code generation.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
+import { estimateCredits } from "@/lib/credits";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   Key,
   MessageSquare,
   Server,
+  ArrowRight,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,17 +53,30 @@ const PROGRESS_STEPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Step4Review() {
+export function Step5Review() {
   const { description, serverName, apiConfig, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading]               = useState(false);
+  const [error, setError]                   = useState<string | null>(null);
+  const [noCredits, setNoCredits]           = useState(false);
+  const [balance, setBalance]               = useState<number | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
-  const [activeStep, setActiveStep] = useState<string | null>(null);
+  const [activeStep, setActiveStep]         = useState<string | null>(null);
+
+  // Fetch live credit balance on mount so we can show it in the cost card
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/credits/balance")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (!cancelled && data) setBalance(data.total as number); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleGenerate() {
     setLoading(true);
     setError(null);
+    setNoCredits(false);
     setCompletedSteps(new Set());
     setActiveStep(null);
 
@@ -78,6 +94,12 @@ export function Step4Review() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (res.status === 402) {
+          setNoCredits(true);
+          setBalance(body?.balance ?? 0);
+          setLoading(false);
+          return;
+        }
         throw new Error(body?.error ?? `Server error ${res.status}`);
       }
 
@@ -142,7 +164,50 @@ export function Step4Review() {
           Everything looks good? Hit generate and Claude will build your MCP server in seconds.
         </p>
       </div>
-
+      {/* Credit cost card */}
+      {(() => {
+        const estimate = estimateCredits({ tools, resources, prompts, apiConfig });
+        const canAfford = balance === null || balance >= estimate.cost;
+        return (
+          <div className={cn(
+            "rounded-lg border px-4 py-3 flex items-center justify-between gap-3",
+            !canAfford
+              ? "border-red-500/30 bg-red-500/5"
+              : estimate.isComplex
+              ? "border-amber-500/30 bg-amber-500/5"
+              : "border-primary/20 bg-primary/5"
+          )}>
+            <div className="flex items-center gap-3">
+              <Zap className={cn("h-5 w-5 flex-shrink-0", !canAfford ? "text-red-500" : estimate.isComplex ? "text-amber-500" : "text-primary")} />
+              <div>
+                <p className="text-sm font-medium">Generation cost</p>
+                <p className="text-xs text-muted-foreground">
+                  {estimate.isComplex
+                    ? `Complex server \u2014 ${estimate.reasons.join(", ")}`
+                    : "Standard server"}
+                  {balance !== null && (
+                    <span className={cn("ml-2", !canAfford ? "text-red-500" : "")}>
+                      &middot; Balance: {balance} credit{balance !== 1 ? "s" : ""}
+                      {canAfford && ` \u2192 ${balance - estimate.cost} after`}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <span className={cn(
+              "inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full border",
+              !canAfford
+                ? "bg-red-500/10 text-red-600 border-red-500/30"
+                : estimate.isComplex
+                ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                : "bg-primary/10 text-primary border-primary/20"
+            )}>
+              <Coins className="h-3.5 w-3.5" />
+              {estimate.cost} credit{estimate.cost > 1 ? "s" : ""}
+            </span>
+          </div>
+        );
+      })()}
       {/* Summary cards */}
       <div className="space-y-4">
         {/* 0 — Server Name (if set) */}
@@ -318,7 +383,28 @@ export function Step4Review() {
         </div>
       </div>
 
-      {/* Error message */}
+      {/* No credits card */}
+      {noCredits && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-600">No credits remaining</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Your balance is 0. Upgrade to Pro for 50 credits/month, or top up with a credit pack.
+              </p>
+            </div>
+          </div>
+          <a href="/pricing" target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="outline" className="w-full border-red-500/30 text-red-600 hover:bg-red-500/10">
+              View plans &amp; pricing
+              <ArrowRight className="ml-2 h-3.5 w-3.5" />
+            </Button>
+          </a>
+        </div>
+      )}
+
+      {/* Generic error message */}
       {error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 flex items-start gap-2">
           <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
@@ -370,7 +456,7 @@ export function Step4Review() {
         <Button
           size="lg"
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || (balance !== null && balance < estimateCredits({ tools, resources, prompts, apiConfig }).cost)}
           className="min-w-[200px] gap-2"
         >
           {loading ? (

@@ -1,21 +1,15 @@
 /**
  * Rate Limiting Constants for FloMCP
- * 
- * Defines generation limits for each tier to control costs
- * 
- * FREE TIER ECONOMICS:
- * - 2 generations/month max
- * - Cost to founder: ~$0.20/user/month (assuming $0.10 per generation)
- * - With 100 free users: $20/month total cost
- * - With 1000 free users: $200/month total cost
- * 
- * PRO TIER ECONOMICS:
- * - Unlimited generations
- * - $29/month subscription
- * - Break-even at ~290 generations/month
- * - Typical usage: 50-100 generations/month
- * 
- * Created: February 23, 2026
+ *
+ * Monthly generation limits are now handled by the credit system (user_credits table).
+ * perMonth is set to Infinity for all tiers — credits enforce the lifetime/monthly cap.
+ *
+ * These limits are ANTI-ABUSE only:
+ *   perDay    — prevent burning all credits in a single rapid burst
+ *   perHour   — prevent API spam
+ *   cooldownMs — minimum gap between generations
+ *
+ * Updated: March 1, 2026 — credits system replaces perMonth enforcement
  */
 
 export interface RateLimitConfig {
@@ -32,10 +26,10 @@ export interface RateLimitConfig {
  */
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   free: {
-    perMonth: 2,                          // 2 generations total per month
-    perDay: 1,                            // Can't use both in same day
-    perHour: 1,                           // 1 per hour max
-    cooldownMs: 60 * 60 * 1000,          // 1 hour cooldown (3,600,000 ms)
+    perMonth: Infinity,                   // Credits system handles lifetime cap (5 credits)
+    perDay: 5,                            // Anti-abuse: max 5 per day
+    perHour: 3,                           // Anti-abuse: max 3 per hour
+    cooldownMs: 5 * 60 * 1000,           // 5 minute cooldown between generations
     displayName: 'Free',
     costPerGeneration: 0.10               // ~$0.10 per generation
   },

@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { CreditChip } from "@/components/dashboard/CreditChip";
 import { User, LayoutDashboard, UserPlus, LogOut, Loader2 } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -35,8 +36,12 @@ export function UserMenu({ user }: UserMenuProps) {
   const supabase = createClient();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Get user's display name (email prefix) or full email
-  const displayName = user.email?.split('@')[0] || 'User';
+  // Prefer full name from OAuth metadata, fall back to email prefix
+  const displayName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.email?.split('@')[0] ||
+    'User';
   const userEmail = user.email || '';
 
   const handleLogout = async () => {
@@ -74,6 +79,7 @@ export function UserMenu({ user }: UserMenuProps) {
             <User className="h-4 w-4" />
           </div>
           <span className="hidden sm:inline">{displayName}</span>
+          <CreditChip variant="badge" className="hidden sm:inline-flex" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
