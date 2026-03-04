@@ -241,9 +241,6 @@ function FaqAccordion() {
 export default function Home() {
   const router = useRouter();
   const supabase = createClient();
-  const [email, setEmail] = useState("");
-  const [problem, setProblem] = useState("");
-  const [interest, setInterest] = useState<"product" | "freelance" | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proModalOpen, setProModalOpen] = useState(false);
@@ -294,47 +291,6 @@ export default function Home() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent, type: "product" | "freelance") => {
-    e.preventDefault();
-    setLoading(true);
-    setInterest(type);
-    setError("");
-
-    // Track button click for validation
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'cta_click', {
-        'button_type': type,
-        'page_location': window.location.href
-      });
-    }
-
-    try {
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          problem,
-          interest: type,
-          urgency: null,
-          description: null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit');
-      }
-
-      setSubmitted(true);
-    } catch (err: any) {
-      console.error('Submission error:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFreelanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -360,7 +316,6 @@ export default function Home() {
         throw new Error(data.error || 'Failed to submit');
       }
 
-      setInterest('freelance');
       setSubmitted(true);
       setIsModalOpen(false);
     } catch (err: any) {
@@ -1171,10 +1126,7 @@ export default function Home() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      setSubmitted(false);
-                      setInterest(null);
-                    }}
+                    onClick={() => setSubmitted(false)}
                   >
                     Submit Another Request
                   </Button>

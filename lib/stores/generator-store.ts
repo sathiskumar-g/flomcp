@@ -123,7 +123,7 @@ export interface GeneratorState {
   // Step 3
   setTools: (tools: ToolDefinition[]) => void;
   setSuggestionsLoading: (loading: boolean) => void;
-  addTool: () => void;
+  addTool: (id?: string) => void;
   updateTool: (id: string, patch: Partial<Omit<ToolDefinition, "id">>) => void;
   removeTool: (id: string) => void;
 
@@ -318,8 +318,8 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   // Step 3 — tools
   setTools: (tools) => set({ tools }),
   setSuggestionsLoading: (suggestionsLoading) => set({ suggestionsLoading }),
-  addTool: () =>
-    set((s) => ({ tools: [...s.tools, defaultTool()] })),
+  addTool: (id?: string) =>
+    set((s) => { const t = defaultTool(); return { tools: [...s.tools, id ? { ...t, id } : t] }; }),
   updateTool: (id, patch) =>
     set((s) => ({
       tools: s.tools.map((t) => (t.id === id ? { ...t, ...patch } : t)),

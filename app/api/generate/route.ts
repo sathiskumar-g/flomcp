@@ -730,9 +730,10 @@ ${prompts.length > 0
 Run command for users after download:
   cd ${serverSlug} && npm install && npx tsx src/index.ts`;
 
-        // BUG-004: 120s timeout — prevents SSE stream hanging indefinitely if Anthropic API stalls
+        // BUG-004: 240s timeout — prevents SSE stream hanging indefinitely if Anthropic API stalls
+        // (maxDuration=300; give Claude up to 240s to respond, 60s margin for post-processing)
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 120000)
+          setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 240000)
         );
 
         // Keepalive: send SSE comment every 8s so proxies/Vercel don't kill the idle connection

@@ -148,6 +148,9 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      // Local tracker for the current step — avoids stale closure from `activeStep` state
+      // (on retry, `activeStep` in the closure still holds the previous run's last step)
+      let currentStep: string | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -163,10 +166,11 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
           const event = JSON.parse(line.slice(6));
 
           if (event.type === "progress") {
-            // Mark previous active as complete
-            if (activeStep) {
-              setCompletedSteps((prev) => new Set([...prev, activeStep]));
+            // Mark previous step as complete using local tracker (not stale closure)
+            if (currentStep) {
+              setCompletedSteps((prev) => new Set([...prev, currentStep!]));
             }
+            currentStep = event.step;
             setActiveStep(event.step);
           } else if (event.type === "security") {
             // Store security result — will be attached to generatedResult below
@@ -194,6 +198,7 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+      setActiveStep(null);
       setLoading(false);
     }
   }

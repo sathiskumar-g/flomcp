@@ -64,6 +64,8 @@ export function Step3ToolConfig() {
     () => new Set(tools.length > 0 ? [tools[0].id] : [])
   );
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  // Track the most-recently manually added tool ID so we can auto-focus its name input
+  const [newToolId, setNewToolId] = useState<string | null>(null);
   const fetched = useRef(false);
 
   // Fetch 3 AI suggestions on first mount if tools are still blank
@@ -149,6 +151,7 @@ export function Step3ToolConfig() {
               index={idx}
               isSuggested={suggestedIds.has(tool.id)}
               isExpanded={expandedIds.has(tool.id)}
+              autoFocusName={newToolId === tool.id}
               canRemove={tools.length > 1}
               onToggleExpand={() => toggleExpand(tool.id)}
               onUpdate={(patch) => updateTool(tool.id, patch)}
@@ -166,7 +169,12 @@ export function Step3ToolConfig() {
         <Button
           variant="outline"
           className="w-full border-dashed"
-          onClick={addTool}
+          onClick={() => {
+            const newId = Math.random().toString(36).slice(2, 9);
+            addTool(newId);
+            setExpandedIds((prev) => new Set([...prev, newId]));
+            setNewToolId(newId);
+          }}
           disabled={tools.length >= 10}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -226,6 +234,7 @@ type ToolCardProps = {
   index: number;
   isSuggested: boolean;
   isExpanded: boolean;
+  autoFocusName?: boolean;
   canRemove: boolean;
   onToggleExpand: () => void;
   onUpdate: (patch: Partial<Pick<ToolDefinition, "name" | "description" | "exampleOutput">>) => void;
@@ -240,6 +249,7 @@ function ToolCard({
   index,
   isSuggested,
   isExpanded,
+  autoFocusName,
   canRemove,
   onToggleExpand,
   onUpdate,
@@ -310,6 +320,7 @@ function ToolCard({
               }
               placeholder="e.g. get_weather"
               className="font-mono text-sm"
+              autoFocus={autoFocusName}
             />
             <p className="text-xs text-muted-foreground">
               Snake_case — this is what Claude calls when using your tool
