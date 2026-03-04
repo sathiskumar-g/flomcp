@@ -16,12 +16,27 @@ export async function POST(request: Request) {
       );
     }
 
+    // Server-side email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(String(email).toLowerCase().trim())) {
+      return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+    }
+
+    // Validate interest type whitelist
+    const ALLOWED_TYPES = ['product', 'freelance', 'pro_interest', 'enterprise'];
+    if (!ALLOWED_TYPES.includes(interest)) {
+      return NextResponse.json({ error: 'Invalid interest type' }, { status: 400 });
+    }
+
+    // Sanitize inputs
+    const sanitizedEmail = String(email).toLowerCase().trim().slice(0, 254);
+
     // Insert into Supabase
     const { data, error } = await supabase
       .from('submissions')
       .insert([
         {
-          email,
+          email: sanitizedEmail,
           problem: problem || null,
           interest_type: interest,
           urgency: urgency || null,

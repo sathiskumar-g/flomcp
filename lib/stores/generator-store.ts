@@ -144,6 +144,9 @@ export interface GeneratorState {
   updateToolField: (toolId: string, fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
   removeToolField: (toolId: string, fieldId: string) => void;
 
+  // Load a saved draft back into the wizard
+  loadDraft: (data: Pick<GeneratorState, "serverName" | "description" | "apiConfig" | "tools" | "resources" | "prompts">) => void;
+
   // Reset
   reset: () => void;
 }
@@ -410,6 +413,20 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
 
   // Step 6
   setGeneratedResult: (generatedResult) => set({ generatedResult }),
+
+  // Load a saved draft (pre-fills wizard and resets to step 1)
+  loadDraft: (data) =>
+    set({
+      serverName: data.serverName,
+      description: data.description,
+      apiConfig: data.apiConfig,
+      tools: data.tools.length > 0 ? data.tools : [defaultTool()],
+      resources: data.resources,
+      prompts: data.prompts,
+      step: 1,
+      generatedResult: null,
+      suggestionsLoading: false,
+    }),
 
   // Reset
   reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], generatedResult: null, suggestionsLoading: false }),

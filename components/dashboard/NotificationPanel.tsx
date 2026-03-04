@@ -206,7 +206,7 @@ export function NotificationPanel({
         </div>
         <button
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center justify-center h-8 w-8 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           aria-label="Close notifications"
         >
           <X className="h-4 w-4" />

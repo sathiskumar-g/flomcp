@@ -104,6 +104,19 @@ export default function SupportPage() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
   const [submitting, setSubmitting] = useState(false);
+  const [touched, setTouched] = useState({ subject: false, category: false, description: false, priority: false });
+
+  // Derived validation
+  const errors = {
+    subject: !subject.trim() ? "Subject is required." : "",
+    category: !category ? "Please select a category." : "",
+    description: !description.trim()
+      ? "Description is required."
+      : description.trim().length < 10
+      ? "Description must be at least 10 characters."
+      : "",
+  };
+  const isFormValid = !errors.subject && !errors.category && !errors.description;
 
   // Ticket list state
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
@@ -132,11 +145,8 @@ export default function SupportPage() {
   // ─── Submit handler ────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
-    if (!subject.trim()) return toast.error("Please enter a subject.");
-    if (!category) return toast.error("Please select a category.");
-    if (description.trim().length < 10)
-      return toast.error("Description must be at least 10 characters.");
+    setTouched({ subject: true, category: true, description: true, priority: true });
+    if (!isFormValid) return;
 
     setSubmitting(true);
     try {
@@ -159,6 +169,7 @@ export default function SupportPage() {
       setCategory("");
       setDescription("");
       setPriority("medium");
+      setTouched({ subject: false, category: false, description: false, priority: false });
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -198,9 +209,14 @@ export default function SupportPage() {
                 placeholder="Brief summary of your issue"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
+                onBlur={() => setTouched(t => ({ ...t, subject: true }))}
                 maxLength={200}
                 disabled={submitting}
+                className={touched.subject && errors.subject ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {touched.subject && errors.subject && (
+                <p className="text-xs text-destructive">{errors.subject}</p>
+              )}
             </div>
 
             {/* Category + Priority row */}
@@ -211,8 +227,11 @@ export default function SupportPage() {
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
+                  onBlur={() => setTouched(t => ({ ...t, category: true }))}
                   disabled={submitting}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`flex h-9 w-full rounded-md border px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark] bg-background ${
+                    touched.category && errors.category ? "border-destructive" : "border-input"
+                  }`}
                 >
                   <option value="" disabled>Select category</option>
                   <option value="billing">Billing</option>
@@ -222,6 +241,9 @@ export default function SupportPage() {
                   <option value="bug">Bug Report</option>
                   <option value="other">Other</option>
                 </select>
+                {touched.category && errors.category && (
+                  <p className="text-xs text-destructive">{errors.category}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -230,8 +252,9 @@ export default function SupportPage() {
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
+                  onBlur={() => setTouched(t => ({ ...t, priority: true }))}
                   disabled={submitting}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:[color-scheme:dark]"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -249,17 +272,23 @@ export default function SupportPage() {
                 placeholder="Describe your issue in detail — include steps to reproduce if it's a bug."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => setTouched(t => ({ ...t, description: true }))}
                 rows={5}
                 maxLength={5000}
                 disabled={submitting}
-                className="resize-none"
+                className={`resize-none ${
+                  touched.description && errors.description ? "border-destructive focus-visible:ring-destructive" : ""
+                }`}
               />
-              <p className="text-xs text-muted-foreground text-right">
-                {description.length}/5000
-              </p>
+              <div className="flex items-center justify-between">
+                {touched.description && errors.description
+                  ? <p className="text-xs text-destructive">{errors.description}</p>
+                  : <span />}
+                <p className="text-xs text-muted-foreground">{description.length}/5000</p>
+              </div>
             </div>
 
-            <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+            <Button type="submit" disabled={submitting || !isFormValid} className="w-full sm:w-auto">
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

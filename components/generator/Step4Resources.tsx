@@ -12,6 +12,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import {
   useGeneratorStore,
   type ResourceDefinition,
@@ -20,6 +21,7 @@ import {
   type PromptMimeType,
   type ToolDefinition,
 } from "@/lib/stores/generator-store";
+import { useSavedPrompts, PROMPT_FREE_LIMIT } from "@/lib/use-saved-prompts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +38,8 @@ import {
   Upload,
   MessageSquare,
   Wrench,
+  BookMarked,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,12 +72,15 @@ export function Step4Resources() {
     nextStep, prevStep,
   } = useGeneratorStore();
 
-  const [activeTab, setActiveTab]     = useState<ActiveTab>("resources");
-  const [isDragging, setIsDragging]   = useState(false);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab]         = useState<ActiveTab>("resources");
+  const [isDragging, setIsDragging]        = useState(false);
+  const [expandedIds, setExpandedIds]      = useState<Set<string>>(new Set());
+  const [showLibraryDropdown, setShowLibraryDropdown] = useState(false);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const prevResLen    = useRef(resources.length);
   const prevProLen    = useRef(prompts.length);
+
+  const { prompts: savedLibraryPrompts } = useSavedPrompts();
 
   const isResourcesTab = activeTab === "resources";
   const totalCount     = resources.length + prompts.length;
@@ -235,8 +242,60 @@ export function Step4Resources() {
         />
       </div>
 
-      {/* ADD CUSTOM BUTTON */}
-      <div className="flex justify-center">
+      {/* ADD CUSTOM / FROM LIBRARY BUTTONS */}
+      <div className="flex justify-center gap-2">
+        {/* From Library dropdown — prompts tab only */}
+        {!isResourcesTab && (
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLibraryDropdown(v => !v)}
+              className="gap-1.5 border-dashed"
+            >
+              <BookMarked className="h-3.5 w-3.5" />
+              From Library
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showLibraryDropdown && "rotate-180")} />
+            </Button>
+            {showLibraryDropdown && (
+              <div className="absolute left-0 top-full mt-1 w-72 rounded-lg border border-border/70 bg-card shadow-md z-20">
+                <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between">
+                  <p className="text-xs font-medium">Saved Prompts ({savedLibraryPrompts.length}/{PROMPT_FREE_LIMIT})</p>
+                  <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowLibraryDropdown(false)} aria-label="Close">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {savedLibraryPrompts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-3 py-4 text-center">No saved prompts. Add them in the Library page.</p>
+                ) : (
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    {savedLibraryPrompts.map((sp) => (
+                      <button
+                        key={sp.id}
+                        className="w-full px-3 py-2 hover:bg-muted/40 text-left"
+                        onClick={() => {
+                          addPrompt();
+                          const last = useGeneratorStore.getState().prompts.slice(-1)[0];
+                          if (last) {
+                            updatePrompt(last.id, {
+                              name: sp.name.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-"),
+                              content: sp.text,
+                              mimeType: "text/plain",
+                            });
+                          }
+                          setShowLibraryDropdown(false);
+                        }}
+                      >
+                        <p className="text-xs font-medium truncate">{sp.name}</p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{sp.text}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -391,6 +450,8 @@ interface PromptCardProps {
 function PromptCard({ prompt, index, expanded, onToggle, onChange, onRemove, tools }: PromptCardProps) {
   const chars     = prompt.content.length;
   const overLimit = chars > MAX_CONTENT_LEN;
+  const { prompts: lib, savePrompt: saveToLib } = useSavedPrompts();
+  const libraryFull = lib.length >= PROMPT_FREE_LIMIT;
 
   return (
     <ItemCard
@@ -439,6 +500,33 @@ function PromptCard({ prompt, index, expanded, onToggle, onChange, onRemove, too
         overLimit={overLimit}
         promptStyle
       />
+      {/* Save to Prompt Library */}
+      {prompt.content.trim() && (
+        <div className="pt-2 border-t border-border/40">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1.5 text-muted-foreground -ml-1"
+            disabled={libraryFull}
+            onClick={() => {
+              const result = saveToLib(
+                prompt.name.trim() || `Prompt ${index + 1}`,
+                prompt.content,
+                prompt.mimeType as "text/plain" | "text/markdown"
+              );
+              if (result.ok) {
+                toast.success("Prompt saved to library");
+              } else {
+                toast.error(result.reason ?? "Could not save");
+              }
+            }}
+          >
+            <BookMarked className="h-3.5 w-3.5" />
+            {libraryFull ? `Library full (${PROMPT_FREE_LIMIT}/${PROMPT_FREE_LIMIT})` : "Save to Prompt Library"}
+          </Button>
+        </div>
+      )}
     </ItemCard>
   );
 }
@@ -552,7 +640,7 @@ function ToolScopeField({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full text-sm rounded-md border border-input bg-background px-3 h-8 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        className="w-full text-sm rounded-md border border-input bg-background px-3 h-8 text-foreground focus:outline-none focus:ring-2 focus:ring-ring dark:[color-scheme:dark]"
       >
         <option value="all">All Tools</option>
         {tools.filter(t => t.name.trim()).map(t => (

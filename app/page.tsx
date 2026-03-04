@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Code2, Zap, Shield, CheckCircle2, ArrowRight, Clock, Users, Database, FileCode, Sparkles, Target, X, LogIn } from "lucide-react";
+import { Code2, Zap, Shield, CheckCircle2, ArrowRight, Clock, Users, Database, FileCode, Sparkles, Target, X, LogIn, Crown } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { UserMenu } from "@/components/auth/UserMenu";
 import type { User } from "@supabase/supabase-js";
@@ -94,15 +94,21 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pro-modal-title"
+      onClick={onClose}
+    >
       <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold">Get early access to Pro</h2>
+            <h2 id="pro-modal-title" className="text-xl font-bold">Get early access to Pro</h2>
             <p className="text-sm text-muted-foreground mt-1">Early access users get 30 days free + dedicated onboarding.</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0">
-            <X className="h-5 w-5" />
+          <button onClick={onClose} aria-label="Close early access form" className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -116,17 +122,20 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Your email</label>
+              <label htmlFor="pro-email" className="text-sm font-medium">Your email</label>
               <input
+                id="pro-email"
                 type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                autoComplete="email"
                 className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">What kind of MCP servers are you building?</label>
+              <label htmlFor="pro-usecase" className="text-sm font-medium">What kind of MCP servers are you building?</label>
               <input
+                id="pro-usecase"
                 type="text" value={useCase} onChange={(e) => setUseCase(e.target.value)}
                 placeholder="e.g. REST API wrapper, database tools, internal tooling..."
                 className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -139,7 +148,8 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
                 {["1–3", "4–10", "10+", "Not sure"].map((v) => (
                   <button key={v} type="button"
                     onClick={() => setVolume(v)}
-                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                    aria-pressed={volume === v}
+                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       volume === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary/60"
                     }`}>
                     {v}
@@ -154,10 +164,11 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
                 {PRO_FEATURE_OPTIONS.map((f) => (
                   <button key={f} type="button"
                     onClick={() => toggleFeature(f)}
-                    className={`px-3 py-1.5 rounded-md text-xs border text-left transition-colors ${
+                    aria-pressed={features.includes(f)}
+                    className={`px-3 py-1.5 rounded-md text-xs border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       features.includes(f) ? "bg-primary/10 border-primary text-primary" : "border-border hover:border-primary/40"
                     }`}>
-                    {features.includes(f) && <span className="mr-1">✓</span>}{f}
+                    {features.includes(f) && <span className="mr-1" aria-hidden="true">✓</span>}{f}
                   </button>
                 ))}
               </div>
@@ -180,8 +191,8 @@ function CodeEditorShowcase() {
   return (
     <div className="rounded-xl border border-border/60 bg-[#0d1117] overflow-hidden shadow-2xl text-sm font-mono">
       {/* Tab bar */}
-      <div className="flex items-center gap-0 border-b border-border/30 bg-[#161b22] overflow-x-auto">
-        <div className="flex items-center gap-1.5 px-4 shrink-0">
+      <div className="flex items-center gap-0 border-b border-border/30 bg-[#161b22] overflow-x-auto" role="tablist" aria-label="Generated code files">
+        <div className="flex items-center gap-1.5 px-4 shrink-0" aria-hidden="true">
           <span className="w-3 h-3 rounded-full bg-red-500/70" />
           <span className="w-3 h-3 rounded-full bg-yellow-500/70" />
           <span className="w-3 h-3 rounded-full bg-green-500/70" />
@@ -189,8 +200,11 @@ function CodeEditorShowcase() {
         {CODE_FILES.map((f, i) => (
           <button
             key={i}
+            role="tab"
+            aria-selected={i === activeFile}
+            aria-label={`View ${f.name}`}
             onClick={() => setActiveFile(i)}
-            className={`px-4 py-2 text-xs whitespace-nowrap transition-colors border-r border-border/20 ${
+            className={`px-4 py-2 text-xs whitespace-nowrap transition-colors border-r border-border/20 focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-primary ${
               i === activeFile
                 ? "bg-[#0d1117] text-white border-t-2 border-t-primary"
                 : "text-gray-400 hover:text-gray-200 hover:bg-[#0d1117]/60"
@@ -364,15 +378,22 @@ function FaqAccordion() {
       {FAQ_ITEMS.map(({ q, a }, i) => (
         <div key={i}>
           <button
-            className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium hover:bg-muted/40 transition-colors"
+            id={`faq-btn-${i}`}
+            className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:bg-muted/40"
             onClick={() => setOpen(open === i ? null : i)}
             aria-expanded={open === i}
+            aria-controls={`faq-panel-${i}`}
           >
             <span>{q}</span>
-            <ChevronDown className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} aria-hidden="true" />
           </button>
           {open === i && (
-            <div className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
+            <div
+              id={`faq-panel-${i}`}
+              role="region"
+              aria-labelledby={`faq-btn-${i}`}
+              className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed"
+            >
               {a}
             </div>
           )}
@@ -392,6 +413,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [proModalOpen, setProModalOpen] = useState(false);
   const [enterpriseOpen, setEnterpriseOpen] = useState(false);
+  const [serverTotal, setServerTotal] = useState<number | null>(null);
+  const [heroCursor, setHeroCursor] = useState<{ x: number; y: number } | null>(null);
 
   // User state — start with checkingAuth=false so buttons show IMMEDIATELY.
   // Auth resolves in background; if user is logged in, button swaps to Dashboard.
@@ -522,25 +545,50 @@ export default function Home() {
     router.push('/auth/signup');
   };
 
+  // Live server count for social proof
+  useEffect(() => {
+    fetch("/api/stats", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.count != null) setServerTotal(d.count); })
+      .catch(() => {});
+  }, []);
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    <main
+      className="min-h-screen bg-gradient-to-b from-background to-secondary/20"
+      onMouseMove={(e) => setHeroCursor({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setHeroCursor(null)}
+    >
+      {/* Full-page cursor brand-glow — fixed so it follows cursor across all sections */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-300"
+        style={{
+          opacity: heroCursor ? 1 : 0,
+          background: heroCursor
+            ? `radial-gradient(420px circle at ${heroCursor.x}px ${heroCursor.y}px, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.06) 50%, transparent 72%)`
+            : "none",
+        }}
+      />
       {/* Header */}
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
+          <button type="button" onClick={() => router.push('/')} aria-label="FloMCP — go to home page" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
             <Logo height={32} />
-          </div>
-          <div className="flex items-center gap-3">
+          </button>
+          <nav className="flex items-center gap-3" aria-label="Main navigation">
             {/* Always-visible nav links */}
             <button
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1"
+              aria-label="Jump to demo section"
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
             >
               Demo
             </button>
             <button
               onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1"
+              aria-label="Jump to pricing section"
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
             >
               Pricing
             </button>
@@ -579,7 +627,7 @@ export default function Home() {
                 </Button>
               </>
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -603,13 +651,26 @@ export default function Home() {
             Describe what you need in plain English. FloMCP generates a complete, production-ready MCP server — Zod schemas, error handling, security checks, and Claude Desktop config included. No boilerplate. No guessing why tools don&apos;t show up.
           </p>
 
-          {/* Time Savings Showcase */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border/60 text-sm">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <span className="text-muted-foreground line-through">10+ hours</span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <span className="font-semibold text-primary">1+ minutes</span>
-            <span className="text-muted-foreground">with FloMCP</span>
+          {/* Time Savings Showcase + live server counter */}
+          <div className="flex flex-wrap gap-3 justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border/60 text-sm">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="text-muted-foreground line-through">10+ hours</span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span className="font-semibold text-primary">1+ minutes</span>
+              <span className="text-muted-foreground">with FloMCP</span>
+            </div>
+            {serverTotal !== null && serverTotal > 0 && (
+              <div
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-green-500/30 text-sm"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" aria-hidden="true" />
+                <span className="font-semibold">{serverTotal.toLocaleString()}</span>
+                <span className="text-muted-foreground">MCP servers generated</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center text-sm">
@@ -761,7 +822,7 @@ export default function Home() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Zap className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Working Server in Under a Minute</CardTitle>
@@ -773,7 +834,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Shield className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Battle-Tested Code</CardTitle>
@@ -785,7 +846,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <FileCode className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Download, Add Keys, Done</CardTitle>
@@ -797,7 +858,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Database className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Pre-Built Templates</CardTitle>
@@ -809,7 +870,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Users className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Works Everywhere</CardTitle>
@@ -821,7 +882,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+            <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Target className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Learn Best Practices</CardTitle>
@@ -842,9 +903,10 @@ export default function Home() {
                 </div>
               </div>
               <div>
-                <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                  VS Code MCP Assistant (Coming Soon)
-                  <span className="text-xs font-normal px-2 py-1 rounded-full bg-primary/20 text-primary">New</span>
+                <h3 className="text-xl font-bold mb-2 flex items-center gap-2 flex-wrap">
+                  VS Code MCP Assistant
+                  <span className="text-xs font-normal px-2 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1" aria-label="Pro feature, coming soon"><Crown className="h-3 w-3" /> Pro</span>
+                  <span className="text-xs font-normal px-2 py-1 rounded-full bg-primary/20 text-primary">Coming Soon</span>
                 </h3>
                 <p className="text-muted-foreground mb-3">
                   Build MCP servers directly in VS Code with our intelligent assistant. Get real-time suggestions, auto-complete schemas, and instant testing—all without leaving your editor.
@@ -872,24 +934,24 @@ export default function Home() {
           </div>
 
           {/* Video / Tutorial Slot */}
-          <div id="how-it-works" className="mt-12">
+          <section id="how-it-works" className="mt-12" aria-label="Demo and generated code showcase">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">See FloMCP in Action</h3>
               <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under a minute — from plain English to working TypeScript code.</p>
             </div>
             {/* 16:9 video placeholder — drop a YouTube embed or GIF here */}
-            <div className="relative aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all">
+            <button type="button" onClick={trackDemoInterest} aria-label="Watch FloMCP demo — sign up to get notified when the tutorial is live" className="relative w-full aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-primary ml-0.5">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-primary ml-0.5" aria-hidden="true">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">Tutorial video coming soon</p>
-                <p className="text-xs text-muted-foreground mt-1">Embed your walkthrough video or GIF here</p>
+                <p className="text-xs text-muted-foreground mt-1">Sign up to get notified when it&apos;s live</p>
               </div>
-            </div>
-          </div>
+            </button>
+          </section>
 
           {/* Generated Code Showcase — read-only output preview */}
           <div className="mt-10">
@@ -1358,7 +1420,8 @@ export default function Home() {
                     <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />{f}
                   </div>
                 ))}
-                <Button className="w-full mt-4" onClick={() => setProModalOpen(true)}>
+                <Button className="w-full mt-4 gap-2" onClick={() => setProModalOpen(true)}>
+                  <Crown className="h-4 w-4" />
                   Get Pro — $29/mo
                 </Button>
               </CardContent>
@@ -1396,7 +1459,7 @@ export default function Home() {
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-lg font-semibold">Credit Top-Up Packs</h3>
               <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">Pro subscribers only</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">Coming soon</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1" aria-label="Pro feature, coming soon"><Crown className="h-3 w-3" /> Coming soon</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="text-xs text-muted-foreground">Generation cost:</span>
@@ -1441,11 +1504,10 @@ export default function Home() {
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Code2 className="h-6 w-6 text-primary" />
-                <span className="text-lg font-bold">FloMCP</span>
+              <div className="flex items-center mb-4">
+                <Logo height={28} />
               </div>
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-muted-foreground mb-3 pl-3">
                 FloMCP generates production-ready MCP servers from plain English. Works with Claude, GitHub Copilot, Cursor, and Windsurf.
               </p>
             </div>
@@ -1455,6 +1517,7 @@ export default function Home() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
                 <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="/library" className="hover:text-foreground transition-colors">MCP Library</a></li>
                 <li><a href="/docs/getting-started" className="hover:text-foreground transition-colors">Documentation</a></li>
                 <li><a href="/auth/signup" className="hover:text-foreground transition-colors">Start Free</a></li>
               </ul>
@@ -1463,30 +1526,9 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-3 text-sm">Legal</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <a 
-                    href="/legal/terms-of-service" 
-                    className="hover:text-foreground transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.push('/legal/terms-of-service');
-                    }}
-                  >
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="/legal/acceptable-use" 
-                    className="hover:text-foreground transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.push('/legal/acceptable-use');
-                    }}
-                  >
-                    Acceptable Use Policy
-                  </a>
-                </li>
+                <li><a href="/legal/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
+                <li><a href="/legal/terms-of-service" className="hover:text-foreground transition-colors">Terms of Service</a></li>
+                <li><a href="/legal/acceptable-use" className="hover:text-foreground transition-colors">Acceptable Use Policy</a></li>
               </ul>
             </div>
           </div>

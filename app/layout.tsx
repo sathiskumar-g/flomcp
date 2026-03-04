@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://flomcp.com'),
   title: "FloMCP — MCP Server Generator | Build Production-Ready MCP Servers",
-  description: "Generate complete, production-ready MCP servers from plain English. Zod schemas, error handling, and security checks included. Works with Claude, GitHub Copilot, Cursor, and Windsurf.",
+  description: "Build MCP servers from plain English — Zod schemas, error handling, 22 security checks. Works with Claude, GitHub Copilot, Cursor & Windsurf. Free to start.",
   keywords: [
     // Primary keywords
     "create mcp online", "build mcp online", "mcp helper", "mcp flow", "quick mcp",
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "FloMCP — MCP Server Generator",
     description: "Generate production-ready MCP servers from plain English. Works with Claude, Copilot, Cursor. 22 security checks on every server.",
-    images: ["/twitter-image.png"],
+    images: ["/og-image.png"],
     creator: "@flomcp",
   },
   robots: {
@@ -72,9 +72,16 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-verification-code", // Add your Google Search Console verification code
+    google: "your-google-verification-code",
   },
   category: "Technology",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/FloMCP-Logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -106,7 +113,7 @@ export default function RootLayout({
     "@type": "Organization",
     "name": "FloMCP",
     "url": "https://flomcp.com",
-    "logo": "https://flomcp.com/logo-dark.png",
+    "logo": "https://flomcp.com/FloMCP-Logo.png",
     "description": "MCP server generator for developers. Generate production-ready Model Context Protocol servers with security checks built in.",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -211,7 +218,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
         />
-        <link rel="canonical" href="https://flomcp.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
       </head>
       <body className={inter.className}>

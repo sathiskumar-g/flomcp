@@ -319,7 +319,7 @@ function SchemaFieldRow({
       <select
         value={field.type}
         onChange={(e) => onChange({ type: e.target.value as SchemaField["type"] })}
-        className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground flex-shrink-0"
+        className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground flex-shrink-0 dark:[color-scheme:dark]"
       >
         {FIELD_TYPES.map((t) => (
           <option key={t} value={t}>

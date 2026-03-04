@@ -69,14 +69,14 @@ export function Sidebar() {
       icon: LayoutDashboard,
     },
     {
-      label: "My MCP Servers",
-      href: "/dashboard/servers",
-      icon: Code2,
-    },
-    {
       label: "Generate New",
       href: "/dashboard/generate",
       icon: Sparkles,
+    },
+    {
+      label: "My MCP Servers",
+      href: "/dashboard/servers",
+      icon: Code2,
     },
     {
       label: "Library",
@@ -84,14 +84,14 @@ export function Sidebar() {
       icon: Library,
     },
     {
-      label: "Support",
-      href: "/dashboard/support",
-      icon: HelpCircle,
-    },
-    {
       label: "Settings",
       href: "/dashboard/settings",
       icon: Settings,
+    },
+    {
+      label: "Support",
+      href: "/dashboard/support",
+      icon: HelpCircle,
     },
   ];
 
@@ -117,7 +117,6 @@ export function Sidebar() {
           onClick={() => router.push('/')}
         >
           <Logo height={28} />
-          <p className="text-xs text-muted-foreground leading-none mt-0.5">MCP Generator</p>
         </div>
       </div>
 

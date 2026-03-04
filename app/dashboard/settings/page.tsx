@@ -345,7 +345,7 @@ function ApiKeySection() {
           <div>
             <div className="flex items-center gap-2">
               <p className="text-sm font-medium">Personal API Key</p>
-              <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+              <Badge variant="secondary" className="text-xs gap-1 inline-flex items-center"><Crown className="h-3 w-3" />Coming Soon</Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs">
               Generate and manage MCP servers programmatically. Under development.

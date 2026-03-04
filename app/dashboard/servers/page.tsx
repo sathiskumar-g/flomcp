@@ -12,6 +12,7 @@ import {
   Clock,
   ArrowRight,
   Trash2,
+  Shield,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -33,6 +34,14 @@ interface MCPServer {
   status: string;
   created_at: string;
   downloaded: boolean;
+  security_score: number | null;
+}
+
+function getScoreBadgeClass(score: number | null): string {
+  if (score == null) return "bg-muted/50 text-muted-foreground border-border/40";
+  if (score >= 80) return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20";
+  if (score >= 50) return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
+  return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20";
 }
 
 export default function ServersPage() {
@@ -129,9 +138,13 @@ export default function ServersPage() {
                       >
                         {server.status}
                       </Badge>
-                      {server.downloaded && (
-                        <Badge variant="outline" className="text-xs">Downloaded</Badge>
-                      )}
+                      <Badge
+                        variant="outline"
+                        className={cn("text-xs flex items-center gap-1", getScoreBadgeClass(server.security_score))}
+                      >
+                        <Shield className="h-3 w-3" />
+                        {server.security_score != null ? `${server.security_score}/100` : "N/A"}
+                      </Badge>
                     </div>
                     {server.description && (
                       <p className="text-sm text-muted-foreground truncate mt-0.5">{server.description}</p>

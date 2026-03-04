@@ -15,7 +15,7 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { MCPServersList } from "@/components/dashboard/MCPServersList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Shield, Clock, Zap, ArrowRight, TrendingUp, Server, BarChart2 } from "lucide-react";
+import { Sparkles, Shield, Clock, Zap, ArrowRight, TrendingUp, Server, BarChart2, Crown } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface UsageStats {
@@ -35,6 +35,7 @@ function DashboardContent() {
   const [loadingStats, setLoadingStats] = useState(true);
   const [serverCount, setServerCount] = useState<number | null>(null);
   const [avgSecurityScore, setAvgSecurityScore] = useState<number | null>(null);
+  const [creditBalance, setCreditBalance] = useState<{ total: number; plan: string } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,20 +45,23 @@ function DashboardContent() {
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
-          const [usageResult, serversResult] = await Promise.all([
+          const [usageResult, serversJson, creditsResult] = await Promise.all([
             supabase
               .from("user_usage")
               .select("generation_count_month, tier, last_generation_at, last_generation_cooldown_until")
               .eq("user_id", currentUser.id)
               .maybeSingle(),
-            supabase
-              .from("mcp_servers")
-              .select("security_score")
-              .eq("user_id", currentUser.id)
-              .limit(100),
+            // Use /api/servers (admin client) so RLS never blocks dashboard stats
+            fetch("/api/servers", { cache: "no-store" })
+              .then(r => r.ok ? r.json() : { servers: [] })
+              .catch(() => ({ servers: [] })),
+            fetch("/api/credits/balance", { cache: "no-store" })
+              .then(r => r.ok ? r.json() : null)
+              .catch(() => null),
           ]);
           setUsage(usageResult.data);
-          const servers = serversResult.data ?? [];
+          if (creditsResult) setCreditBalance({ total: creditsResult.total ?? 0, plan: creditsResult.plan ?? "free" });
+          const servers: { security_score: number | null }[] = serversJson.servers ?? [];
           setServerCount(servers.length);
           // BUG-005: filter nulls before averaging to avoid NaN
           const validScores = servers.filter((s) => s.security_score != null);
@@ -106,7 +110,13 @@ function DashboardContent() {
   const usageBarColor =
     usagePercentage >= 100 ? "bg-red-500" : usagePercentage >= 50 ? "bg-yellow-500" : "bg-green-500";
 
-  const canGenerate = generationsRemaining > 0 && !isInCooldown;
+  const tierLimit = creditBalance?.plan === "pro" ? 50 : FREE_TIER_LIMIT;
+  const creditsRemaining = creditBalance !== null ? creditBalance.total : generationsRemaining;
+  const creditUsagePercentage = Math.min(100, ((tierLimit - creditsRemaining) / tierLimit) * 100);
+  const creditBarColor =
+    creditUsagePercentage >= 100 ? "bg-red-500" : creditUsagePercentage >= 50 ? "bg-yellow-500" : "bg-green-500";
+
+  const canGenerate = creditsRemaining > 0 && !isInCooldown;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -139,22 +149,26 @@ function DashboardContent() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  {generationsRemaining}
+                  {creditsRemaining}
                   <span className="text-muted-foreground text-lg font-normal">
-                    /{FREE_TIER_LIMIT}
+                    /{tierLimit}
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all ${usageBarColor}`}
-                    style={{ width: `${usagePercentage}%` }}
+                    className={`h-full rounded-full transition-all ${creditBarColor}`}
+                    style={{ width: `${creditUsagePercentage}%` }}
                   />
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {generationsRemaining === 0
+                  {creditsRemaining === 0
                     ? "All credits used"
-                    : `${generationsRemaining} credit${generationsRemaining !== 1 ? "s" : ""} remaining`}
+                    : `${creditsRemaining} credit${creditsRemaining !== 1 ? "s" : ""} remaining`}
                 </p>
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Crown className="h-3 w-3" />
+                  <span>Add credits — <span className="font-medium">Coming Soon</span></span>
+                </div>
               </>
             )}
           </CardContent>
@@ -177,6 +191,17 @@ function DashboardContent() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {usage?.tier === "pro" ? "50 credits/month" : "5 credits (one-time)"}
                 </p>
+                {(!usage?.tier || usage.tier === "free") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3 h-7 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/5"
+                    onClick={() => router.push("/dashboard/settings#subscription")}
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    Upgrade to Pro
+                  </Button>
+                )}
               </>
             )}
           </CardContent>

@@ -51,6 +51,19 @@ interface MCPServer {
   created_at: string;
   downloaded: boolean;
   security_report: SecurityReport | null;
+  generation_input: {
+    serverName: string;
+    description: string;
+    apiConfig: Record<string, unknown> | null;
+    tools: Array<{
+      name: string;
+      description: string;
+      annotation?: string;
+      fields?: Array<{ name: string; type: string; required: boolean; description?: string }>;
+    }>;
+    resources: Array<{ name: string; description: string; mimeType: string; contentLength: number }>;
+    prompts: Array<{ name: string; description: string; mimeType: string; contentLength: number }>;
+  } | null;
 }
 
 // ─── File tabs ────────────────────────────────────────────────────────────────
@@ -83,8 +96,10 @@ export default function ServerDetailPage() {
   const [copied, setCopied] = useState(false);
   const [copiedConfig, setCopiedConfig] = useState(false);
   const [copiedVscode, setCopiedVscode] = useState(false);
+  const [copiedGenInput, setCopiedGenInput] = useState(false);
   const [vscodeOpen, setVscodeOpen] = useState(false);
   const [claudeOpen, setClaudeOpen] = useState(false);
+  const [configJsonOpen, setConfigJsonOpen] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [securityModalOpen, setSecurityModalOpen] = useState(false);
 
@@ -509,6 +524,106 @@ export default function ServerDetailPage() {
             )}
           </div>
         </CardContent>
+      </Card>
+
+      {/* Generation Input JSON — accordion for analysis */}
+      <Card className="border border-border/70">
+        <button
+          onClick={() => setConfigJsonOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-4 text-sm font-medium hover:bg-muted/30 transition-colors rounded-xl"
+        >
+          <div className="flex items-center gap-2">
+            <FileCode2 className="h-4 w-4 text-primary" />
+            Generation Input
+            <span className="text-xs text-muted-foreground font-normal">(what was submitted — for verification &amp; analysis)</span>
+          </div>
+          {configJsonOpen
+            ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
+        {configJsonOpen && (
+          <CardContent className="px-5 pb-5 pt-0 space-y-4 border-t border-border/50">
+            <p className="text-xs text-muted-foreground pt-3">
+              The exact description, API configuration, tools, resources, and prompts that were submitted to generate this server.
+            </p>
+            {server.generation_input ? (
+              <>
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium">Description</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs font-mono whitespace-pre-wrap break-words">
+                    {server.generation_input.description}
+                  </div>
+                </div>
+
+                {/* API Config */}
+                {server.generation_input.apiConfig?.enabled && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">API Configuration</p>
+                    <pre className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs font-mono overflow-auto">
+                      <code>{JSON.stringify(server.generation_input.apiConfig, null, 2)}</code>
+                    </pre>
+                  </div>
+                )}
+
+                {/* Tools */}
+                {server.generation_input.tools.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">Tools ({server.generation_input.tools.length})</p>
+                    <pre className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs font-mono overflow-auto">
+                      <code>{JSON.stringify(server.generation_input.tools, null, 2)}</code>
+                    </pre>
+                  </div>
+                )}
+
+                {/* Resources */}
+                {server.generation_input.resources.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">Resources ({server.generation_input.resources.length})</p>
+                    <pre className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs font-mono overflow-auto">
+                      <code>{JSON.stringify(server.generation_input.resources, null, 2)}</code>
+                    </pre>
+                  </div>
+                )}
+
+                {/* Prompts */}
+                {server.generation_input.prompts.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium">Prompts ({server.generation_input.prompts.length})</p>
+                    <pre className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs font-mono overflow-auto">
+                      <code>{JSON.stringify(server.generation_input.prompts, null, 2)}</code>
+                    </pre>
+                  </div>
+                )}
+
+                {/* Copy full input */}
+                <div className="flex justify-end pt-1">
+                  <Button
+                    size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        JSON.stringify(server.generation_input, null, 2)
+                      );
+                      setCopiedGenInput(true);
+                      setTimeout(() => setCopiedGenInput(false), 2000);
+                    }}
+                  >
+                    {copiedGenInput
+                      ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      : <Copy className="h-3.5 w-3.5" />}
+                    {copiedGenInput ? "Copied!" : "Copy Full JSON"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic py-2">
+                Generation input not available for servers created before this feature was added.
+              </p>
+            )}
+          </CardContent>
+        )}
       </Card>
     </div>
   );

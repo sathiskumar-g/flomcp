@@ -155,6 +155,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Credit check & deduction ──
+  // Set DISABLE_CREDIT_DEDUCTION=true in .env.local to skip during development/testing.
   // Deduct before stream starts so we can return 402 synchronously.
   // On generation failure the catch block inside the stream refunds.
   await ensureCreditRow(user.id);
@@ -165,12 +166,20 @@ export async function POST(req: NextRequest) {
     apiConfig: apiConfig as ApiConfig,
   }).cost;
 
-  const deductResult = await deductCredits(
-    user.id,
-    creditCost,
-    null,
-    String(creditCost) as "1" | "2"
-  );
+  const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
+  let deductResult: Awaited<ReturnType<typeof deductCredits>>;
+
+  if (skipCredits) {
+    console.log(`[generate] ⚠️  DISABLE_CREDIT_DEDUCTION=true — skipping ${creditCost} credit deduction for user ${user.id}`);
+    deductResult = { ok: true, monthlyUsed: 0, bonusUsed: 0, balanceAfter: 999 };
+  } else {
+    deductResult = await deductCredits(
+      user.id,
+      creditCost,
+      null,
+      String(creditCost) as "1" | "2"
+    );
+  }
 
   if (!deductResult.ok) {
     const status = deductResult.error === "insufficient_credits" ? 402 : 500;
@@ -813,6 +822,29 @@ Run command for users after download:
             status: "generated",
             security_score: securityReport.score,
             security_report: securityReport,
+            generation_input: {
+              serverName: serverName || (description).slice(0, 60),
+              description,
+              apiConfig: apiConfig ?? null,
+              tools: (tools as ToolDefinition[]).map(t => ({
+                name: t.name,
+                description: t.description,
+                annotation: t.annotation,
+                fields: t.fields?.map(f => ({ name: f.name, type: f.type, required: f.required, description: f.description })),
+              })),
+              resources: (resources as ResourceDefinition[]).map(r => ({
+                name: r.name,
+                description: r.description,
+                mimeType: r.mimeType,
+                contentLength: r.content?.length ?? 0,
+              })),
+              prompts: (prompts as PromptDefinition[]).map(p => ({
+                name: p.name,
+                description: p.description,
+                mimeType: p.mimeType,
+                contentLength: p.content?.length ?? 0,
+              })),
+            },
           })
           .select("id")
           .single();
@@ -831,13 +863,15 @@ Run command for users after download:
         });
       } catch (err: unknown) {
         // Refund credits — user should not be charged for a failed generation
-        await refundCredits(
-          user.id,
-          creditDeduct.monthlyUsed,
-          creditDeduct.bonusUsed,
-          null,
-          "generation_error_refund"
-        );
+        if (!skipCredits) {
+          await refundCredits(
+            user.id,
+            creditDeduct.monthlyUsed,
+            creditDeduct.bonusUsed,
+            null,
+            "generation_error_refund"
+          );
+        }
         send({
           type: "error",
           message: err instanceof Error ? err.message : "Generation failed",

@@ -14,9 +14,26 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
+import { useSavedPrompts, PROMPT_FREE_LIMIT } from "@/lib/use-saved-prompts";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
-import { Lightbulb, ChevronRight, AlertCircle } from "lucide-react";
+import { Lightbulb, ChevronRight, AlertCircle, BookMarked, Save, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Strip common markdown syntax so dropdown previews show plain readable text */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/>\s*/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[-*+]\s+/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+}
 
 // ─── Example prompts ──────────────────────────────────────────────────────────
 
@@ -54,7 +71,13 @@ const MIN_CHARS = 50;
 
 export function Step1Description() {
   const { serverName, setServerName, description, setDescription, nextStep } = useGeneratorStore();
+  const { prompts: savedPrompts, savePrompt, deletePrompt } = useSavedPrompts();
+
   const [touched, setTouched] = useState(false);
+  // Prompt library UI state
+  const [showLoadPrompt, setShowLoadPrompt] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [promptSaveName, setPromptSaveName] = useState("");
 
   const charCount = description.length;
   const isNameValid = serverName.trim().length >= 3;
@@ -116,9 +139,61 @@ export function Step1Description() {
 
       {/* Description textarea */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">
-          Description <span className="text-destructive">*</span>
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium">
+            Description <span className="text-destructive">*</span>
+          </label>
+          {/* Load from Prompt Library */}
+          <div className="relative">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 text-muted-foreground"
+              onClick={() => { setShowLoadPrompt((v) => !v); setShowSavePrompt(false); }}
+            >
+              <BookMarked className="h-3.5 w-3.5" />
+              Library
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showLoadPrompt && "rotate-180")} />
+            </Button>
+            {showLoadPrompt && (
+              <div className="absolute right-0 top-full mt-1 w-72 rounded-lg border border-border/70 bg-card shadow-md z-20">
+                <div className="px-3 py-2 border-b border-border/50">
+                  <p className="text-xs font-medium">Plain Text Prompts</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Only plain text prompts work in Description</p>
+                </div>
+                {savedPrompts.filter(p => !p.mimeType || p.mimeType === "text/plain").length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-3 py-3">No plain text prompts saved yet. Save one from here or the Prompt Library.</p>
+                ) : (
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    {savedPrompts.filter(p => !p.mimeType || p.mimeType === "text/plain").map((p) => (
+                      <div key={p.id} className="flex items-start gap-2 px-3 py-2 hover:bg-muted/40 group">
+                        <button
+                          className="flex-1 text-left min-w-0"
+                          onClick={() => {
+                            setDescription(p.text.slice(0, MAX_CHARS));
+                            setTouched(true);
+                            setShowLoadPrompt(false);
+                          }}
+                        >
+                          <p className="text-xs font-medium truncate">{p.name}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{stripMarkdown(p.text)}</p>
+                        </button>
+                        <button
+                          className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
+                          onClick={() => deletePrompt(p.id)}
+                          aria-label="Delete saved prompt"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
         <Textarea
           value={description}
           onChange={(e) => {
@@ -149,6 +224,69 @@ export function Step1Description() {
             {charCount} / {MAX_CHARS}
           </span>
         </div>
+        {/* Save to Prompt Library */}
+        {charCount >= MIN_CHARS && (
+          <div>
+            {!showSavePrompt ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1.5 text-muted-foreground -ml-1"
+                onClick={() => { setShowSavePrompt(true); setShowLoadPrompt(false); setPromptSaveName(serverName || ""); }}
+                disabled={savedPrompts.length >= PROMPT_FREE_LIMIT}
+              >
+                <Save className="h-3.5 w-3.5" />
+                {savedPrompts.length >= PROMPT_FREE_LIMIT ? `Library full (${PROMPT_FREE_LIMIT}/${PROMPT_FREE_LIMIT})` : "Save to Prompt Library"}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  placeholder="Prompt name (e.g. GitHub Assistant)"
+                  value={promptSaveName}
+                  onChange={(e) => setPromptSaveName(e.target.value.slice(0, 60))}
+                  className="h-7 text-xs flex-1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowSavePrompt(false);
+                    if (e.key === "Enter") {
+                      const result = savePrompt(promptSaveName || serverName || "Untitled", description);
+                      if (result.ok) {
+                        toast.success("Prompt saved to library");
+                      } else {
+                        toast.error(result.reason ?? "Could not save");
+                      }
+                      setShowSavePrompt(false);
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  className="h-7 text-xs px-2"
+                  onClick={() => {
+                    const result = savePrompt(promptSaveName || serverName || "Untitled", description);
+                    if (result.ok) {
+                      toast.success("Prompt saved to library");
+                    } else {
+                      toast.error(result.reason ?? "Could not save");
+                    }
+                    setShowSavePrompt(false);
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setShowSavePrompt(false)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Example prompts */}

@@ -23,6 +23,7 @@ import {
   ChevronUp,
   Code2,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -34,14 +35,34 @@ export function PostGenerationReview() {
   const router = useRouter();
   const { generatedResult, setStep, reset } = useGeneratorStore();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [accepting, setAccepting] = useState(false);
+
+  // Show loader BEFORE guard — reset() clears generatedResult so we must intercept here
+  if (accepting) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-5">
+        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="font-semibold">Loading your server…</p>
+          <p className="text-sm text-muted-foreground">Almost there, taking you to the code.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!generatedResult) return null;
 
   const { id, tools, securityScore, blockDownload } = generatedResult;
 
   function handleAccept() {
-    reset();
-    router.push(`/dashboard/servers/${id}`);
+    setAccepting(true);
+    // Let the loading screen render before resetting the store (prevents review glitch)
+    setTimeout(() => {
+      router.push(`/dashboard/servers/${id}`);
+      reset();
+    }, 80);
   }
 
   function handleTweak() {

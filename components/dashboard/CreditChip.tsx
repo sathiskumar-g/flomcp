@@ -30,7 +30,7 @@ export function CreditChip({ className, variant = "pill" }: CreditChipProps) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/credits/balance");
+        const res = await fetch("/api/credits/balance", { cache: "no-store" });
         if (!res.ok || cancelled) return;
         const data: { plan: string; monthly: number; bonus: number; total: number } = await res.json();
         if (cancelled) return;

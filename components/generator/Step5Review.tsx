@@ -7,9 +7,10 @@
  * Fires POST /api/generate to trigger Claude code generation.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
 import { estimateCredits } from "@/lib/credits";
+import { useDrafts, DRAFT_FREE_LIMIT } from "@/lib/use-drafts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import {
   Server,
   ArrowRight,
   Coins,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +55,34 @@ const PROGRESS_STEPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Step5Review() {
+export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
   const { description, serverName, apiConfig, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
+
+  const { saveDraft, drafts } = useDrafts();
+  const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [draftError, setDraftError] = useState<string | null>(null);
+
+  // Track whether generation succeeded — used by auto-save cleanup
+  const generatedRef = useRef(false);
+  // Keep latest wizard data in a ref so the cleanup closure always sees fresh values
+  const wizardDataRef = useRef({ serverName, description, apiConfig, tools, resources, prompts });
+  useEffect(() => {
+    wizardDataRef.current = { serverName, description, apiConfig, tools, resources, prompts };
+  });
+
+  // Auto-save as draft when leaving Review step without generating
+  useEffect(() => {
+    return () => {
+      if (!generatedRef.current) {
+        const d = wizardDataRef.current;
+        // Only auto-save if there's at least a server name or description
+        if (d.serverName.trim() || d.description.trim()) {
+          saveDraft({ serverName: d.serverName, description: d.description, apiConfig: d.apiConfig, tools: d.tools, resources: d.resources, prompts: d.prompts });
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState<string | null>(null);
@@ -72,6 +100,20 @@ export function Step5Review() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  async function handleSaveAsDraft() {
+    setDraftStatus("saving");
+    setDraftError(null);
+    const result = saveDraft({ serverName, description, apiConfig, tools, resources, prompts });
+    if (result.ok) {
+      setDraftStatus("saved");
+      setTimeout(() => setDraftStatus("idle"), 3000);
+      onSaveDraft?.();
+    } else {
+      setDraftStatus("error");
+      setDraftError(result.reason ?? "Could not save draft.");
+    }
+  }
 
   async function handleGenerate() {
     setLoading(true);
@@ -142,6 +184,7 @@ export function Step5Review() {
               securityGrade,
               blockDownload,
             });
+            generatedRef.current = true; // mark success so unmount doesn't auto-save
             nextStep(); // → Step 5: PostGenerationReview
             return;
           } else if (event.type === "error") {
@@ -446,6 +489,44 @@ export function Step5Review() {
           </div>
         </div>
       )}
+
+      {/* Draft hint */}
+      <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3 flex items-start gap-2.5">
+        <Save className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-muted-foreground">
+            Not ready to generate?{" "}
+            <span className="font-medium text-foreground">Save as Draft</span> — stores your entire
+            wizard configuration locally. Free plan: up to{" "}
+            <span className="font-medium">{DRAFT_FREE_LIMIT}</span> drafts.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Draft name:{" "}
+            <span className="font-medium text-foreground">
+              {serverName.trim() || <span className="italic text-muted-foreground">same as server name</span>}
+            </span>
+          </p>
+          {draftError && (
+            <p className="text-xs text-red-500 mt-1">{draftError}</p>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1.5 flex-shrink-0"
+          onClick={handleSaveAsDraft}
+          disabled={draftStatus === "saving" || drafts.length >= DRAFT_FREE_LIMIT}
+        >
+          {draftStatus === "saving" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : draftStatus === "saved" ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
+          {draftStatus === "saved" ? "Saved!" : "Save as Draft"}
+        </Button>
+      </div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-2">
