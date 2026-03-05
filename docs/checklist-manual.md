@@ -1,6 +1,6 @@
 Landing page:
 1. demo video — ⏳ PENDING (manual — record/embed walkthrough video)
-5. Add all form with proper email admin with flomcp domain mail — ⏳ PENDING (manual — set up flomcp.com domain email in Resend)
+
 Remaining 8 points to hit 90/100:
 - Create /public/og-image.png (1200×630) — ⏳ PENDING (manual — Figma/Canva)
 - Split "use client" off the hero into a server component — ⏳ PENDING (manual — ~2 hrs refactor)

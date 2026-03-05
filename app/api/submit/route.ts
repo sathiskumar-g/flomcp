@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
-import { sendEmail, getProductInterestEmail, getFreelanceRequestEmail } from '@/lib/email';
+import { sendEmail, getFreelanceRequestEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
   const supabase = createServerClient();
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // Validate interest type whitelist
-    const ALLOWED_TYPES = ['product', 'freelance', 'pro_interest', 'enterprise'];
+    const ALLOWED_TYPES = ['freelance', 'pro_interest', 'enterprise'];
     if (!ALLOWED_TYPES.includes(interest)) {
       return NextResponse.json({ error: 'Invalid interest type' }, { status: 400 });
     }
@@ -60,12 +60,9 @@ export async function POST(request: Request) {
       try {
         const founderEmail = process.env.FOUNDER_EMAIL || 'founder@flomcp.com';
 
-        const emailHtml = interest === 'product'
-          ? getProductInterestEmail(email, problem || '')
-          : getFreelanceRequestEmail(email, description || '', urgency || 'medium');
+        const emailHtml = getFreelanceRequestEmail(email, description || '', urgency || 'medium');
 
         const subjectMap: Record<string, string> = {
-          product:      '🎉 New FloMCP Product Interest',
           freelance:    '[ENTERPRISE INTEREST] Custom MCP Development Request',
           pro_interest: '[PRO INTEREST] Early Access Signup',
           enterprise:   '[ENTERPRISE INTEREST] Enterprise Enquiry',
