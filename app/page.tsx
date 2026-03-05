@@ -364,7 +364,7 @@ export default function Home() {
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <button type="button" onClick={() => router.push('/')} aria-label="FloMCP — go to home page" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
-            <Logo height={32} />
+            <Logo height={42} />
           </button>
           <nav className="flex items-center gap-3" aria-label="Main navigation">
             {/* Always-visible nav links */}
@@ -1292,7 +1292,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center mb-4">
-                <Logo height={28} />
+                <Logo height={38} />
               </div>
               <p className="text-sm text-muted-foreground mb-3 pl-3">
                 FloMCP generates production-ready MCP servers from plain English. Works with Claude, GitHub Copilot, Cursor, and Windsurf.

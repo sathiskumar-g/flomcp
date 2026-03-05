@@ -55,40 +55,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send email notification (if Resend is configured)
-    if (process.env.RESEND_API_KEY && process.env.NOTIFICATION_EMAIL) {
+    // Send email notification to founder@flomcp.com for all submission types
+    if (process.env.RESEND_API_KEY) {
       try {
-        console.log('📧 Attempting to send email notification...');
-        console.log('To:', process.env.NOTIFICATION_EMAIL);
-        
+        const founderEmail = process.env.FOUNDER_EMAIL || 'founder@flomcp.com';
+
         const emailHtml = interest === 'product'
           ? getProductInterestEmail(email, problem || '')
           : getFreelanceRequestEmail(email, description || '', urgency || 'medium');
 
-        const subject = interest === 'product'
-          ? '🎉 New FloMCP Product Interest'
-          : `🚨 Custom MCP Development Request [${urgency?.toUpperCase()}]`;
+        const subjectMap: Record<string, string> = {
+          product:      '🎉 New FloMCP Product Interest',
+          freelance:    '[ENTERPRISE INTEREST] Custom MCP Development Request',
+          pro_interest: '[PRO INTEREST] Early Access Signup',
+          enterprise:   '[ENTERPRISE INTEREST] Enterprise Enquiry',
+        };
+        const subject = subjectMap[interest] ?? '📬 New FloMCP Submission';
 
-        const result = await sendEmail({
-          to: process.env.NOTIFICATION_EMAIL,
-          subject,
-          html: emailHtml,
-        });
-
+        const result = await sendEmail({ to: founderEmail, subject, html: emailHtml });
         if (result.success) {
-          console.log('✅ Email sent successfully!', result.data);
+          console.log('✅ Email sent to', founderEmail);
         } else {
           console.error('❌ Email failed:', result.error);
         }
       } catch (emailError) {
-        // Don't fail the request if email fails
         console.error('❌ Email notification error:', emailError);
       }
-    } else {
-      console.log('⚠️ Email not configured. Missing:', {
-        hasApiKey: !!process.env.RESEND_API_KEY,
-        hasNotificationEmail: !!process.env.NOTIFICATION_EMAIL
-      });
     }
 
     return NextResponse.json({ 

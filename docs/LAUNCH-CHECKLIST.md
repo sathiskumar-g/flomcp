@@ -5,6 +5,10 @@
 
 ---
 
+ns1.vercel-dns.com
+ns2.vercel-dns.com
+
+
 ## 🔴 MUST DO BEFORE LAUNCH (P0 — Blockers)
 
 ### 1. Run Missing SQL Migrations in Supabase Dashboard

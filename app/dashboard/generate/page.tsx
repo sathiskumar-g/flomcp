@@ -19,6 +19,17 @@ import { Step5Review } from "@/components/generator/Step5Review";
 import { PostGenerationReview } from "@/components/generator/PostGenerationReview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Plus, FileText, Trash2, FolderOpen, Clock, Loader2 } from "lucide-react";
 
@@ -299,7 +310,9 @@ function DraftCard({
   onLoad: (d: SavedDraft) => void;
   onDelete: (id: string) => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const draftName = draft.serverName || "Untitled Draft";
 
   const savedDate = new Date(draft.savedAt).toLocaleDateString("en-US", {
     month: "short",
@@ -307,75 +320,99 @@ function DraftCard({
     year: "numeric",
   });
 
+  function openDelete() {
+    setDeleteInput("");
+    setDeleteOpen(true);
+  }
+
+  function closeDelete() {
+    setDeleteOpen(false);
+    setDeleteInput("");
+  }
+
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-4 hover:border-border transition-colors">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold truncate">{draft.serverName || "Untitled Draft"}</p>
-            <Badge variant="outline" className="text-[10px] h-4 px-1.5 flex-shrink-0">Draft</Badge>
+    <>
+      <div className="rounded-xl border border-border/60 bg-card p-4 hover:border-border transition-colors">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold truncate">{draftName}</p>
+              <Badge variant="outline" className="text-[10px] h-4 px-1.5 flex-shrink-0">Draft</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+              {draft.description || "(No description)"}
+            </p>
+            <div className="flex items-center gap-3 pt-0.5">
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {savedDate}
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                {draft.tools.length} tool{draft.tools.length !== 1 ? "s" : ""}
+              </span>
+              {draft.apiConfig.enabled && (
+                <span className="text-[11px] text-muted-foreground">· API configured</span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {draft.description || "(No description)"}
-          </p>
-          <div className="flex items-center gap-3 pt-0.5">
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              {savedDate}
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              {draft.tools.length} tool{draft.tools.length !== 1 ? "s" : ""}
-            </span>
-            {draft.apiConfig.enabled && (
-              <span className="text-[11px] text-muted-foreground">· API configured</span>
-            )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => onLoad(draft)}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              Load
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500"
+              onClick={openDelete}
+              aria-label="Delete draft"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {confirmDelete ? (
-            <>
-              <span className="text-xs text-muted-foreground">Delete?</span>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="h-7 text-xs px-2"
-                onClick={() => onDelete(draft.id)}
-              >
-                Yes
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs px-2"
-                onClick={() => setConfirmDelete(false)}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs gap-1.5"
-                onClick={() => onLoad(draft)}
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-                Load
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500"
-                onClick={() => setConfirmDelete(true)}
-                aria-label="Delete draft"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </>
-          )}
         </div>
       </div>
-    </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={(open) => { if (!open) closeDelete(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this draft?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">&quot;{draftName}&quot;</span>.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Type{" "}
+              <span className="font-mono font-medium text-foreground">{draftName}</span>{" "}
+              to confirm:
+            </p>
+            <Input
+              value={deleteInput}
+              onChange={(e) => setDeleteInput(e.target.value)}
+              placeholder={draftName}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-500 hover:bg-red-600 text-white"
+              disabled={deleteInput.trim() !== draftName}
+              onClick={(e) => { e.preventDefault(); onDelete(draft.id); closeDelete(); }}
+            >
+              Delete Draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

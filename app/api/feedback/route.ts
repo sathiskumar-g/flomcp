@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
+import { sendEmail } from "@/lib/email";
 
 /**
  * POST /api/feedback
@@ -41,6 +42,14 @@ export async function POST(req: NextRequest) {
       console.error("[feedback] update error:", updateError.message);
       // Non-fatal — return ok anyway so the UI doesn't error
     }
+
+    // Notify support team about feedback (non-blocking)
+    const supportEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
+    sendEmail({
+      to: supportEmail,
+      subject: `[FEEDBACK] Server feedback: ${rating === "up" ? "👍" : "👎"} ${rating} — ${serverId.slice(0, 8)}`,
+      html: `<p><strong>Server Feedback Submitted</strong></p><p>User: ${user.email ?? user.id}</p><p>Server ID: ${serverId}</p><p>Rating: ${rating === "up" ? "👍 Thumbs Up" : "👎 Thumbs Down"}</p><p>Comment: ${comment ? comment : "(no comment)"}</p><p>Time: ${new Date().toISOString()}</p>`,
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (err) {

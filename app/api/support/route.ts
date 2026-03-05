@@ -247,15 +247,16 @@ export async function POST(request: Request) {
     }
 
     const userEmail = user.email ?? "unknown";
-    const adminEmail = process.env.ADMIN_EMAIL ?? "";
+    const adminEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
     const shortId = ticket.id.slice(0, 8).toUpperCase();
 
     // Fire emails (non-blocking failures)
+    const adminSubjectPrefix = category === "bug" ? "[BUG TICKET]" : "[SUPPORT]";
     await Promise.allSettled([
       adminEmail
         ? sendEmail({
             to: adminEmail,
-            subject: `[${priority.toUpperCase()}] New Support Ticket: ${cleanSubject}`,
+            subject: `${adminSubjectPrefix} ${cleanSubject}`,
             html: getAdminSupportEmail(shortId, userEmail, cleanSubject, category, priority, cleanDescription),
           })
         : Promise.resolve(),

@@ -7,6 +7,7 @@ import { validateGeneratorStep1 } from "@/lib/validate-input";
 import { runSecurityValidation } from "@/lib/security/validator";
 import { estimateCredits } from "@/lib/credits";
 import { ensureCreditRow, deductCredits, refundCredits } from "@/lib/credits-service";
+import { sendEmail } from "@/lib/email";
 import type { ToolDefinition, ResourceDefinition, PromptDefinition, ApiConfig } from "@/lib/stores/generator-store";
 
 // Allow this route up to 5 minutes on Vercel Pro/Enterprise (streaming response)
@@ -873,9 +874,17 @@ Run command for users after download:
             "generation_error_refund"
           );
         }
+        // Notify founder about generation failure (non-blocking)
+        const founderEmail = process.env.FOUNDER_EMAIL || "founder@flomcp.com";
+        const errMsg = err instanceof Error ? err.message : "Generation failed";
+        sendEmail({
+          to: founderEmail,
+          subject: `[GEN ERROR] Generation failed: ${(serverName || description).slice(0, 60)}`,
+          html: `<p><strong>Generation error</strong></p><p>User: ${user.email ?? user.id}</p><p>Server name: ${serverName || "(none)"}</p><p>Description: ${description.slice(0, 200)}</p><p>Error: ${errMsg}</p><p>Time: ${new Date().toISOString()}</p>`,
+        }).catch(() => {});
         send({
           type: "error",
-          message: err instanceof Error ? err.message : "Generation failed",
+          message: errMsg,
         });
       } finally {
         controller.close();

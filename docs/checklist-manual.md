@@ -20,3 +20,13 @@ Remaining ⏳ PENDING (need work):
 22 — Python language support for generation
 24 — MCP Assistant
 
+----------------------------------------
+Small tip for form emails
+
+Add Reply-To header so you can reply directly to the user.
+
+Example:
+
+From: no-reply@flomcp.com
+Reply-To: user@email.com
+To: founder@flomcp.com

@@ -117,7 +117,7 @@ export function Sidebar() {
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push('/')}
         >
-          <Logo height={28} />
+          <Logo height={38} />
         </div>
       </div>
 

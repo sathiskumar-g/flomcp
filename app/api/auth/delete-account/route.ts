@@ -20,6 +20,7 @@ import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import type { RateLimitConfig } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/email";
 
 const DELETE_ACCOUNT_LIMIT: RateLimitConfig = {
   maxRequests: 2,
@@ -77,6 +78,14 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    // Notify support team about account deletion (non-blocking)
+    const supportEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
+    sendEmail({
+      to: supportEmail,
+      subject: `[CHURN USER] Account deleted: ${sessionEmail}`,
+      html: `<p>A user has deleted their account.</p><p>Email: <strong>${sessionEmail}</strong></p><p>User ID: ${userId}</p><p>Time: ${new Date().toISOString()}</p>`,
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

@@ -29,21 +29,27 @@ Get instant email notifications when someone:
 ### Step 3: Add to Your Project (1 min)
 
 1. Open: `s:\Engineering\2026\one\flomcp\.env.local`
-2. Replace these lines:
+2. Set these lines:
 
 ```env
 RESEND_API_KEY=re_YourActualKeyHere
-NOTIFICATION_EMAIL=your@email.com
+NOREPLY_EMAIL=no-reply@flomcp.com
+FOUNDER_EMAIL=founder@flomcp.com
+SUPPORT_EMAIL=support@flomcp.com
 ```
 
-**Replace with:**
+**Values:**
 - `RESEND_API_KEY`: The key you just copied (starts with `re_`)
-- `NOTIFICATION_EMAIL`: **YOUR email address** (where you want notifications)
+- `NOREPLY_EMAIL`: The from address on all outgoing emails (`no-reply@flomcp.com`)
+- `FOUNDER_EMAIL`: Receives sales/business emails (freelance, enterprise, pro interest, gen errors)
+- `SUPPORT_EMAIL`: Receives operational emails (signups, support tickets, feedback, churn)
 
 Example:
 ```env
 RESEND_API_KEY=re_123abc456def789ghi
-NOTIFICATION_EMAIL=yourname@gmail.com
+NOREPLY_EMAIL=no-reply@flomcp.com
+FOUNDER_EMAIL=founder@flomcp.com
+SUPPORT_EMAIL=support@flomcp.com
 ```
 
 ### Step 4: Restart Dev Server (30 sec)
@@ -88,7 +94,7 @@ You should receive a beautiful HTML email with:
 - [ ] Created Resend account
 - [ ] Got API key (starts with `re_`)
 - [ ] Added API key to `.env.local`
-- [ ] Added your email to `NOTIFICATION_EMAIL`
+- [ ] Added `NOREPLY_EMAIL`, `FOUNDER_EMAIL`, `SUPPORT_EMAIL` to `.env.local`
 - [ ] Restarted dev server
 - [ ] Tested form submission
 - [ ] Received email notification ✅
@@ -101,7 +107,7 @@ You should receive a beautiful HTML email with:
 
 1. **Check spam folder** (sometimes first email goes there)
 2. **Verify API key** is correct in `.env.local`
-3. **Check email address** has no typos in `NOTIFICATION_EMAIL`
+3. **Check email addresses** have no typos in `FOUNDER_EMAIL` and `SUPPORT_EMAIL`
 4. **Look at terminal logs** for any email errors
 5. **Check Resend dashboard** → "Logs" to see if email was sent
 
@@ -120,7 +126,9 @@ When you deploy to Vercel:
 1. Go to Vercel project → **Settings** → **Environment Variables**
 2. Add both:
    - `RESEND_API_KEY`: Your Resend API key
-   - `NOTIFICATION_EMAIL`: Your email address
+   - `NOREPLY_EMAIL`: `no-reply@flomcp.com`
+   - `FOUNDER_EMAIL`: `founder@flomcp.com`
+   - `SUPPORT_EMAIL`: `support@flomcp.com`
 3. Redeploy
 
 **Note:** In production, you can:
@@ -149,10 +157,17 @@ When you deploy to Vercel:
 
 ## 📧 What Your Email Address Is For
 
-Your email (`NOTIFICATION_EMAIL`) receives:
-- All form submissions instantly
-- Product interest notifications
-- Custom development requests with urgency levels
+`FOUNDER_EMAIL` receives:
+- Freelance / custom dev requests
+- Enterprise enquiries
+- Pro interest signups
+- Generation error alerts
+
+`SUPPORT_EMAIL` receives:
+- New user signups
+- Support tickets
+- Server feedback
+- Account deletions (churn)
 
 **Privacy:** Your email is only stored in `.env.local` and Vercel (not in database or client-side)
 

@@ -17,6 +17,7 @@ import { createServerClient } from "@/lib/supabase-server";
 import { withRetry, throwIfRetryable } from "@/lib/retry";
 import { checkRateLimit, getClientIP, SIGNUP_LIMIT } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email";
 
 // Disposable email domains — duplicated server-side so it can't be bypassed
 const DISPOSABLE_DOMAINS = new Set([
@@ -115,6 +116,16 @@ export async function POST(request: Request) {
     }
 
     // Success — verification email sent by Supabase
+    // Notify support team about new signup (non-blocking)
+    if (data.user?.email) {
+      const supportEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
+      sendEmail({
+        to: supportEmail,
+        subject: `[NEW USER] New signup: ${data.user.email}`,
+        html: `<p>New user signed up: <strong>${data.user.email}</strong></p><p>User ID: ${data.user.id}</p><p>Time: ${new Date().toISOString()}</p>`,
+      }).catch(() => {});
+    }
+
     return NextResponse.json({
       user: data.user
         ? {
