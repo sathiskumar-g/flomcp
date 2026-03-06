@@ -1332,6 +1332,7 @@ export default function Home() {
                 <li><a href="/legal/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
                 <li><a href="/legal/terms-of-service" className="hover:text-foreground transition-colors">Terms of Service</a></li>
                 <li><a href="/legal/acceptable-use" className="hover:text-foreground transition-colors">Acceptable Use Policy</a></li>
+                <li><a href="/legal/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</a></li>
               </ul>
             </div>
           </div>

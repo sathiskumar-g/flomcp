@@ -294,7 +294,7 @@ export function SignUp() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading}
+            disabled={loading || !tosAccepted || !securityAcknowledged || !responsibilityAccepted}
           >
             {loading ? "Creating account..." : "Create Account"}
           </Button>
@@ -317,7 +317,7 @@ export function SignUp() {
             variant="outline"
             className="w-full"
             onClick={handleGoogleSignUp}
-            disabled={loading}
+            disabled={loading || !tosAccepted || !securityAcknowledged || !responsibilityAccepted}
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path

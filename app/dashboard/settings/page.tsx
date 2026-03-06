@@ -355,6 +355,7 @@ function LegalSection({ termsAccepted }: { termsAccepted: boolean }) {
           { label: "Privacy Policy", desc: "How we handle your data.", href: "/legal/privacy-policy" },
           { label: "Terms of Service", desc: "Rules and conditions of use.", href: "/legal/terms-of-service" },
           { label: "Acceptable Use Policy", desc: "What you can and can't do.", href: "/legal/acceptable-use" },
+          { label: "Refund Policy", desc: "Refund eligibility and how to request.", href: "/legal/refund-policy" },
         ].map(({ label, desc, href }) => (
           <a key={href} href={href} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-4 py-3 hover:bg-muted/40 transition-colors group">

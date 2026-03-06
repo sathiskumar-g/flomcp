@@ -49,17 +49,17 @@ export function UserMenu({ user }: UserMenuProps) {
     try {
       // Sign out via server-side proxy (clears cookies reliably)
       await fetch("/api/auth/signout", { method: "POST" });
-      router.push('/');
-      router.refresh();
     } catch (error) {
       console.error('Logout error:', error);
-      // Fallback: try direct signOut (clears local state at least)
+      // Fallback: clear local Supabase state
       try { await supabase.auth.signOut(); } catch {}
-      router.push('/');
-      router.refresh();
     } finally {
       setLoggingOut(false);
     }
+    // Hard redirect — forces full page reload so client-side auth state resets.
+    // router.refresh() alone does NOT reset useState, so the nav would still
+    // show the user as logged in until the next manual refresh.
+    window.location.href = '/';
   };
 
   const handleDashboard = () => {

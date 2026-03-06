@@ -28,7 +28,7 @@ export default function TermsOfServicePage() {
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
         <p className="text-muted-foreground mb-8">
-          Last Updated: February 23, 2026
+          Last Updated: March 6, 2026
         </p>
 
         <div className="prose prose-gray dark:prose-invert max-w-none space-y-6">
@@ -36,7 +36,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-semibold mb-3">1. Agreement to Terms</h2>
             <p>
-              By accessing or using FlowMCP ("the Service"), you agree to be bound by these Terms of Service. 
+              By accessing or using FloMCP (&ldquo;the Service&rdquo;), you agree to be bound by these Terms of Service.
               If you do not agree to these terms, do not use the Service.
             </p>
           </section>
@@ -45,14 +45,35 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-semibold mb-3">2. Service Description</h2>
             <p>
-              FlowMCP is a code generation tool that helps users create Model Context Protocol (MCP) servers. 
-              The Service uses AI to generate code based on user inputs.
+              FloMCP is a code generation tool that helps users create Model Context Protocol (MCP) servers.
+              The Service uses AI (Anthropic&apos;s Claude) to generate code based on user inputs.
             </p>
           </section>
 
-          {/* No Warranty - Critical for Legal Protection */}
+          {/* AI-Generated Content Disclaimer */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">3. No Warranty (AS-IS)</h2>
+            <h2 className="text-2xl font-semibold mb-3">3. AI-Generated Content Disclaimer</h2>
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-2">
+              <p className="font-semibold text-yellow-600 dark:text-yellow-500">
+                IMPORTANT: AI Code Generation Notice
+              </p>
+              <p>
+                FloMCP uses artificial intelligence to generate code. All output is AI-generated and must be
+                treated as a starting point, not production-ready code.
+              </p>
+              <p>You acknowledge that:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>AI-generated code may contain errors, bugs, or security vulnerabilities</li>
+                <li>Generated code may not be optimal, efficient, or best-practice compliant</li>
+                <li>AI models can produce outputs that appear correct but are functionally incorrect</li>
+                <li>You are solely responsible for reviewing, testing, and deploying any generated code</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* No Warranty */}}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">4. No Warranty (AS-IS)</h2>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-2">
               <p className="font-semibold text-yellow-600 dark:text-yellow-500">
                 IMPORTANT: Generated Code Disclaimer
@@ -76,7 +97,7 @@ export default function TermsOfServicePage() {
 
           {/* User Responsibilities */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">4. User Responsibilities</h2>
+            <h2 className="text-2xl font-semibold mb-3">5. User Responsibilities</h2>
             <p>You are solely responsible for:</p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>
@@ -100,7 +121,7 @@ export default function TermsOfServicePage() {
 
           {/* Limitation of Liability */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">5. Limitation of Liability</h2>
+            <h2 className="text-2xl font-semibold mb-3">6. Limitation of Liability</h2>
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 space-y-2">
               <p className="font-semibold text-red-600 dark:text-red-500">
                 CRITICAL: No Liability for Damages
@@ -124,7 +145,7 @@ export default function TermsOfServicePage() {
 
           {/* Acceptable Use */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">6. Acceptable Use</h2>
+            <h2 className="text-2xl font-semibold mb-3">7. Acceptable Use</h2>
             <p>You agree NOT to use the Service to:</p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>Generate malicious code, malware, viruses, or exploits</li>
@@ -143,7 +164,7 @@ export default function TermsOfServicePage() {
 
           {/* Account Termination */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">7. Account Termination</h2>
+            <h2 className="text-2xl font-semibold mb-3">8. Account Termination</h2>
             <p>
               We reserve the right to suspend or terminate your account at any time if you violate 
               these Terms of Service or our Acceptable Use Policy.
@@ -152,20 +173,20 @@ export default function TermsOfServicePage() {
 
           {/* Generated Code Ownership */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">8. Intellectual Property</h2>
+            <h2 className="text-2xl font-semibold mb-3">9. Intellectual Property</h2>
             <p>
-              <strong>Generated Code:</strong> You own the code generated by the Service. 
+              <strong>Generated Code:</strong> You own the code generated by the Service.
               You are free to use, modify, and distribute it as you see fit.
             </p>
             <p>
-              <strong>The Service:</strong> FlowMCP and its underlying technology remain our property. 
+              <strong>The Service:</strong> FloMCP and its underlying technology remain our property.
               You may not copy, reverse engineer, or create derivative works of the Service itself.
             </p>
           </section>
 
           {/* Data Collection */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">9. Data Collection & Privacy</h2>
+            <h2 className="text-2xl font-semibold mb-3">10. Data Collection &amp; Privacy</h2>
             <p>
               We collect minimal data necessary to provide the Service:
             </p>
@@ -180,9 +201,41 @@ export default function TermsOfServicePage() {
             </p>
           </section>
 
-          {/* Cost & Pricing */}
+          {/* Billing & Subscriptions */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">10. Pricing & Free Tier</h2>
+            <h2 className="text-2xl font-semibold mb-3">11. Billing &amp; Subscriptions (Pro Plan)</h2>
+            <p>
+              FloMCP offers both a free tier and paid Pro subscription plan. By subscribing to a paid plan:
+            </p>
+            <ul className="list-disc list-inside space-y-2 ml-4">
+              <li>
+                <strong>Billing:</strong> Subscriptions are billed monthly or annually via our payment
+                provider <em>(payment integration coming soon)</em>.
+                You authorise us to charge your payment method on a recurring basis.
+              </li>
+              <li>
+                <strong>Cancellation:</strong> You may cancel at any time from your account settings.
+                Cancellation takes effect at the end of the current billing period.
+              </li>
+              <li>
+                <strong>Refunds:</strong> Please see our{" "}
+                <a href="/legal/refund-policy" className="text-primary hover:underline">Refund Policy</a>{" "}
+                for full details on eligibility and how to request a refund.
+              </li>
+              <li>
+                <strong>Price Changes:</strong> We will provide at least 30 days notice before
+                increasing subscription prices for existing subscribers.
+              </li>
+              <li>
+                <strong>Credits:</strong> Unused generation credits do not roll over between billing periods
+                unless stated otherwise.
+              </li>
+            </ul>
+          </section>
+
+          {/* Pricing & Free Tier */}}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">12. Free Tier &amp; Pricing Changes</h2>
             <p>
               FlowMCP currently offers a free tier with usage limits. We reserve the right to:
             </p>
@@ -198,7 +251,7 @@ export default function TermsOfServicePage() {
 
           {/* Changes to Terms */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">11. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mb-3">13. Changes to Terms</h2>
             <p>
               We may update these Terms of Service at any time. If we make material changes, 
               we will notify you via email or through the Service. Your continued use of the Service 
@@ -208,16 +261,18 @@ export default function TermsOfServicePage() {
 
           {/* Governing Law */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">12. Governing Law</h2>
+            <h2 className="text-2xl font-semibold mb-3">14. Governing Law &amp; Jurisdiction</h2>
             <p>
-              These Terms shall be governed by and construed in accordance with applicable laws. 
-              Any disputes shall be resolved through binding arbitration.
+              These Terms shall be governed by and construed in accordance with the laws of India.
+              Any disputes arising from these Terms or the use of the Service shall first be
+              attempted to be resolved through good-faith negotiation. If unresolved within 30 days,
+              disputes shall be subject to the exclusive jurisdiction of the courts of India.
             </p>
           </section>
 
           {/* Contact */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">13. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-3">15. Contact Us</h2>
             <p>
               If you have questions about these Terms of Service, please contact us at:
             </p>

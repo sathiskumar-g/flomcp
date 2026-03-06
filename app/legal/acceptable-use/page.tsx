@@ -31,7 +31,7 @@ export default function AcceptableUsePolicyPage() {
           <h1 className="text-4xl font-bold">Acceptable Use Policy</h1>
         </div>
         <p className="text-muted-foreground mb-8">
-          Last Updated: February 23, 2026
+          Last Updated: March 6, 2026
         </p>
 
         <div className="prose prose-gray dark:prose-invert max-w-none space-y-6">
@@ -39,7 +39,7 @@ export default function AcceptableUsePolicyPage() {
           <section>
             <h2 className="text-2xl font-semibold mb-3">Purpose</h2>
             <p>
-              This Acceptable Use Policy defines prohibited uses of FlowMCP. Violations may result 
+              This Acceptable Use Policy defines prohibited uses of FloMCP. Violations may result
               in immediate account suspension or termination without refund.
             </p>
           </section>
@@ -51,7 +51,7 @@ export default function AcceptableUsePolicyPage() {
               <p className="font-semibold text-red-600 dark:text-red-500">
                 STRICTLY PROHIBITED:
               </p>
-              <p>You may NOT use FlowMCP to generate:</p>
+              <p>You may NOT use FloMCP to generate:</p>
               <ul className="list-disc list-inside space-y-2">
                 <li>
                   <strong>Malware:</strong> Viruses, trojans, ransomware, spyware, keyloggers, 
@@ -274,7 +274,7 @@ export default function AcceptableUsePolicyPage() {
           <section className="bg-muted/50 border rounded-lg p-6 mt-8">
             <h2 className="text-xl font-semibold mb-3">Acknowledgment</h2>
             <p className="text-sm">
-              BY USING FLOMCP, YOU ACKNOWLEDGE THAT YOU HAVE READ AND UNDERSTOOD THIS 
+              BY USING FLOMCP, YOU ACKNOWLEDGE THAT YOU HAVE READ AND UNDERSTOOD THIS
               ACCEPTABLE USE POLICY AND AGREE TO COMPLY WITH ALL PROVISIONS.
             </p>
             <p className="text-sm mt-2 text-muted-foreground">
