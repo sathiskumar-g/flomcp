@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, ArrowRight, Zap, Shield, Users } from "lucide-react";
+import { CheckCircle2, ArrowRight, Zap, Shield, Users, Crown } from "lucide-react";
 import { Logo } from "@/components/Logo";
 
 export const metadata = {
@@ -41,10 +41,9 @@ const ENTERPRISE_FEATURES = [
 ];
 
 const CREDIT_PACKS = [
-  { name: "Boost",    credits: "+10",  price: "$5"  },
-  { name: "Standard", credits: "+25",  price: "$11" },
-  { name: "Growth",   credits: "+50",  price: "$18" },
-  { name: "Studio",   credits: "+100", price: "$30" },
+  { name: "Boost",    credits: "+10",  price: "$5+"  },
+  { name: "Standard", credits: "+30",  price: "$15+" },
+  { name: "Growth",   credits: "+55",  price: "$25+" },
 ];
 
 const FAQ = [
@@ -214,21 +213,16 @@ export default function PricingPage() {
 
         {/* Credit top-up packs */}
         <div className="mb-16 rounded-xl border border-border/60 bg-muted/20 p-6">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <h2 className="text-lg font-semibold">Credit Top-Up Packs</h2>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">Pro subscribers only</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium border border-border">Coming soon</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mb-5">
-            <span className="text-xs text-muted-foreground">Generation cost:</span>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 font-medium">
-              🪙 1 credit &mdash; Simple server
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
-              🪙🪙 2 credits &mdash; Complex server
+          <div className="flex flex-col items-center gap-2 mb-5 text-center">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Credit Top-Up Packs</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3 w-3" /> Pro</span>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-background border border-border/60 text-muted-foreground">
+              🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
             </span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 max-w-xl mx-auto">
             {CREDIT_PACKS.map((pack) => (
               <div key={pack.name} className="rounded-lg border border-border/60 bg-background px-4 py-4 text-center">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
@@ -238,7 +232,6 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Top-up credits never expire and stack on top of your monthly allowance.</p>
         </div>
 
         {/* Why upgrade */}

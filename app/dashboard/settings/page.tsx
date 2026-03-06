@@ -263,6 +263,43 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
           </CardContent>
         </Card>
 
+        {/* Credit Top-Up Packs — Coming Soon */}
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Crown className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">Credit Top-Up Packs</CardTitle>
+              <Badge variant="secondary" className="text-xs">Pro only</Badge>
+              <Badge variant="outline" className="text-xs gap-1 inline-flex items-center text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/5">
+                <Crown className="h-3 w-3" /> Coming soon
+              </Badge>
+            </div>
+            <CardDescription className="text-sm">
+              Top up your credits anytime. Never expire — stack with your monthly allowance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {([
+                { credits: "+10", price: "$5+" },
+                { credits: "+30", price: "$15+" },
+                { credits: "+55", price: "$25+" },
+              ] as const).map((pack) => (
+                <label key={pack.credits} className="relative flex flex-col items-center rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-center cursor-not-allowed opacity-50">
+                  <input type="radio" name="credit-pack" disabled className="absolute top-2 right-2 h-3.5 w-3.5 accent-primary" />
+                  <p className="text-xl font-bold">{pack.credits}</p>
+                  <p className="text-xs text-muted-foreground">credits</p>
+                  <p className="text-sm font-semibold text-primary mt-1">{pack.price}</p>
+                </label>
+              ))}
+            </div>
+            <Button className="w-full gap-2" disabled>
+              <Crown className="h-4 w-4" />
+              Add Credits
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Enterprise */}
         <Card className="border-border/60">
           <CardHeader className="pb-2">

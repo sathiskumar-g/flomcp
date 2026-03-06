@@ -51,10 +51,9 @@ const PRO_CREDIT_FEATURES = [
 ];
 
 const CREDIT_PACKS = [
-  { name: "Boost",    credits: "+10",  price: "$5",  priceNum: 5  },
-  { name: "Standard", credits: "+25",  price: "$11", priceNum: 11 },
-  { name: "Growth",   credits: "+50",  price: "$18", priceNum: 18 },
-  { name: "Studio",   credits: "+100", price: "$30", priceNum: 30 },
+  { name: "Boost",    credits: "+10",  price: "$5+",  priceNum: 5  },
+  { name: "Standard", credits: "+30",  price: "$15+", priceNum: 15 },
+  { name: "Growth",   credits: "+55",  price: "$25+", priceNum: 25 },
 ];
 
 function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -700,27 +699,27 @@ export default function Home() {
                 <h3 className="text-xl font-bold mb-2 flex items-center gap-2 flex-wrap">
                   VS Code MCP Assistant
                   <span className="text-xs font-normal px-2 py-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 inline-flex items-center gap-1" aria-label="Pro feature, coming soon"><Crown className="h-3 w-3" /> Pro</span>
-                  <span className="text-xs font-normal px-2 py-1 rounded-full bg-primary/20 text-primary">Coming Soon</span>
+                  <span className="text-xs font-normal px-2 py-1 rounded-full bg-yellow-400/15 text-yellow-600 dark:text-yellow-400 border border-yellow-400/50">Coming Soon</span>
                 </h3>
                 <p className="text-muted-foreground mb-3">
-                  Build MCP servers directly in VS Code with our intelligent assistant. Get real-time suggestions, auto-complete schemas, and instant testing—all without leaving your editor.
+                  Already generated your MCP server? The VS Code Assistant helps you maintain and improve it — fix broken connections, resolve configuration issues, apply security patches, and upgrade tools without starting from scratch.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>Work entirely within VS Code—no context switching</span>
+                    <span>Diagnose and fix MCP link &amp; connection errors in-editor</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>Intelligent code completion for MCP schemas and handlers</span>
+                    <span>Repair broken configuration — transport, auth, env variables</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>Test your MCP servers instantly without restarts</span>
+                    <span>Security upgrade — patches flagged vulnerabilities automatically</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>Generate best-practice code with built-in templates</span>
+                    <span>Update tools &amp; resources on existing servers without regenerating</span>
                   </li>
                 </ul>
               </div>
@@ -1247,21 +1246,16 @@ export default function Home() {
 
           {/* Credit top-up packs */}
           <div className="mt-12">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="text-lg font-semibold">Credit Top-Up Packs</h3>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">Pro subscribers only</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1" aria-label="Pro feature, coming soon"><Crown className="h-3 w-3" /> Coming soon</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="text-xs text-muted-foreground">Generation cost:</span>
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 font-medium">
-                🪙 1 credit &mdash; Simple server
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">
-                🪙🪙 2 credits &mdash; Complex server
+            <div className="flex flex-col items-center gap-2 mb-4 text-center">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold">Credit Top-Up Packs</h3>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3 w-3" /> Pro</span>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-muted border border-border/60 text-muted-foreground">
+                🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
               </span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto">
               {CREDIT_PACKS.map((pack) => (
                 <div key={pack.name} className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-center">
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
@@ -1271,7 +1265,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3">Top-up credits never expire and stack with your monthly allowance.</p>
           </div>
         </div>
       </section>
