@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createServerClient } from "@/lib/supabase-server";
+import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
+import type { RateLimitConfig } from "@/lib/rate-limit";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const SUGGEST_TOOLS_LIMIT: RateLimitConfig = {
+  maxRequests: 10,
+  windowMs: 60 * 1000,
+};
+
 export async function POST(req: NextRequest) {
+  // Auth check — prevent unauthenticated callers from burning Anthropic API credits
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Rate limit — 10 suggestions per minute per IP
+  const ip = getClientIP(req);
+  const rl = checkRateLimit(`suggest-tools:${ip}`, SUGGEST_TOOLS_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${rl.retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const { description } = await req.json();
 
@@ -72,7 +97,7 @@ Include 1-4 fields per tool — only the essential parameters.`,
     const message = err instanceof Error ? err.message : String(err);
     console.error("[suggest-tools]", message);
     return NextResponse.json(
-      { error: `Failed to generate tool suggestions: ${message}` },
+      { error: "Failed to generate tool suggestions. Please try again." },
       { status: 500 }
     );
   }

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       console.error('Unexpected auth error:', err);
       return NextResponse.redirect(
-        `${requestUrl.origin}/auth/error?message=Authentication failed`
+        `${requestUrl.origin}/auth/error?error=auth_exchange_failed`
       );
     }
   }

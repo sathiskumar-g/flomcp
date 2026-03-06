@@ -6,8 +6,26 @@ import {
   getProInterestEmail,
 } from '@/lib/email';
 import { validateEmail } from '@/lib/validate-email';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import type { RateLimitConfig } from '@/lib/rate-limit';
+import type { NextRequest } from 'next/server';
 
-export async function POST(request: Request) {
+const SUBMIT_LIMIT: RateLimitConfig = {
+  maxRequests: 5,
+  windowMs: 60 * 1000, // 5 submissions per minute per IP
+};
+
+export async function POST(request: NextRequest) {
+  // Rate limit — prevent DB spam and email flooding
+  const ip = getClientIP(request);
+  const rl = checkRateLimit(`submit:${ip}`, SUBMIT_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Please try again in ${rl.retryAfterSeconds} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const supabase = createAdminClient();
   try {
     const body = await request.json();

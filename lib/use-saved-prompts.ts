@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "flomcp_saved_prompts";
+const BASE_KEY = "flomcp_saved_prompts";
 export const PROMPT_FREE_LIMIT = 5;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -26,18 +26,22 @@ export interface SavedPrompt {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function readPrompts(): SavedPrompt[] {
+function storageKey(userId: string) {
+  return userId ? `${BASE_KEY}_${userId}` : BASE_KEY;
+}
+
+function readPrompts(userId: string): SavedPrompt[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return JSON.parse(localStorage.getItem(storageKey(userId)) ?? "[]");
   } catch {
     return [];
   }
 }
 
-function writePrompts(prompts: SavedPrompt[]): void {
+function writePrompts(prompts: SavedPrompt[], userId: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts));
+    localStorage.setItem(storageKey(userId), JSON.stringify(prompts));
   } catch {
     // storage full or private mode — silently ignore
   }
@@ -45,17 +49,17 @@ function writePrompts(prompts: SavedPrompt[]): void {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useSavedPrompts() {
+export function useSavedPrompts(userId: string) {
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
 
-  // Hydrate from localStorage once on mount (avoids SSR mismatch)
+  // Re-hydrate from localStorage whenever the userId becomes available
   useEffect(() => {
-    setPrompts(readPrompts());
-  }, []);
+    if (userId) setPrompts(readPrompts(userId));
+  }, [userId]);
 
   const savePrompt = useCallback(
     (name: string, text: string, mimeType: "text/plain" | "text/markdown" = "text/plain"): { ok: boolean; reason?: string } => {
-      const current = readPrompts();
+      const current = readPrompts(userId);
       if (current.length >= PROMPT_FREE_LIMIT) {
         return {
           ok: false,
@@ -70,28 +74,28 @@ export function useSavedPrompts() {
         createdAt: new Date().toISOString(),
       };
       const updated = [next, ...current];
-      writePrompts(updated);
+      writePrompts(updated, userId);
       setPrompts(updated);
       return { ok: true };
     },
-    []
+    [userId]
   );
 
   const deletePrompt = useCallback((id: string) => {
-    const updated = readPrompts().filter((p) => p.id !== id);
-    writePrompts(updated);
+    const updated = readPrompts(userId).filter((p) => p.id !== id);
+    writePrompts(updated, userId);
     setPrompts(updated);
-  }, []);
+  }, [userId]);
 
   const updatePrompt = useCallback(
     (id: string, patch: Partial<Pick<SavedPrompt, "name" | "text" | "mimeType">>) => {
-      const updated = readPrompts().map((p) =>
+      const updated = readPrompts(userId).map((p) =>
         p.id === id ? { ...p, ...patch } : p
       );
-      writePrompts(updated);
+      writePrompts(updated, userId);
       setPrompts(updated);
     },
-    []
+    [userId]
   );
 
   return { prompts, savePrompt, deletePrompt, updatePrompt, freeLimit: PROMPT_FREE_LIMIT };

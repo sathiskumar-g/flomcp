@@ -1,8 +1,25 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
 import { validateEmail } from "@/lib/validate-email";
+import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
+import type { RateLimitConfig } from "@/lib/rate-limit";
+
+const CONTACT_LIMIT: RateLimitConfig = {
+  maxRequests: 3,
+  windowMs: 60 * 1000, // 3 contact messages per minute per IP
+};
 
 export async function POST(request: Request) {
+  // Rate limit — 3 per minute per IP to prevent email spam
+  const ip = getClientIP(request);
+  const rl = checkRateLimit(`contact:${ip}`, CONTACT_LIMIT);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Please try again in ${rl.retryAfterSeconds} seconds.` },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, summary, description } = body as {

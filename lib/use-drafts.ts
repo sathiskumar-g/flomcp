@@ -18,7 +18,7 @@ import type {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "flomcp_drafts";
+const BASE_KEY = "flomcp_drafts";
 export const DRAFT_FREE_LIMIT = 5;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -36,18 +36,22 @@ export interface SavedDraft {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function readDrafts(): SavedDraft[] {
+function storageKey(userId: string) {
+  return userId ? `${BASE_KEY}_${userId}` : BASE_KEY;
+}
+
+function readDrafts(userId: string): SavedDraft[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return JSON.parse(localStorage.getItem(storageKey(userId)) ?? "[]");
   } catch {
     return [];
   }
 }
 
-function writeDrafts(drafts: SavedDraft[]): void {
+function writeDrafts(drafts: SavedDraft[], userId: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+    localStorage.setItem(storageKey(userId), JSON.stringify(drafts));
   } catch {
     // storage full or private mode — silently ignore
   }
@@ -55,17 +59,17 @@ function writeDrafts(drafts: SavedDraft[]): void {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useDrafts() {
+export function useDrafts(userId: string) {
   const [drafts, setDrafts] = useState<SavedDraft[]>([]);
 
-  // Hydrate from localStorage once on mount (avoids SSR mismatch)
+  // Re-hydrate from localStorage whenever the userId becomes available
   useEffect(() => {
-    setDrafts(readDrafts());
-  }, []);
+    if (userId) setDrafts(readDrafts(userId));
+  }, [userId]);
 
   const saveDraft = useCallback(
     (data: Omit<SavedDraft, "id" | "savedAt">): { ok: boolean; reason?: string } => {
-      const current = readDrafts();
+      const current = readDrafts(userId);
       if (current.length >= DRAFT_FREE_LIMIT) {
         return {
           ok: false,
@@ -78,18 +82,18 @@ export function useDrafts() {
         savedAt: new Date().toISOString(),
       };
       const updated = [next, ...current];
-      writeDrafts(updated);
+      writeDrafts(updated, userId);
       setDrafts(updated);
       return { ok: true };
     },
-    []
+    [userId]
   );
 
   const deleteDraft = useCallback((id: string) => {
-    const updated = readDrafts().filter((d) => d.id !== id);
-    writeDrafts(updated);
+    const updated = readDrafts(userId).filter((d) => d.id !== id);
+    writeDrafts(updated, userId);
     setDrafts(updated);
-  }, []);
+  }, [userId]);
 
   return { drafts, saveDraft, deleteDraft, freeLimit: DRAFT_FREE_LIMIT };
 }

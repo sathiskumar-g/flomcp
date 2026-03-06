@@ -48,12 +48,18 @@ export function Sidebar() {
     setUnreadCount(count);
   }, []);
 
-  // Load current user for the sidebar identity section
+  // Load current user for the sidebar identity section — subscribe to auth
+  // state changes so the display name updates immediately when profile is saved
+  // in Settings (Settings calls refreshSession() which triggers this listener).
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSidebarUser(session?.user ?? null);
     });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSidebarUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const sidebarDisplayName =

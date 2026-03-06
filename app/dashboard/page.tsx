@@ -81,6 +81,13 @@ function DashboardContent() {
       }
     };
     loadData();
+
+    // Subscribe so display name updates live when settings page saves a new name
+    // (Settings calls refreshSession() which fires this listener with updated metadata)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) setUser(session.user);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   // BUG-006: prefer full_name from Google OAuth user_metadata over email prefix
@@ -166,10 +173,13 @@ function DashboardContent() {
                     ? "All credits used"
                     : `${creditsRemaining} credit${creditsRemaining !== 1 ? "s" : ""} remaining`}
                 </p>
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <button
+                  onClick={() => router.push("/dashboard/settings#subscription")}
+                  className="mt-2 flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                >
                   <Crown className="h-3 w-3" />
-                  <span>Add credits — <span className="font-medium">Coming Soon</span></span>
-                </div>
+                  Add Credits
+                </button>
               </>
             )}
           </CardContent>

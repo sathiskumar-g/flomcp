@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useSavedPrompts, PROMPT_FREE_LIMIT } from "@/lib/use-saved-prompts";
+import { createClient } from "@/lib/supabase";
 import type { SavedPrompt } from "@/lib/use-saved-prompts";
 import { cn } from "@/lib/utils";
 import {
@@ -124,7 +125,17 @@ export default function DashboardLibraryPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"mcp" | "prompts">("mcp");
   const [activeCategory, setActiveCategory] = useState("All");
-  const { prompts: savedPrompts, savePrompt, deletePrompt, updatePrompt } = useSavedPrompts();
+
+  // Load userId so saved prompts are scoped to this account
+  const [userId, setUserId] = useState("");
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? "");
+    });
+  }, []);
+
+  const { prompts: savedPrompts, savePrompt, deletePrompt, updatePrompt } = useSavedPrompts(userId);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showAddPromptForm, setShowAddPromptForm] = useState(false);
   const [newPromptName, setNewPromptName] = useState("");

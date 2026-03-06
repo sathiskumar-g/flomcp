@@ -478,6 +478,9 @@ export default function SettingsPage() {
       const json = await res.json();
       if (!res.ok) { toast.error(json.error ?? "Failed to save."); return; }
       toast.success("Display name updated.");
+      // Refresh the client-side JWT so onAuthStateChange fires everywhere
+      // (Sidebar, dashboard page) with the updated display_name metadata.
+      await supabase.auth.refreshSession();
     } catch {
       toast.error("Network error. Please try again.");
     } finally {

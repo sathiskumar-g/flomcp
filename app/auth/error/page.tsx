@@ -15,11 +15,18 @@ import { Suspense } from "react";
 function ErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  // Support both ?message= (legacy) and ?error= (from callback route)
+  // Support both ?message= (legacy) and ?error= (from callback/confirm routes)
   const errorCode = searchParams.get('error');
   const rawMessage = searchParams.get('message');
+
+  const ERROR_MESSAGES: Record<string, string> = {
+    auth_exchange_failed: 'Authentication failed. The link may have expired — please request a new one.',
+    missing_token:        'Verification link is incomplete. Please use the full link from your email or request a new one.',
+    verification_failed:  'Email verification failed. The link may have expired — please request a new one.',
+  };
+
   const message = rawMessage ||
-    (errorCode === 'auth_exchange_failed' ? 'Authentication failed. The link may have expired — please request a new one.' : null) ||
+    (errorCode ? (ERROR_MESSAGES[errorCode] ?? null) : null) ||
     'An authentication error occurred';
 
   return (

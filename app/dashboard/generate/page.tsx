@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
 import { useDrafts, type SavedDraft } from "@/lib/use-drafts";
+import { createClient } from "@/lib/supabase";
 import { Step1Description } from "@/components/generator/Step1Description";
 import { Step2APIConfig } from "@/components/generator/Step2APIConfig";
 import { Step3ToolConfig } from "@/components/generator/Step3ToolConfig";
@@ -65,7 +66,16 @@ function GenerateWizard() {
   // never flashes while the overlay is still visible on the old page.
   useEffect(() => () => { reset(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { drafts, deleteDraft } = useDrafts();
+  // Load userId so drafts are scoped to this account
+  const [userId, setUserId] = useState("");
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? "");
+    });
+  }, []);
+
+  const { drafts, deleteDraft } = useDrafts(userId);
   const [mode, setMode] = useState<"new" | "drafts">("new");
 
   function handleLoadDraft(draft: SavedDraft) {
