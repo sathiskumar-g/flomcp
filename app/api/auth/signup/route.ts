@@ -14,6 +14,7 @@
  */
 
 import { createServerClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { withRetry, throwIfRetryable } from "@/lib/retry";
 import { checkRateLimit, getClientIP, SIGNUP_LIMIT } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
@@ -100,8 +101,18 @@ export async function POST(request: Request) {
     }
 
     // Success — verification email sent by Supabase
-    // Notify support team about new signup (non-blocking)
-    if (data.user?.email) {
+    if (data.user?.id) {
+      const admin = createAdminClient();
+
+      // Welcome notification — fire-and-forget
+      admin.from("notifications").insert({
+        user_id: data.user.id,
+        type: "system_message",
+        title: "Welcome to FloMCP!",
+        body: "Your account is set up and ready. Generate your first MCP server to get started.",
+      }).then();
+
+      // Notify support team about new signup — fire-and-forget
       const supportEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
       sendEmail({
         to: supportEmail,

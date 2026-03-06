@@ -11,6 +11,7 @@
  */
 
 import { createServerClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { NextResponse } from "next/server";
@@ -229,6 +230,16 @@ export async function POST(request: Request) {
         html: getUserConfirmationEmail(shortId, cleanSubject, priority),
       }),
     ]);
+
+    // In-app notification — fire-and-forget
+    const admin = createAdminClient();
+    const slaLabel = priority === "urgent" || priority === "high" ? "24 hours" : "24–48 hours";
+    admin.from("notifications").insert({
+      user_id: user.id,
+      type: "system_message",
+      title: "Support Ticket Received",
+      body: `We've received your ticket #${shortId} ("${cleanSubject.slice(0, 60)}"). We'll review it and get back to you within ${slaLabel}.`,
+    }).then();
 
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (err) {

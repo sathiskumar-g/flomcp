@@ -368,26 +368,19 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
   );
 }
 
-function LegalSection({ termsAccepted }: { termsAccepted: boolean }) {
+function LegalSection() {
   return (
     <div>
       <SectionHeader title="Legal" description="Terms and privacy information." />
       <div className="space-y-3 max-w-md">
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 px-4 py-3">
+        <a href="/legal/terms-of-service" target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-4 py-3 hover:bg-muted/40 transition-colors group">
           <div>
             <p className="text-sm font-medium">Terms &amp; Conditions</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {termsAccepted ? "Accepted when you signed up." : "Acceptance not recorded."}
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Accepted when you signed up.</p>
           </div>
-          {termsAccepted ? (
-            <Badge variant="secondary" className="text-xs gap-1 text-green-700 border-green-500/30 bg-green-500/10 flex-shrink-0">
-              <CheckCircle2 className="h-3 w-3" /> Accepted
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs flex-shrink-0">Pending</Badge>
-          )}
-        </div>
+          <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+        </a>
         {[
           { label: "Privacy Policy", desc: "How we handle your data.", href: "/legal/privacy-policy" },
           { label: "Terms of Service", desc: "Rules and conditions of use.", href: "/legal/terms-of-service" },
@@ -628,7 +621,7 @@ export default function SettingsPage() {
   }
 
   const email = user?.email ?? "";
-  const termsAccepted = user?.user_metadata?.terms_accepted === true;
+  const termsAccepted = user?.user_metadata?.tos_accepted === true;
 
   function renderSection() {
     switch (activeSection) {
@@ -655,7 +648,7 @@ export default function SettingsPage() {
       case "subscription":
         return <SubscriptionSection userEmail={email} />;
       case "legal":
-        return <LegalSection termsAccepted={termsAccepted} />;
+        return <LegalSection />;
       case "api":
         return <ApiKeySection />;
       case "signout":

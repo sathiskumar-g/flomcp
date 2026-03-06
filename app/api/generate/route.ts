@@ -197,6 +197,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Credit low-balance warning notifications (fire-and-forget)
+  if (!skipCredits && (deductResult.balanceAfter === 2 || deductResult.balanceAfter === 1)) {
+    const adminClient = createAdminClient();
+    const remaining = deductResult.balanceAfter;
+    adminClient.from("notifications").insert({
+      user_id: user.id,
+      type: "security_alert",
+      title: "Rate Limit Warning",
+      body: `You have ${remaining} generation${remaining === 1 ? "" : "s"} remaining this month. Upgrade to Pro for unlimited generations.`,
+    }).then();
+  }
+
   // Capture deduction amounts for refund inside the stream's catch block
   const creditDeduct = {
     monthlyUsed: deductResult.monthlyUsed,
