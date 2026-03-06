@@ -15,14 +15,19 @@ import { Suspense } from "react";
 function ErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const message = searchParams.get('message') || 'An authentication error occurred';
+  // Support both ?message= (legacy) and ?error= (from callback route)
+  const errorCode = searchParams.get('error');
+  const rawMessage = searchParams.get('message');
+  const message = rawMessage ||
+    (errorCode === 'auth_exchange_failed' ? 'Authentication failed. The link may have expired — please request a new one.' : null) ||
+    'An authentication error occurred';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <AlertCircle className="h-16 w-16 text-destructive" />
+            <AlertCircle className="h-16 w-16 text-[#ff4343]" />
           </div>
           <CardTitle className="text-center">Authentication Error</CardTitle>
           <CardDescription className="text-center">

@@ -93,8 +93,8 @@ export default function VerifyEmailPage() {
           )}
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-md">
-              <AlertCircle className="h-4 w-4" />
+            <div className="flex items-center gap-2 p-3 bg-[#ff4343]/10 border border-[#ff4343]/20 text-[#ff4343] rounded-md">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           )}

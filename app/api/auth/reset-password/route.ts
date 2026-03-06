@@ -53,7 +53,9 @@ export async function POST(request: Request) {
     const { error } = await withRetry(
       async () => {
         const result = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${origin}/auth/reset-password`,
+          // Route through /auth/callback so the code is exchanged and a
+          // recovery session cookie is set before landing on the reset page.
+          redirectTo: `${origin}/auth/callback?next=/auth/reset-password`,
         });
         throwIfRetryable(result.error); // network error? throw → retry
         return result;

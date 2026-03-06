@@ -169,7 +169,7 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
         {loading ? "Joining..." : "Join Early Access List →"}
       </button>
       {error && (
-        <p className="text-sm text-destructive text-center">{error}</p>
+        <p className="text-sm text-[#ff4343] font-medium text-center">{error}</p>
       )}
     </form>
   );

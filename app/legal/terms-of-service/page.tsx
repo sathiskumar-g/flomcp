@@ -71,7 +71,7 @@ export default function TermsOfServicePage() {
             </div>
           </section>
 
-          {/* No Warranty */}}
+          {/* No Warranty */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">4. No Warranty (AS-IS)</h2>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-2">
@@ -233,11 +233,11 @@ export default function TermsOfServicePage() {
             </ul>
           </section>
 
-          {/* Pricing & Free Tier */}}
+          {/* Pricing & Free Tier */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">12. Free Tier &amp; Pricing Changes</h2>
             <p>
-              FlowMCP currently offers a free tier with usage limits. We reserve the right to:
+              FloMCP currently offers a free tier with usage limits. We reserve the right to:
             </p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>Change pricing or introduce paid plans at any time</li>
