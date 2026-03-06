@@ -44,12 +44,21 @@ export const metadata: Metadata = {
     url: "https://flomcp.com",
     siteName: "FloMCP",
     locale: "en_US",
+    images: [
+      {
+        url: "https://flomcp.com/FloMCP-Logo.png",
+        width: 1200,
+        height: 630,
+        alt: "FloMCP — MCP Server Generator",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "FloMCP — MCP Server Generator",
     description: "Generate production-ready MCP servers from plain English. Works with Claude, Copilot, Cursor. 22 security checks on every server.",
     creator: "@flomcp",
+    images: ["https://flomcp.com/FloMCP-Logo.png"],
   },
   robots: {
     index: true,
@@ -135,10 +144,18 @@ export default function RootLayout({
       },
       {
         "@type": "Question",
-        "name": "How long does it take to build an MCP server with FloMCP?",
+        "name": "How long does it take to build MCP online?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "As little as 1 minute with FloMCP, compared to 10+ hours writing one manually. FloMCP handles schemas, error handling, security checks, and README generation automatically."
+          "text": "As little as 1 minute with FloMCP, compared to 10+ hours writing one manually. FloMCP automates every step from schema creation to error handling."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I build MCP for Claude and Copilot?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes — generated servers work with Claude Desktop, GitHub Copilot, Cursor, Windsurf, Cline, and any assistant supporting the MCP standard."
         }
       },
       {
@@ -146,7 +163,31 @@ export default function RootLayout({
         "name": "Are FloMCP servers secure?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes. FloMCP generates secure, OWASP-compliant MCP servers with no SSRF vulnerabilities, proper input validation, zero hardcoded secrets, and bounded execution paths. All code follows MCP security best practices."
+          "text": "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use FloMCP for complex API integrations?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does FloMCP compare to building MCP manually?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Manual MCP development takes 10+ hours across boilerplate, schemas, error handling, testing, and documentation. FloMCP does it in under 2 minutes — with security checks built in."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What makes FloMCP different from just asking Claude or ChatGPT?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "FloMCP is purpose-built for MCP: the generated code follows the MCP specification exactly, includes Zod schemas, passes 22 security checks, and comes with a working README and claude_desktop_config.json — not a generic snippet that still needs hours of debugging."
         }
       }
     ]

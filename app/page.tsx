@@ -429,7 +429,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>The fastest way to build production-ready MCP servers</span>
+            <span>From plain English to running MCP server — in under 5 minutes</span>
           </div>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
@@ -441,7 +441,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Describe what you need in plain English. FloMCP generates a complete, production-ready MCP server — Zod schemas, error handling, security checks, and Claude Desktop config included. No boilerplate. No guessing why tools don&apos;t show up.
+            Describe what you need in plain English. FloMCP writes the TypeScript, wires the schemas, runs 22 security checks — and hands you a download-ready server. No boilerplate. No config guessing.
           </p>
 
           {/* Time Savings Showcase + live server counter */}
@@ -496,7 +496,7 @@ export default function Home() {
               className="text-lg px-8" 
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              See How It Works
+              Watch a 60-Second Demo
             </Button>
           </div>
         </div>
