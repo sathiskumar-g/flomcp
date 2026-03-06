@@ -13,9 +13,7 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error("Application error:", error);
-  }, [error]);
+ 
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-secondary/10 flex flex-col">

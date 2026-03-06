@@ -13,6 +13,7 @@
  */
 
 import { createServerClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 import { withRetry, throwIfRetryable } from "@/lib/retry";
 import { NextResponse } from "next/server";
@@ -80,6 +81,15 @@ export async function POST(request: Request) {
           : "Failed to update password. Please try again.";
       return NextResponse.json({ error: msg }, { status: error.status ?? 400 });
     }
+
+    // Security alert — fire-and-forget
+    const admin = createAdminClient();
+    admin.from("notifications").insert({
+      user_id: user.id,
+      type: "security_alert",
+      title: "Password Changed",
+      body: "Your account password was changed. If this wasn't you, contact support immediately.",
+    }).then();
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

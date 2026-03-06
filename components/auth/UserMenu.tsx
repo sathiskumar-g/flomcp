@@ -50,7 +50,7 @@ export function UserMenu({ user }: UserMenuProps) {
       // Sign out via server-side proxy (clears cookies reliably)
       await fetch("/api/auth/signout", { method: "POST" });
     } catch (error) {
-      console.error('Logout error:', error);
+      
       // Fallback: clear local Supabase state
       try { await supabase.auth.signOut(); } catch {}
     } finally {

@@ -11,6 +11,7 @@
  */
 
 import { createServerClient } from "@/lib/supabase-server";
+import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import type { RateLimitConfig } from "@/lib/rate-limit";
@@ -77,6 +78,17 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: "Failed to update profile." }, { status: 400 });
+    }
+
+    // Fire-and-forget notification — non-critical
+    if (updates.display_name) {
+      const admin = createAdminClient();
+      admin.from("notifications").insert({
+        user_id: user.id,
+        type: "system_message",
+        title: "Display Name Updated",
+        body: `Your display name was changed to "${updates.display_name}".`,
+      }).then();
     }
 
     return NextResponse.json({ success: true });

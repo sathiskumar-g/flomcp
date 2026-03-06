@@ -855,6 +855,14 @@ Run command for users after download:
 
         await recordGeneration(supabase, user.id);
 
+        // Notify user their server is ready — fire-and-forget (non-critical)
+        adminClient.from("notifications").insert({
+          user_id: user.id,
+          type: "generation_complete",
+          title: "MCP Server Ready",
+          body: `Your server "${(serverName || description).slice(0, 60)}" was generated successfully and is ready to download.`,
+        }).then();
+
         send({
           type: "complete",
           id: insertedRow.id,

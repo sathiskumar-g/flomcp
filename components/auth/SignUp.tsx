@@ -106,7 +106,7 @@ export function SignUp() {
       // Success! User must verify email before accessing the platform
       setSuccess(true);
     } catch (err: any) {
-      console.error('Sign up error:', err);
+      
       setError("Cannot connect to the application server. Is the dev server running?");
     } finally {
       setLoading(false);
@@ -140,7 +140,6 @@ export function SignUp() {
 
       if (oauthError) throw oauthError;
     } catch (err: any) {
-      console.error('Google sign up error:', err);
       if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
         setError("Network error — cannot reach Google sign-up. Please check your connection or try email sign-up.");
       } else {

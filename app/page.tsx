@@ -277,7 +277,6 @@ export default function Home() {
         }
       } catch (error) {
         // Network error — silently ignore, show Sign In button
-        console.error('Auth check error:', error);
       }
     };
 
@@ -320,7 +319,6 @@ export default function Home() {
       toast.success("Request sent! We'll be in touch within 24 hours.");
       setIsModalOpen(false);
     } catch (err: any) {
-      console.error('Submission error:', err);
       const msg = err.message || 'Something went wrong. Please try again.';
       setError(msg);
       toast.error(msg);
@@ -730,7 +728,7 @@ export default function Home() {
           <section id="how-it-works" className="mt-12" aria-label="Demo and generated code showcase">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">See FloMCP in Action</h3>
-              <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under a minute — from plain English to working TypeScript code.</p>
+              <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under 5 minutes — from plain English to working TypeScript code.</p>
             </div>
             {/* 16:9 video placeholder — drop a YouTube embed or GIF here */}
             <button type="button" onClick={trackDemoInterest} aria-label="Watch FloMCP demo — sign up to get notified when the tutorial is live" className="relative w-full aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">

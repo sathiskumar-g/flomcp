@@ -75,7 +75,7 @@ function DashboardContent() {
           }
         }
       } catch (err) {
-        console.error("Error loading dashboard data:", err);
+        // silently fail — stats are non-critical, UI stays functional
       } finally {
         setLoadingStats(false);
       }

@@ -83,7 +83,6 @@ export function SignIn() {
       // which triggers TWO sequential middleware runs.
       window.location.href = '/dashboard';
     } catch (err: any) {
-      console.error('Sign in error:', err);
       // This only happens if localhost itself is unreachable (dev server down)
       setError("Cannot connect to the application server. Is the dev server running?");
     } finally {
@@ -109,8 +108,7 @@ export function SignIn() {
 
       if (oauthError) throw oauthError;
     } catch (err: any) {
-      console.error('Google sign in error:', err);
-      if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
+          if (err.name === 'AuthRetryableFetchError' || err.message?.includes('Failed to fetch')) {
         setError("Network error — cannot reach Google sign-in. Please check your connection or try email sign-in.");
       } else {
         setError(err.message || "Failed to sign in with Google. Please try again.");
@@ -146,7 +144,6 @@ export function SignIn() {
         setResetSent(true);
       }
     } catch (err: any) {
-      console.error('Password reset error:', err);
       setError("Cannot connect to the application server. Please try again.");
     } finally {
       setLoading(false);

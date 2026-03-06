@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "your-google-verification-code",
+    google: "PUKnJKBOWInDHczfCXGfnrsNEjZb5-XWHlOPDl2-9UY",
   },
   category: "Technology",
   icons: {

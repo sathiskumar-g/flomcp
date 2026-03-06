@@ -53,7 +53,6 @@ export function ProtectedRoute({
 
         setUser(currentUser);
       } catch (err) {
-        console.error('Auth error:', err);
         if (mounted) {
           router.push('/auth/signin');
         }
