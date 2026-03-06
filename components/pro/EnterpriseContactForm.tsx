@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 interface EnterpriseContactFormProps {
   /** Pre-fill email (e.g. from logged-in user) */
@@ -20,8 +21,15 @@ export function EnterpriseContactForm({ initialEmail = "", onSuccess }: Enterpri
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEntLoading(true);
     setEntError("");
+
+    // Client-side format check before hitting the API
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(entEmail.trim())) {
+      setEntError("Please enter a valid email address.");
+      return;
+    }
+
+    setEntLoading(true);
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
@@ -37,9 +45,12 @@ export function EnterpriseContactForm({ initialEmail = "", onSuccess }: Enterpri
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit");
       setEntSubmitted(true);
+      toast.success("Request received! We'll reach out within 24 hours.");
       onSuccess?.();
     } catch (err: unknown) {
-      setEntError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setEntError(msg);
+      toast.error(msg);
     } finally {
       setEntLoading(false);
     }

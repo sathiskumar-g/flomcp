@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 const PRO_FEATURE_OPTIONS = [
   "Python support",
@@ -26,25 +27,45 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
   const [features, setFeatures] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const toggleFeature = (f: string) =>
     setFeatures((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
+    // Client-side format check before hitting the API
+    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await fetch("/api/submit", {
+      const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, useCase, volume, features, type: "pro_interest" }),
+        body: JSON.stringify({
+          email,
+          interest: "pro_interest",
+          description: useCase,
+          urgency: volume,
+          features,
+        }),
       });
-    } catch {
-      // silent — still show success
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit");
+      setSubmitted(true);
+      toast.success("You're on the list! We'll email you when Pro launches.");
+      onSuccess?.();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
-      setSubmitted(true);
-      onSuccess?.();
     }
   };
 
@@ -147,6 +168,9 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
       >
         {loading ? "Joining..." : "Join Early Access List →"}
       </button>
+      {error && (
+        <p className="text-sm text-destructive text-center">{error}</p>
+      )}
     </form>
   );
 }

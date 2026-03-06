@@ -18,21 +18,7 @@ import { withRetry, throwIfRetryable } from "@/lib/retry";
 import { checkRateLimit, getClientIP, SIGNUP_LIMIT } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
-
-// Disposable email domains — duplicated server-side so it can't be bypassed
-const DISPOSABLE_DOMAINS = new Set([
-  "tempmail.com", "guerrillamail.com", "10minutemail.com",
-  "mailinator.com", "throwaway.email", "maildrop.cc",
-  "temp-mail.org", "getnada.com", "trashmail.com",
-  "yopmail.com", "fakeinbox.com", "mintemail.com",
-  "mohmal.com", "emailondeck.com", "throwawaymail.com",
-  "tempail.com", "discard.email", "guerrillamailblock.com",
-]);
-
-function isDisposableEmail(email: string): boolean {
-  const domain = email.split("@")[1]?.toLowerCase();
-  return DISPOSABLE_DOMAINS.has(domain);
-}
+import { validateEmail } from "@/lib/validate-email";
 
 /** Safe origin for email redirect — never from user-controlled headers */
 function getAppOrigin(): string {
@@ -71,12 +57,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Server-side disposable email check (can't be bypassed)
-    if (isDisposableEmail(email)) {
-      return NextResponse.json(
-        { error: "Disposable email addresses are not allowed. Please use a permanent email." },
-        { status: 400 }
-      );
+    // 3-layer email validation: regex + disposable blocklist + MX record check
+    const emailCheck = await validateEmail(email);
+    if (!emailCheck.valid) {
+      return NextResponse.json({ error: emailCheck.error }, { status: 400 });
     }
 
     const origin = getAppOrigin();

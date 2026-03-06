@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase-server';
-import { sendEmail, getFreelanceRequestEmail } from '@/lib/email';
+import { createAdminClient } from '@/lib/supabase-admin';
+import {
+  sendEmail,
+  getSubmissionEmail,
+  getProInterestEmail,
+} from '@/lib/email';
+import { validateEmail } from '@/lib/validate-email';
 
 export async function POST(request: Request) {
-  const supabase = createServerClient();
+  const supabase = createAdminClient();
   try {
     const body = await request.json();
-    const { email, problem, interest, urgency, description, userAgent } = body;
+    const { email, problem, interest, urgency, description, features, userAgent } = body;
 
     // Validate required fields
     if (!email || !interest) {
@@ -16,10 +21,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Server-side email format validation
-    const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(String(email).toLowerCase().trim())) {
-      return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+    // 3-layer email validation: regex + disposable blocklist + MX record check
+    const emailCheck = await validateEmail(String(email));
+    if (!emailCheck.valid) {
+      return NextResponse.json({ error: emailCheck.error }, { status: 400 });
     }
 
     // Validate interest type whitelist
@@ -55,23 +60,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send email notification to founder@flomcp.com for all submission types
+    // Send email notification → always founder@flomcp.com
     if (process.env.RESEND_API_KEY) {
       try {
         const founderEmail = process.env.FOUNDER_EMAIL || 'founder@flomcp.com';
-
-        const emailHtml = getFreelanceRequestEmail(email, description || '', urgency || 'medium');
+        const featuresStr = Array.isArray(features) ? features.join(', ') : (features || '');
 
         const subjectMap: Record<string, string> = {
           freelance:    '[ENTERPRISE INTEREST] Custom MCP Development Request',
           pro_interest: '[PRO INTEREST] Early Access Signup',
           enterprise:   '[ENTERPRISE INTEREST] Enterprise Enquiry',
         };
-        const subject = subjectMap[interest] ?? '📬 New FloMCP Submission';
+        const subject = subjectMap[interest] ?? '[SUBMISSION] New FloMCP Form Submission';
+
+        let emailHtml: string;
+        if (interest === 'pro_interest') {
+          emailHtml = getProInterestEmail(email, description || '', urgency || '', featuresStr);
+        } else {
+          // freelance and enterprise — same template, subject distinguishes them
+          emailHtml = getSubmissionEmail(subject, email, description || problem || '', urgency || '');
+        }
 
         const result = await sendEmail({ to: founderEmail, subject, html: emailHtml });
         if (result.success) {
-          console.log('✅ Email sent to', founderEmail);
+          console.log(`✅ Notification sent to ${founderEmail}`);
         } else {
           console.error('❌ Email failed:', result.error);
         }

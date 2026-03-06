@@ -1,15 +1,9 @@
 Landing page:
 1. demo video — ⏳ PENDING (manual — record/embed walkthrough video)
+2. update the code base snippets correct.
+2. verification: { google: "your-google-verification-code" } in layout.tsx — ⏳ PENDING (manual — replace with real Search Console code)
+3. "use client" on entire page.tsx — ⏳ PENDING (manual — architectural refactor ~2 hrs)
 
-Remaining 8 points to hit 90/100:
-- Create /public/og-image.png (1200×630) — ⏳ PENDING (manual — Figma/Canva)
-- Split "use client" off the hero into a server component — ⏳ PENDING (manual — ~2 hrs refactor)
-
-GPT Addon:
-24. verification: { google: "your-google-verification-code" } in layout.tsx — ⏳ PENDING (manual — replace with real Search Console code)
-18. No og-image.png in public/ — ⏳ PENDING (manual — create 1200×630 image)
-19. No apple-touch-icon.png — ⏳ PENDING (manual — export 180×180 icon to /public/apple-touch-icon.png)
-20. "use client" on entire page.tsx — ⏳ PENDING (manual — architectural refactor ~2 hrs)
 --------------------------------------------------------------
 
 Product: 

@@ -16,6 +16,7 @@ import { ChevronDown } from "lucide-react";
 import { CODE_FILES } from "@/lib/showcase-files";
 import { ProInterestForm } from "@/components/pro/ProInterestForm";
 import { EnterpriseContactForm } from "@/components/pro/EnterpriseContactForm";
+import { toast } from "sonner";
 
 const FAQ_ITEMS = [
   { q: "How do I generate an MCP server with FloMCP?", a: "Sign up for a free account, describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — schemas, handlers, error handling, and README included. No manual setup required." },
@@ -317,10 +318,13 @@ export default function Home() {
       }
 
       setSubmitted(true);
+      toast.success("Request sent! We'll be in touch within 24 hours.");
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Submission error:', err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      const msg = err.message || 'Something went wrong. Please try again.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -1289,7 +1293,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border/40 mt-20">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center mb-4">
                 <Logo height={38} />
@@ -1309,6 +1313,18 @@ export default function Home() {
                 <li><a href="/auth/signup" className="hover:text-foreground transition-colors">Start Free</a></li>
               </ul>
             </div>
+
+            <div>
+              <h4 className="font-semibold mb-3 text-sm">Support</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="/contact" className="hover:text-foreground transition-colors">Contact Us</a></li>
+                <li>
+                  <a href="mailto:support@flomcp.com" className="hover:text-foreground transition-colors">
+                    support@flomcp.com
+                  </a>
+                </li>
+              </ul>
+            </div>
             
             <div>
               <h4 className="font-semibold mb-3 text-sm">Legal</h4>
@@ -1320,8 +1336,9 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
+          <div className="pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
             <p>© 2026 FloMCP. Built for developers who ship fast.</p>
+            <p>Need help? <a href="mailto:support@flomcp.com" className="text-primary hover:underline font-medium">support@flomcp.com</a></p>
           </div>
         </div>
       </footer>

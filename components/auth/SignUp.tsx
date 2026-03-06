@@ -23,25 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 
-// List of disposable/temporary email domains to block
-// This prevents abuse from users creating fake accounts
-const DISPOSABLE_DOMAINS = [
-  'tempmail.com', 'guerrillamail.com', '10minutemail.com',
-  'mailinator.com', 'throwaway.email', 'maildrop.cc',
-  'temp-mail.org', 'getnada.com', 'trashmail.com',
-  'yopmail.com', 'fakeinbox.com', 'mintemail.com',
-  'mohmal.com', 'emailondeck.com', 'throwawaymail.com',
-  'tempail.com', 'discard.email', 'guerrillamailblock.com',
-];
-
-/**
- * Check if email domain is from a disposable email service
- * Helps prevent spam and fake account creation (cost protection)
- */
-function isDisposableEmail(email: string): boolean {
-  const domain = email.split('@')[1]?.toLowerCase();
-  return DISPOSABLE_DOMAINS.includes(domain);
-}
+/** Basic email format check — full validation (disposable + MX) runs server-side */
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
 export function SignUp() {
   const [email, setEmail] = useState("");
@@ -68,9 +51,9 @@ export function SignUp() {
     setError("");
     setLoading(true);
 
-    // Validation: Check disposable email
-    if (isDisposableEmail(email)) {
-      setError("Disposable email addresses are not allowed. Please use a permanent email.");
+    // Validation: Basic email format (disposable + MX checks run server-side)
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError("Please enter a valid email address.");
       setLoading(false);
       return;
     }

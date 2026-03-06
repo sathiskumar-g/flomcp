@@ -44,20 +44,11 @@ export const metadata: Metadata = {
     url: "https://flomcp.com",
     siteName: "FloMCP",
     locale: "en_US",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "FloMCP - Create MCP Servers Online",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "FloMCP — MCP Server Generator",
     description: "Generate production-ready MCP servers from plain English. Works with Claude, Copilot, Cursor. 22 security checks on every server.",
-    images: ["/og-image.png"],
     creator: "@flomcp",
   },
   robots: {
@@ -80,7 +71,7 @@ export const metadata: Metadata = {
       { url: "/favicon.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.svg",
-    apple: "/FloMCP-Logo.png",
+    apple: [{ url: "/flomcp-apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

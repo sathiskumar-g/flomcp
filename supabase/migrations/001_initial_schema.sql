@@ -222,14 +222,10 @@ UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 -- Policy: Users can delete their own MCP servers
 CREATE POLICY "Users can delete own MCP servers" ON mcp_servers FOR DELETE USING (auth.uid() = user_id);
 -- Policy: Admins can view all MCP servers
+-- Uses JWT claims instead of auth.users (auth.users is not accessible to the authenticated role)
 CREATE POLICY "Admins can view all MCP servers" ON mcp_servers FOR
 SELECT USING (
-        EXISTS (
-            SELECT 1
-            FROM auth.users
-            WHERE auth.users.id = auth.uid()
-                AND auth.users.raw_app_meta_data->>'role' = 'admin'
-        )
+        (auth.jwt()->'app_metadata'->>'role') = 'admin'
     );
 -- ========================================
 -- USER USAGE TABLE POLICIES
@@ -245,14 +241,10 @@ CREATE POLICY "System can insert usage records" ON user_usage FOR
 INSERT WITH CHECK (true);
 -- Service role will handle this
 -- Policy: Admins can view all usage data (for cost monitoring)
+-- Uses JWT claims instead of auth.users (auth.users is not accessible to the authenticated role)
 CREATE POLICY "Admins can view all usage" ON user_usage FOR
 SELECT USING (
-        EXISTS (
-            SELECT 1
-            FROM auth.users
-            WHERE auth.users.id = auth.uid()
-                AND auth.users.raw_app_meta_data->>'role' = 'admin'
-        )
+        (auth.jwt()->'app_metadata'->>'role') = 'admin'
     );
 -- ========================================
 -- SUSPICIOUS ACTIVITY TABLE POLICIES

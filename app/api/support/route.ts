@@ -45,13 +45,6 @@ function getAdminSupportEmail(
   priority: string,
   description: string
 ): string {
-  const priorityColors: Record<string, string> = {
-    low: "#6c757d",
-    medium: "#ffc107",
-    high: "#ff9800",
-    urgent: "#dc3545",
-  };
-
   const priorityLabels: Record<string, string> = {
     low: "🟢 Low",
     medium: "🟡 Medium",
@@ -64,59 +57,38 @@ function getAdminSupportEmail(
     <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #111111; margin: 0; padding: 0; background: #ffffff; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
-          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
-          .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea; }
-          .priority-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-weight: bold; color: white; background: ${priorityColors[priority] ?? "#6c757d"}; }
-          .footer { text-align: center; color: #6c757d; font-size: 12px; margin-top: 30px; }
-          .ticket-id { font-family: monospace; font-size: 13px; background: #e9ecef; padding: 4px 8px; border-radius: 4px; }
+          .header { background: #783ae6; color: #ffffff; padding: 28px 30px; border-radius: 10px 10px 0 0; }
+          .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+          .content { background: #f7f7f7; padding: 28px 30px; border-radius: 0 0 10px 10px; border: 1px solid #e8e8e8; border-top: none; }
+          .info-box { background: #ffffff; padding: 16px 20px; border-radius: 8px; margin: 10px 0; border: 1px solid #e8e8e8; border-left: 4px solid #783ae6; }
+          .info-box p { margin: 0; }
+          .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #888888; margin-bottom: 5px; }
+          .value { font-size: 14px; color: #111111; white-space: pre-wrap; }
+          .ticket-id { font-family: monospace; font-size: 13px; background: #f0ebfd; color: #783ae6; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
+          .priority-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: #783ae6; color: #ffffff; }
+          .action-box { margin-top: 20px; padding: 16px 20px; background: #f0ebfd; border-radius: 8px; border-left: 4px solid #783ae6; font-size: 14px; color: #111111; }
+          .footer { text-align: center; color: #888888; font-size: 12px; margin-top: 20px; }
+          .footer a { color: #783ae6; text-decoration: none; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0; font-size: 22px;">🎫 New Support Ticket</h1>
+            <h1>🎫&nbsp; New Support Ticket</h1>
           </div>
           <div class="content">
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>Ticket ID:</strong></p>
-              <span class="ticket-id">${ticketId}</span>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>📧 User:</strong></p>
-              <p style="margin: 0; color: #667eea;">${userEmail}</p>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>📌 Subject:</strong></p>
-              <p style="margin: 0; font-size: 16px;">${subject}</p>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>🏷️ Category:</strong></p>
-              <p style="margin: 0; text-transform: capitalize;">${category.replace("-", " ")}</p>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 8px 0;"><strong>⚡ Priority:</strong></p>
-              <span class="priority-badge">${priorityLabels[priority] ?? priority}</span>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>📝 Description:</strong></p>
-              <p style="margin: 0; white-space: pre-wrap;">${description}</p>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>⏰ Submitted:</strong></p>
-              <p style="margin: 0;">${new Date().toLocaleString()}</p>
-            </div>
-            <div style="margin-top: 20px; padding: 16px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-              <p style="margin: 0; font-size: 14px; color: #856404;">
-                ⚡ <strong>Action Required:</strong> ${priority === "urgent" ? "Respond within 24 hours!" : "Reply within 24-48 hours."}
-              </p>
-            </div>
+            <div class="info-box"><p class="label">Ticket ID</p><span class="ticket-id">${ticketId}</span></div>
+            <div class="info-box"><p class="label">User</p><p class="value">${userEmail}</p></div>
+            <div class="info-box"><p class="label">Subject</p><p class="value">${subject}</p></div>
+            <div class="info-box"><p class="label">Category</p><p class="value" style="text-transform:capitalize">${category.replace("-", " ")}</p></div>
+            <div class="info-box"><p class="label">Priority</p><span class="priority-badge">${priorityLabels[priority] ?? priority}</span></div>
+            <div class="info-box"><p class="label">Description</p><p class="value">${description}</p></div>
+            <div class="info-box"><p class="label">Submitted at</p><p class="value">${new Date().toLocaleString()}</p></div>
+            <div class="action-box">⚡ <strong>Action required:</strong> ${priority === "urgent" ? "Respond within 24 hours!" : "Reply within 24–48 hours."}</div>
           </div>
-          <div class="footer">
-            <p>FloMCP Support System</p>
-          </div>
+          <div class="footer"><p>FloMCP &middot; <a href="https://flomcp.com">flomcp.com</a></p></div>
         </div>
       </body>
     </html>
@@ -133,43 +105,34 @@ function getUserConfirmationEmail(
     <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #111111; margin: 0; padding: 0; background: #ffffff; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
-          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
-          .info-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #667eea; }
-          .ticket-id { font-family: monospace; font-size: 13px; background: #e9ecef; padding: 4px 8px; border-radius: 4px; }
-          .success-box { background: #e8f5e9; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; margin-top: 20px; }
-          .footer { text-align: center; color: #6c757d; font-size: 12px; margin-top: 30px; }
+          .header { background: #783ae6; color: #ffffff; padding: 28px 30px; border-radius: 10px 10px 0 0; }
+          .header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+          .content { background: #f7f7f7; padding: 28px 30px; border-radius: 0 0 10px 10px; border: 1px solid #e8e8e8; border-top: none; }
+          .info-box { background: #ffffff; padding: 16px 20px; border-radius: 8px; margin: 10px 0; border: 1px solid #e8e8e8; border-left: 4px solid #783ae6; }
+          .info-box p { margin: 0; }
+          .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #888888; margin-bottom: 5px; }
+          .value { font-size: 14px; color: #111111; }
+          .ticket-id { font-family: monospace; font-size: 13px; background: #f0ebfd; color: #783ae6; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
+          .action-box { margin-top: 20px; padding: 16px 20px; background: #f0ebfd; border-radius: 8px; border-left: 4px solid #783ae6; font-size: 14px; color: #111111; }
+          .footer { text-align: center; color: #888888; font-size: 12px; margin-top: 20px; }
+          .footer a { color: #783ae6; text-decoration: none; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0; font-size: 22px;">✅ Support Ticket Received</h1>
+            <h1>✅&nbsp; Support Ticket Received</h1>
           </div>
           <div class="content">
-            <p style="font-size: 16px;">Thanks for reaching out! We've received your support request and will get back to you soon.</p>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>Ticket ID:</strong></p>
-              <span class="ticket-id">${ticketId}</span>
-            </div>
-            <div class="info-box">
-              <p style="margin: 0 0 6px 0;"><strong>📌 Subject:</strong></p>
-              <p style="margin: 0;">${subject}</p>
-            </div>
-            <div class="success-box">
-              <p style="margin: 0; font-size: 14px; color: #2e7d32;">
-                🕐 <strong>Expected response time:</strong> ${priority === "urgent" || priority === "high" ? "Within 24 hours" : "Within 24-48 hours"}
-              </p>
-            </div>
-            <p style="margin-top: 20px; font-size: 14px; color: #6c757d;">
-              You can view your ticket status anytime in the <strong>Support</strong> section of your dashboard.
-            </p>
+            <p style="font-size: 15px; color: #111111;">Thanks for reaching out! We've received your request and will get back to you soon.</p>
+            <div class="info-box"><p class="label">Ticket ID</p><span class="ticket-id">${ticketId}</span></div>
+            <div class="info-box"><p class="label">Subject</p><p class="value">${subject}</p></div>
+            <div class="action-box">🕐 <strong>Expected response:</strong> ${priority === "urgent" || priority === "high" ? "Within 24 hours" : "Within 24–48 hours"}</div>
+            <p style="margin-top: 20px; font-size: 14px; color: #888888;">You can view your ticket status in the <strong>Support</strong> section of your dashboard.</p>
           </div>
-          <div class="footer">
-            <p>FloMCP — Build MCP Servers in Minutes</p>
-          </div>
+          <div class="footer"><p>FloMCP &middot; <a href="https://flomcp.com">flomcp.com</a></p></div>
         </div>
       </body>
     </html>
