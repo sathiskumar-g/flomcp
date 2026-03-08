@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/Logo";
 import { SignIn } from "@/components/auth/SignIn";
 
@@ -14,7 +15,9 @@ export default function SignInPage() {
         <Link href="/" className="flex items-center justify-center mb-8 hover:opacity-80 transition-opacity">
           <Logo height={36} />
         </Link>
-        <SignIn />
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-lg bg-muted" />}>
+          <SignIn />
+        </Suspense>
       </div>
     </div>
   );

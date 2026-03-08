@@ -25,10 +25,12 @@ const PRO_CREDIT_FEATURES = [
   "Half unused credits roll over (max 75)",
   "Everything in Free",
   "Priority generation queue",
-  "MCP Assistant \u2014 security audit",
+  "Higher rate limits — 50 generations/day",
+  "MCP Assistant — security audit",
+  "Personal API key — programmatic access",
   "Credit top-up packs available",
-  "Team workspaces (up to 3 members)",
-  "Email support \u2014 48h response",
+  "Team workspaces (up to 5 members)",
+  "Email support — 24h response",
   "Early access to new features",
 ];
 
@@ -57,7 +59,7 @@ const FAQ = [
   },
   {
     q: "Is there a free trial for Pro?",
-    a: "The Free plan gives you 5 credits one-time, no card required. You can try every feature before deciding to upgrade to Pro at $29/mo.",
+    a: "The Free plan gives you 5 credits one-time, no card required. You can try every feature before deciding to upgrade to Pro at $19/mo.",
   },
   {
     q: "What payment methods do you accept?",
@@ -108,6 +110,37 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* C11 — Founding Member Banner */}
+        <div
+          className="mb-8 w-fit mx-auto"
+          style={{ padding: "1px", borderRadius: "0.75rem", background: "linear-gradient(135deg, #a06af0 0%, #783ae6 100%)" }}
+        >
+          <div className="rounded-[11px] bg-background px-5 py-4 flex items-start gap-3">
+            <div
+              className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(120,58,230,0.12) 100%)", border: "1px solid rgba(120,58,230,0.25)" }}
+            >
+              <Zap className="h-4 w-4" style={{ color: "#783ae6" }} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-foreground">
+                  Founding member pricing - $19/mo, locked forever.
+                </span>
+                <span className="relative inline-flex items-center">
+                  <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(120,58,230,0.3)" }} />
+                  <span className="relative text-xs px-2 py-0.5 rounded-full font-semibold text-white" style={{ background: "#783ae6" }}>
+                    49 spots left
+                  </span>
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Regular price $29/mo after April 29. First 50 members only.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Plan cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {/* Free */}
@@ -150,21 +183,24 @@ export default function PricingPage() {
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
                 <CardTitle className="text-2xl">Pro</CardTitle>
-                <Badge variant="outline">Early Access</Badge>
+                <Badge className="gap-1 font-semibold" style={{ background: "rgba(34,197,94,0.1)", color: "#16a34a", borderColor: "rgba(34,197,94,0.6)" }}>
+                  <Crown className="h-3 w-3" />Founding Member
+                </Badge>
               </div>
-              <div className="mt-2">
-                <span className="text-4xl font-bold">$29</span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-4xl font-bold">$19</span>
                 <span className="text-muted-foreground">/month</span>
+                <span className="text-sm text-muted-foreground line-through">$29</span>
               </div>
               <CardDescription className="mt-2 text-base">
-                For developers who ship MCP servers regularly.
+                For developers who ship MCP servers regularly. Price locked forever for first 50 members.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Link href="/#pricing">
+              <Link href="/auth/signup">
                 <Button className="w-full mb-6" size="lg">
                   <Zap className="mr-2 h-4 w-4" />
-                  Get Pro &mdash; $29/mo
+                  Get Early Access — $19/mo
                 </Button>
               </Link>
               <div className="space-y-2">
@@ -215,20 +251,20 @@ export default function PricingPage() {
         <div className="mb-16 rounded-xl border border-border/60 bg-muted/20 p-6">
           <div className="flex flex-col items-center gap-2 mb-5 text-center">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Credit Top-Up Packs</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3 w-3" /> Pro</span>
+              <h2 className="text-2xl font-semibold">Credit Top-Up Packs</h2>
+              <span className="text-base px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3.5 w-3.5" /> Pro</span>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-background border border-border/60 text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 text-base px-3 py-1 rounded-full bg-background border border-border/60 text-muted-foreground">
               🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 max-w-xl mx-auto">
             {CREDIT_PACKS.map((pack) => (
-              <div key={pack.name} className="rounded-lg border border-border/60 bg-background px-4 py-4 text-center">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
-                <p className="text-2xl font-bold">{pack.credits}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">credits</p>
-                <p className="text-sm font-semibold text-primary mt-2">{pack.price}</p>
+              <div key={pack.name} className="rounded-lg border border-border/60 bg-background px-4 py-5 text-center">
+                <p className="text-center text-base text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
+                <p className="text-center text-3xl font-bold">{pack.credits}</p>
+                <p className="text-center text-base text-muted-foreground mt-0.5">credits</p>
+                <p className="text-center text-lg font-semibold text-primary mt-2">{pack.price}</p>
               </div>
             ))}
           </div>

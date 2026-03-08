@@ -49,7 +49,7 @@ function writePrompts(prompts: SavedPrompt[], userId: string): void {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useSavedPrompts(userId: string) {
+export function useSavedPrompts(userId: string = "") {
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
 
   // Re-hydrate from localStorage whenever the userId becomes available

@@ -755,18 +755,17 @@ Run command for users after download:
           try { controller.enqueue(new TextEncoder().encode(": keepalive\n\n")); } catch { /* stream closed */ }
         }, 8000);
 
-        // Extended output beta – raises the per-request output cap to 16 000 tokens
-        let message: Awaited<ReturnType<typeof anthropic.beta.messages.create>>;
+        // Sonnet 4.6 supports 64K output tokens natively – no beta header needed
+        let message: Awaited<ReturnType<typeof anthropic.messages.create>>;
         try {
           message = await Promise.race([
-            anthropic.beta.messages.create(
+            anthropic.messages.create(
               {
-                model: "claude-sonnet-4-5",
+                model: "claude-sonnet-4-6",
                 max_tokens: 16000,
                 temperature: 0.3,
                 system: SYSTEM_PROMPT,
                 messages: [{ role: "user", content: USER_MESSAGE }],
-                betas: ["output-128k-2025-02-19"],
               }
             ),
             timeoutPromise,

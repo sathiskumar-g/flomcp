@@ -212,13 +212,48 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
           </CardContent>
         </Card>
 
+        {/* Founding Member Banner */}
+        <div
+          className="w-fit mx-auto"
+          style={{ padding: "1px", borderRadius: "0.75rem", background: "linear-gradient(135deg, #a06af0 0%, #783ae6 100%)" }}
+        >
+          <div className="rounded-[11px] bg-background px-4 py-3 flex items-start gap-3">
+            <div
+              className="flex-shrink-0 mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(120,58,230,0.12) 100%)", border: "1px solid rgba(120,58,230,0.25)" }}
+            >
+              <Zap className="h-3.5 w-3.5" style={{ color: "#783ae6" }} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm text-foreground">
+                  Founding member pricing &mdash; $19/mo, locked forever.
+                </span>
+                <span className="relative inline-flex items-center">
+                  <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(120,58,230,0.3)" }} />
+                  <span className="relative text-xs px-2 py-0.5 rounded-full font-semibold text-white" style={{ background: "#783ae6" }}>
+                    50 spots
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Regular price $29/mo after April 29.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Upgrade to Pro */}
         <Card className="border-2 border-primary/30 bg-primary/5">
           <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Crown className="h-4 w-4 text-primary" />
               <CardTitle className="text-base">Upgrade to Pro</CardTitle>
-              <Badge className="text-xs">$29/mo</Badge>
+              <span
+                className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold"
+                style={{ background: "rgba(34,197,94,0.1)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.6)" }}
+              ><Crown className="h-3 w-3" />$19/mo founding</span>
+              <span className="text-xs text-muted-foreground line-through">$29</span>
             </div>
             <CardDescription className="text-sm">
               Pro gives you 50 credits/month with rollover, priority queue, MCP Assistant security audit, team workspaces, and email support.
@@ -229,10 +264,12 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
               {[
                 "50 credits/month (half unused roll over)",
                 "Priority AI generation queue (faster)",
+                "Higher rate limits — 50 generations/day",
                 "MCP Assistant — security audit",
+                "Personal API key — programmatic access",
                 "Credit top-up packs available",
-                "Team workspaces (up to 3 members)",
-                "Email support — 48h response",
+                "Team workspaces (up to 5 members)",
+                "Email support — 24h response",
                 "Early access to new features",
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2">
@@ -242,16 +279,16 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
             </ul>
             <Button className="w-full gap-2" onClick={() => setProModalOpen(true)}>
               <Crown className="h-4 w-4" />
-              Get Pro — $29/mo
+              Get Early Access — $19/mo
             </Button>
 
             {/* Early access modal */}
             <Dialog open={proModalOpen} onOpenChange={setProModalOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Get early access to Pro</DialogTitle>
+                  <DialogTitle>Get Early Access — $19/mo</DialogTitle>
                   <DialogDescription>
-                    Early access users get 30 days free + dedicated onboarding.
+                    Reserved for our first 50 founding members. Price locked at $19/mo forever.
                   </DialogDescription>
                 </DialogHeader>
                 <ProInterestForm
@@ -287,9 +324,9 @@ function SubscriptionSection({ userEmail }: { userEmail?: string }) {
               ] as const).map((pack) => (
                 <label key={pack.credits} className="relative flex flex-col items-center rounded-lg border border-border/60 bg-muted/30 px-3 py-3 text-center cursor-not-allowed opacity-50">
                   <input type="radio" name="credit-pack" disabled className="absolute top-2 right-2 h-3.5 w-3.5 accent-primary" />
-                  <p className="text-xl font-bold">{pack.credits}</p>
-                  <p className="text-xs text-muted-foreground">credits</p>
-                  <p className="text-sm font-semibold text-primary mt-1">{pack.price}</p>
+                  <p className="w-full text-center text-xl font-bold">{pack.credits}</p>
+                  <p className="w-full text-center text-xs text-muted-foreground">credits</p>
+                  <p className="w-full text-center text-sm font-semibold text-primary mt-1">{pack.price}</p>
                 </label>
               ))}
             </div>

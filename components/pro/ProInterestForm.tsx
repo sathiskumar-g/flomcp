@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 
 const PRO_FEATURE_OPTIONS = [
@@ -83,6 +83,16 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Founding member grateful tag */}
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 rounded-lg"
+        style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.35)" }}
+      >
+        <PartyPopper className="h-4 w-4 flex-shrink-0" style={{ color: "#16a34a" }} />
+        <span className="text-sm font-medium" style={{ color: "#16a34a" }}>
+          You&apos;re claiming founding member pricing - $19/mo, locked forever.
+        </span>
+      </div>
       {/* Email */}
       <div className="space-y-1.5">
         <label htmlFor="pro-email" className="text-sm font-medium">
@@ -166,7 +176,7 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
         disabled={loading || !email}
         className="w-full py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors"
       >
-        {loading ? "Joining..." : "Join Early Access List →"}
+        {loading ? "Joining..." : "Get Early Access — $19/mo →"}
       </button>
       {error && (
         <p className="text-sm text-[#ff4343] font-medium text-center">{error}</p>

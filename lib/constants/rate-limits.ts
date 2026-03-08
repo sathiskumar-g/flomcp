@@ -157,8 +157,8 @@ export const TIER_PRICING = {
   },
   
   pro: {
-    price: 29,
-    priceMonthly: 29,
+    price: 19,
+    priceMonthly: 19,
     generations: 'Unlimited',
     features: [
       'Unlimited MCP generations',

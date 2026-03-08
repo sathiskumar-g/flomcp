@@ -43,10 +43,11 @@ const PRO_CREDIT_FEATURES = [
   "Half unused credits roll over (max 75)",
   "Everything in Free",
   "Priority generation queue",
+  "Higher rate limits — 50 generations/day",
   "MCP Assistant — security audit",
   "Credit top-up packs available",
-  "Team workspaces (up to 3 members)",
-  "Email support — 48h response",
+  "Team workspaces (up to 5 members)",
+  "Email support — 24h response",
   "Early access to new features",
 ];
 
@@ -88,8 +89,8 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
       <div ref={containerRef} className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
-            <h2 id="pro-modal-title" className="text-xl font-bold">Get early access to Pro</h2>
-            <p className="text-sm text-muted-foreground mt-1">Early access users get 30 days free + dedicated onboarding.</p>
+            <h2 id="pro-modal-title" className="text-xl font-bold">Get Early Access — $19/mo</h2>
+            <p className="text-sm text-muted-foreground mt-1">Reserved for our first 50 founding members. Price locked at $19/mo forever.</p>
           </div>
           <button onClick={onClose} aria-label="Close early access form" className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
             <X className="h-5 w-5" aria-hidden="true" />
@@ -371,7 +372,7 @@ export default function Home() {
             {/* Always-visible nav links */}
             <button
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              aria-label="Jump to demo section"
+              aria-label="Jump to code showcase"
               className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
             >
               Demo
@@ -494,7 +495,7 @@ export default function Home() {
               className="text-lg px-8" 
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              Watch a 60-Second Demo
+              See Generated Code
             </Button>
           </div>
         </div>
@@ -724,13 +725,13 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Video / Tutorial Slot */}
-          <section id="how-it-works" className="mt-12" aria-label="Demo and generated code showcase">
+          {/* Video / Tutorial Slot — hidden, kept for future use */}
+          {false && (
+          <section className="mt-12" aria-label="Demo video">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">See FloMCP in Action</h3>
               <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under 5 minutes — from plain English to working TypeScript code.</p>
             </div>
-            {/* 16:9 video placeholder — drop a YouTube embed or GIF here */}
             <button type="button" onClick={trackDemoInterest} aria-label="Watch FloMCP demo — sign up to get notified when the tutorial is live" className="relative w-full aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-primary ml-0.5" aria-hidden="true">
@@ -743,14 +744,15 @@ export default function Home() {
               </div>
             </button>
           </section>
+          )}
 
           {/* Generated Code Showcase — read-only output preview */}
-          <div className="mt-10">
+          <div id="how-it-works" className="mt-10">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">This is What FloMCP Generates</h3>
               <p className="text-sm text-muted-foreground">
-                Real TypeScript MCP server code — 5 files, production-ready, right out of the box.
-                Browse the output below.
+                A real MCP server — regex-lab — built with FloMCP.
+                4 tools, ReDoS protection, 30 battle-tested patterns. Browse the code below.
               </p>
             </div>
             <CodeEditorShowcase />
@@ -1171,6 +1173,37 @@ export default function Home() {
             <p className="text-muted-foreground text-lg">Pay for generations, not subscriptions you won&apos;t use.</p>
           </div>
 
+          {/* Founding Member Banner */}
+          <div
+            className="mb-8 w-fit mx-auto"
+            style={{ padding: "1px", borderRadius: "0.75rem", background: "linear-gradient(135deg, #a06af0 0%, #783ae6 100%)" }}
+          >
+            <div className="rounded-[11px] bg-background px-5 py-4 flex items-start gap-3">
+              <div
+                className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(120,58,230,0.12) 100%)", border: "1px solid rgba(120,58,230,0.25)" }}
+              >
+                <Zap className="h-4 w-4" style={{ color: "#783ae6" }} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-foreground">
+                    Founding member pricing &mdash; $19/mo, locked forever.
+                  </span>
+                  <span className="relative inline-flex items-center">
+                    <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(120,58,230,0.3)" }} />
+                    <span className="relative text-xs px-2 py-0.5 rounded-full font-semibold text-white" style={{ background: "#783ae6" }}>
+                      49 spots left
+                    </span>
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Regular price $29/mo after April 29. First 50 members only.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Plan cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Free */}
@@ -1198,9 +1231,18 @@ export default function Home() {
                 <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">Most Popular</span>
               </div>
               <CardHeader>
-                <CardTitle className="text-xl">Pro</CardTitle>
-                <div className="text-3xl font-bold mt-2">$29<span className="text-base font-normal text-muted-foreground">/mo</span></div>
-                <CardDescription>For developers who ship regularly</CardDescription>
+                <div className="flex items-center gap-2 mb-1">
+                  <CardTitle className="text-xl">Pro</CardTitle>
+                  <span
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold"
+                    style={{ background: "rgba(34,197,94,0.1)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.6)" }}
+                  ><Crown className="h-3 w-3" />Founding Member</span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <div className="text-3xl font-bold">$19<span className="text-base font-normal text-muted-foreground">/mo</span></div>
+                  <div className="text-base text-muted-foreground line-through">$29</div>
+                </div>
+                <CardDescription>For developers who ship regularly &mdash; price locked forever for first 50 members</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {PRO_CREDIT_FEATURES.map((f) => (
@@ -1210,7 +1252,7 @@ export default function Home() {
                 ))}
                 <Button className="w-full mt-4 gap-2" onClick={() => setProModalOpen(true)}>
                   <Crown className="h-4 w-4" />
-                  Get Pro — $29/mo
+                  Get Early Access — $19/mo
                 </Button>
               </CardContent>
             </Card>
@@ -1246,20 +1288,20 @@ export default function Home() {
           <div className="mt-12">
             <div className="flex flex-col items-center gap-2 mb-4 text-center">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold">Credit Top-Up Packs</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3 w-3" /> Pro</span>
+                <h3 className="text-xl font-semibold">Credit Top-Up Packs</h3>
+                <span className="text-sm px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3.5 w-3.5" /> Pro</span>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-muted border border-border/60 text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full bg-muted border border-border/60 text-muted-foreground">
                 🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto">
               {CREDIT_PACKS.map((pack) => (
-                <div key={pack.name} className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-center">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
-                  <p className="text-2xl font-bold">{pack.credits}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">credits</p>
-                  <p className="text-sm font-semibold text-primary mt-2">{pack.price}</p>
+                <div key={pack.name} className="rounded-lg border border-border/60 bg-muted/20 px-4 py-4 text-center">
+                  <p className="text-center text-sm text-muted-foreground font-medium uppercase tracking-wide mb-1">{pack.name}</p>
+                  <p className="text-center text-3xl font-bold">{pack.credits}</p>
+                  <p className="text-center text-sm text-muted-foreground mt-0.5">credits</p>
+                  <p className="text-center text-lg font-semibold text-primary mt-2">{pack.price}</p>
                 </div>
               ))}
             </div>

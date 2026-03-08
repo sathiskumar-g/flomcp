@@ -59,7 +59,7 @@ function writeDrafts(drafts: SavedDraft[], userId: string): void {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useDrafts(userId: string) {
+export function useDrafts(userId: string = "") {
   const [drafts, setDrafts] = useState<SavedDraft[]>([]);
 
   // Re-hydrate from localStorage whenever the userId becomes available

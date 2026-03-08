@@ -2,128 +2,143 @@ export const CODE_FILES: { name: string; lang: string; content: string }[] = [
   {
     name: "src/index.ts",
     lang: "typescript",
-    content: `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+    content: `#!/usr/bin/env node
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerWeatherTools } from "./tools/weather.js";
+import { z } from "zod";
 
-const server = new McpServer({
-  name: "weather-mcp-server",
-  version: "1.0.0",
-});
+const server = new McpServer(
+  { name: "regex-lab", version: "1.0.0" },
+  { capabilities: { tools: {}, prompts: {}, resources: {} } }
+);
 
-registerWeatherTools(server);
+// ── ReDoS protection ────────────────────────────────────────────────────────
+function isLikelyReDoS(pattern: string): boolean {
+  if (/\\([^)]*[+*][^)]*\\)[+*]/.test(pattern)) return true;
+  if (/\\([^)]*\\|[^)]*\\)[+*]/.test(pattern)) return true;
+  return false;
+}
+
+// ── Tool: test_regex ─────────────────────────────────────────────────────────
+server.tool(
+  "test_regex",
+  "Test a regular expression pattern against text and extract all matches, capture groups, and named groups",
+  {
+    pattern: z.string().trim().min(1).max(2000).describe("Regular expression pattern"),
+    text: z.string().max(10_000).describe("Input text to test against"),
+    flags: z.string().trim().regex(/^[gimsuvyd]*$/).optional().default("").describe("Regex flags (g, i, m, s, u)"),
+  },
+  async ({ pattern, text, flags }) => {
+    if (isLikelyReDoS(pattern)) {
+      return { content: [{ type: "text" as const, text: "Pattern rejected: ReDoS risk detected." }], isError: true };
+    }
+    try {
+      if (flags.includes("g") || flags.includes("y")) {
+        const all = [...text.matchAll(new RegExp(pattern, flags))];
+        return { content: [{ type: "text" as const, text: JSON.stringify({ matched: all.length > 0, totalMatches: all.length, matches: all.map(m => ({ fullMatch: m[0], index: m.index, captures: m.slice(1) })) }, null, 2) }] };
+      }
+      const m = new RegExp(pattern, flags).exec(text);
+      if (!m) return { content: [{ type: "text" as const, text: JSON.stringify({ matched: false, pattern, text }) }] };
+      return { content: [{ type: "text" as const, text: JSON.stringify({ matched: true, fullMatch: m[0], index: m.index, captures: m.slice(1), namedGroups: m.groups ?? null }, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text" as const, text: e instanceof Error ? e.message : "Regex error" }], isError: true };
+    }
+  }
+);
+
+// ── Tool: explain_regex ───────────────────────────────────────────────────────
+server.tool(
+  "explain_regex",
+  "Get a human-readable explanation of what a regular expression pattern does",
+  { pattern: z.string().trim().min(1).max(1000).describe("Pattern to explain") },
+  async ({ pattern }) => {
+    try {
+      new RegExp(pattern);
+      const parts: string[] = [];
+      if (pattern.includes("^")) parts.push("^ = Start of string");
+      if (pattern.includes("$")) parts.push("$ = End of string");
+      if (pattern.includes("\\d")) parts.push("\\d = Any digit (0–9)");
+      if (pattern.includes("\\w")) parts.push("\\w = Word character (a-z, A-Z, 0-9, _)");
+      if (pattern.includes("\\s")) parts.push("\\s = Whitespace character");
+      if (pattern.includes("*")) parts.push("* = Zero or more times");
+      if (pattern.includes("+")) parts.push("+ = One or more times");
+      if (pattern.includes("?")) parts.push("? = Optional (zero or one)");
+      if (pattern.includes("(")) parts.push("(...) = Capturing group");
+      if (pattern.includes("(?:")) parts.push("(?:...) = Non-capturing group");
+      if (pattern.includes("(?=")) parts.push("(?=...) = Positive lookahead");
+      if (pattern.includes("(?")) parts.push("(?!...) = Negative lookahead");
+      if (pattern.includes("[")) parts.push("[...] = Character class");
+      if (pattern.includes("|")) parts.push("| = Alternation (OR)");
+      return { content: [{ type: "text" as const, text: JSON.stringify({ pattern, components: parts.length ? parts : ["Literal characters only"] }, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text" as const, text: e instanceof Error ? e.message : "Invalid pattern" }], isError: true };
+    }
+  }
+);
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Weather MCP server running on stdio");
 }
-
 main().catch(console.error);`,
-  },
-  {
-    name: "src/tools/weather.ts",
-    lang: "typescript",
-    content: `import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { GetCurrentWeatherSchema, GetForecastSchema } from "../schemas/weather.js";
-import { fetchCurrentWeather, fetchForecast } from "../api/weather.js";
-
-export function registerWeatherTools(server: McpServer) {
-  server.tool(
-    "get_current_weather",
-    "Get the current weather for a city or coordinates.",
-    GetCurrentWeatherSchema.shape,
-    async ({ location, units }) => {
-      const data = await fetchCurrentWeather(location, units ?? "metric");
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    }
-  );
-
-  server.tool(
-    "get_forecast",
-    "Get a 5-day weather forecast for a location.",
-    GetForecastSchema.shape,
-    async ({ location, days, units }) => {
-      const forecast = await fetchForecast(location, days ?? 5, units ?? "metric");
-      return {
-        content: [{ type: "text", text: JSON.stringify(forecast, null, 2) }],
-      };
-    }
-  );
-}`,
-  },
-  {
-    name: "src/schemas/weather.ts",
-    lang: "typescript",
-    content: `import { z } from "zod";
-
-export const GetCurrentWeatherSchema = z.object({
-  location: z
-    .string()
-    .min(1)
-    .max(200)
-    .describe("City name or 'lat,lon' coordinates, e.g. 'London' or '51.5,-0.1'"),
-  units: z
-    .enum(["metric", "imperial", "standard"])
-    .optional()
-    .describe("Unit system — metric (°C), imperial (°F), or standard (K)"),
-});
-
-export const GetForecastSchema = z.object({
-  location: z
-    .string()
-    .min(1)
-    .max(200)
-    .describe("City name or 'lat,lon' coordinates"),
-  days: z
-    .number()
-    .int()
-    .min(1)
-    .max(16)
-    .optional()
-    .describe("Number of days to forecast (1–16, default 5)"),
-  units: z
-    .enum(["metric", "imperial", "standard"])
-    .optional()
-    .describe("Unit system"),
-});
-
-export type GetCurrentWeatherInput = z.infer<typeof GetCurrentWeatherSchema>;
-export type GetForecastInput = z.infer<typeof GetForecastSchema>;`,
   },
   {
     name: "package.json",
     lang: "json",
     content: `{
-  "name": "weather-mcp-server",
+  "name": "regex-lab",
   "version": "1.0.0",
   "type": "module",
-  "description": "MCP server for real-time weather data — generated by FloMCP",
+  "description": "MCP server for regex testing, explanation, and pattern library — generated by FloMCP",
   "main": "dist/index.js",
+  "bin": { "regex-lab": "dist/index.js" },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "zod": "^3.22.4"
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "tsx": "^4.7.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.8.2",
+    "tsx": "^4.19.3",
+    "@types/node": "^22.0.0",
+    "vitest": "^3.1.1"
   }
+}`,
+  },
+  {
+    name: "tsconfig.json",
+    lang: "json",
+    content: `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
 }`,
   },
   {
     name: "README.md",
     lang: "markdown",
-    content: `# Weather MCP Server
+    content: `# regex-lab MCP Server
 
 Generated by FloMCP — production-ready MCP server.
+
+Test, explain, and retrieve battle-tested regex patterns directly in Claude Desktop, Cursor, or any MCP-compatible AI assistant.
 
 ## Setup
 
@@ -134,17 +149,14 @@ npm run build
 
 ## Configuration
 
-Add to your Claude Desktop \`claude_desktop_config.json\`:
+Add to your \`claude_desktop_config.json\`:
 
 \`\`\`json
 {
   "mcpServers": {
-    "weather": {
+    "regex-lab": {
       "command": "node",
-      "args": ["/absolute/path/to/dist/index.js"],
-      "env": {
-        "OPENWEATHER_API_KEY": "your_api_key_here"
-      }
+      "args": ["/absolute/path/to/dist/index.js"]
     }
   }
 }
@@ -152,13 +164,37 @@ Add to your Claude Desktop \`claude_desktop_config.json\`:
 
 ## Available Tools
 
-- **get_current_weather** — Current weather for any city or coordinates
-- **get_forecast** — 5-day forecast with configurable units
+- **test_regex** — Test a pattern against text, extract all matches and capture groups
+- **explain_regex** — Break down what each part of a pattern does
+- **get_common_pattern** — Retrieve battle-tested patterns: email, uuid, ipv4, url, jwt, semver, and 24 more
+- **find_named_pattern** — Search the pattern library by keyword
 
 ## Security
 
-- Input validated with Zod schemas
-- No hardcoded secrets — all config via environment variables
-- SSRF-safe: only calls the OpenWeatherMap API domain`,
+- ReDoS protection — nested quantifier patterns rejected before execution
+- Input validated with Zod schemas (pattern max 2000 chars, text max 10,000 chars)
+- Errors sanitised — no file paths, IPs, or secrets in error output
+- No hardcoded secrets — no external API calls, fully offline`,
+  },
+  {
+    name: ".vscode/mcp.json",
+    lang: "json",
+    content: `// Plug regex-lab into VS Code (or Cursor) in one step.
+// FloMCP auto-registers all 4 tools — no extra config needed.
+{
+  "servers": {
+    "regex-lab": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "src/index.ts"]
+    }
+  }
+}
+
+// 4 tools, live immediately after saving this file:
+//   test_regex          — run a pattern, get every match + capture group
+//   explain_regex       — break down each token in plain English
+//   get_common_pattern  — pull battle-tested patterns (email, uuid, jwt, …)
+//   find_named_pattern  — fuzzy-search the built-in library by keyword`,
   },
 ];
