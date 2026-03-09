@@ -968,6 +968,90 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Anti-Objection: Why Not Just Prompt an AI? */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 mb-4">
+              <Sparkles className="h-3.5 w-3.5" />
+              Common question
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              &ldquo;Why not just prompt an AI to write the MCP server?&rdquo;
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Great question. You can — and you&apos;ll spend the next 4 hours debugging why the tools don&apos;t appear.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* General AI column */}
+            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-7 h-7 rounded-full bg-red-500/15 flex items-center justify-center text-base">✦</div>
+                <span className="font-semibold text-base">Any general-purpose AI</span>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  ["Doesn't know the MCP spec deeply", "Generic TypeScript that looks right but breaks at runtime"],
+                  ["No Zod schemas", "Input validation missing — your server crashes on bad data"],
+                  ["No security checks", "Hardcoded credentials, SSRF vulnerabilities, injection risks"],
+                  ["No README or config file", "You still have to write the claude_desktop_config.json yourself"],
+                  ["Trial and error debugging", "\"Why isn't my tool showing up?\" — 2 hours of restarts"],
+                ].map(([title, detail]) => (
+                  <li key={title} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 text-red-500 flex-shrink-0 text-lg leading-none">✗</span>
+                    <span className="text-sm">
+                      <span className="font-medium text-foreground">{title}</span>
+                      <span className="block text-muted-foreground text-xs mt-0.5">{detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* FloMCP column */}
+            <div className="rounded-xl border border-green-500/40 bg-green-500/5 p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-7 h-7 rounded-full bg-green-500/15 flex items-center justify-center">
+                  <Zap className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="font-semibold text-base">FloMCP</span>
+              </div>
+              <ul className="space-y-3">
+                {[
+                  ["MCP-spec compliant output", "Built exactly to the Model Context Protocol — tools appear first try"],
+                  ["Full Zod validation on every input", "Type-safe, runtime-safe, no crashes from malformed requests"],
+                  ["22 security checks built in", "OWASP-aligned: no hardcoded secrets, no SSRF, no injection"],
+                  ["Complete project — not just a snippet", "README, .env.example, claude_desktop_config.json included"],
+                  ["Download and run in under 2 min", "No debugging. No restarts. Open the zip and go."],
+                ].map(([title, detail]) => (
+                  <li key={title} className="flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">
+                      <span className="font-medium text-foreground">{title}</span>
+                      <span className="block text-muted-foreground text-xs mt-0.5">{detail}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom callout */}
+          <div className="rounded-xl border border-border/60 bg-muted/30 px-6 py-5 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="text-3xl flex-shrink-0">💡</div>
+            <div>
+              <p className="font-semibold text-sm">Think of it this way</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                General-purpose AI is a brilliant engineer. FloMCP is the MCP specialist on the team.
+                You wouldn&apos;t ask a generalist to write your security audit — same logic applies here.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section id="cta" className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">

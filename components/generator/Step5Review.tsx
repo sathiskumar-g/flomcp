@@ -46,10 +46,10 @@ const AUTH_LABELS: Record<string, string> = {
 // ─── Progress steps shown during streaming ─────────────────────────────────────
 
 const PROGRESS_STEPS = [
-  { key: "analyzing", label: "Analyzing your requirements" },
-  { key: "schema",    label: "Designing tool schemas" },
-  { key: "coding",   label: "Writing TypeScript code" },
-  { key: "security", label: "Adding security best practices" },
+  { key: "pass1",    label: "Pass 1 — Designing tool schema contract" },
+  { key: "pass2",    label: "Pass 2 — Writing TypeScript implementation" },
+  { key: "pass3",    label: "Pass 3 — Running quality checklist" },
+  { key: "security", label: "Running 22 security checks" },
   { key: "saving",   label: "Saving your server" },
 ];
 
@@ -416,7 +416,7 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
         <div className="flex items-center gap-2 text-sm">
           <Clock className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">Estimated generation time:</span>
-          <span className="font-medium">~20–30 seconds</span>
+          <span className="font-medium">~30–45 seconds</span>
         </div>
         <div className="flex items-start gap-2 text-sm">
           <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
@@ -465,7 +465,7 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
         <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-4">
           <div className="flex items-center gap-3 mb-4">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm font-medium">Claude is building your MCP server…</span>
+            <span className="text-sm font-medium">3-pass generation in progress…</span>
           </div>
           <div className="space-y-2">
             {PROGRESS_STEPS.map(({ key, label }) => {

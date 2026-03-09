@@ -5,6 +5,12 @@ import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
 import { createServerClient } from "@/lib/supabase-server";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
 import { runSecurityValidation } from "@/lib/security/validator";
+import {
+  buildPass1System, buildPass1User,
+  buildPass3System, buildPass3User,
+  parseSchemaContract, extractReviewedCode,
+  type SchemaContract,
+} from "@/lib/generation/passes";
 import { estimateCredits } from "@/lib/credits";
 import { ensureCreditRow, deductCredits, refundCredits } from "@/lib/credits-service";
 import { sendEmail } from "@/lib/email";
@@ -222,10 +228,6 @@ export async function POST(req: NextRequest) {
         controller.enqueue(new TextEncoder().encode(encode(data)));
 
       try {
-        send({ type: "progress", step: "analyzing", message: "Analyzing your requirements\u2026" });
-        send({ type: "progress", step: "schema", message: "Designing tool schemas\u2026" });
-        send({ type: "progress", step: "coding", message: "Writing TypeScript code\u2026" });
-
         // Build tool list string
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const toolList = tools.map((t: any, i: number) =>
@@ -743,50 +745,111 @@ ${prompts.length > 0
 Run command for users after download:
   cd ${serverSlug} && npm install && npx tsx src/index.ts`;
 
-        // BUG-004: 240s timeout — prevents SSE stream hanging indefinitely if Anthropic API stalls
-        // (maxDuration=300; give Claude up to 240s to respond, 60s margin for post-processing)
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 240000)
-        );
-
-        // Keepalive: send SSE comment every 8s so proxies/Vercel don't kill the idle connection
-        // while waiting for the Anthropic response (which can take 30-90s for 16K token output)
+        // ── Multi-Pass Generation Engine v2 ──────────────────────────────────
+        // Pass 1 → schema contract  (~30 s, locks tool/param names before any code is written)
+        // Pass 2 → full TypeScript implementation against the locked contract   (~180 s)
+        // Pass 3 → self-review against 10-item MCP quality checklist            (~70 s)
+        // Keepalive wraps all 3 passes and is cleared in the inner finally block.
         const keepAlive = setInterval(() => {
           try { controller.enqueue(new TextEncoder().encode(": keepalive\n\n")); } catch { /* stream closed */ }
         }, 8000);
 
-        // Sonnet 4.6 supports 64K output tokens natively – no beta header needed
-        let message: Awaited<ReturnType<typeof anthropic.messages.create>>;
+        // Declare outside the try so they stay in scope for security + DB steps below
+        let parsed: { files?: Record<string, string>; tools?: object[] } = {};
+        let generatedIndexTs = "";
+
         try {
-          message = await Promise.race([
-            anthropic.messages.create(
-              {
+          // ── Pass 1: Schema contract ────────────────────────────────────────
+          send({ type: "progress", step: "pass1", message: "Pass 1 \u2014 Designing tool schema contract\u2026" });
+          let schemaContract: SchemaContract | null = null;
+          try {
+            const pass1Msg = await Promise.race([
+              anthropic.messages.create({
                 model: "claude-sonnet-4-6",
-                max_tokens: 16000,
-                temperature: 0.3,
-                system: SYSTEM_PROMPT,
-                messages: [{ role: "user", content: USER_MESSAGE }],
-              }
+                max_tokens: 2000,
+                temperature: 0.1,
+                system: buildPass1System(),
+                messages: [{ role: "user", content: buildPass1User(tools, apiConfig) }],
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("Pass 1 timed out")), 30000)
+              ),
+            ]);
+            const pass1Raw = pass1Msg.content[0].type === "text" ? pass1Msg.content[0].text : "";
+            schemaContract = parseSchemaContract(pass1Raw);
+          } catch {
+            // Non-fatal — Pass 2 runs without a schema contract if Pass 1 fails
+            schemaContract = null;
+          }
+
+          // ── Pass 2: Full TypeScript implementation ─────────────────────────
+          send({ type: "progress", step: "pass2", message: "Pass 2 \u2014 Writing TypeScript implementation\u2026" });
+
+          // Inject the locked schema contract from Pass 1 into the user message as a hard constraint
+          let pass2UserMessage = USER_MESSAGE;
+          if (schemaContract && schemaContract.tools.length > 0) {
+            const contractJson =
+              "\n\n## Schema Contract from Pass 1 (LOCKED \u2014 implement these exact tool names, param names, and types)\n" +
+              "```json\n" + JSON.stringify(schemaContract, null, 2) + "\n```";
+            pass2UserMessage = USER_MESSAGE.replace(
+              "## Required Deliverables",
+              contractJson + "\n\n## Required Deliverables"
+            );
+          }
+
+          const pass2Msg = await Promise.race([
+            anthropic.messages.create({
+              model: "claude-sonnet-4-6",
+              max_tokens: 16000,
+              temperature: 0.3,
+              system: SYSTEM_PROMPT,
+              messages: [{ role: "user", content: pass2UserMessage }],
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 180000)
             ),
-            timeoutPromise,
           ]);
+
+          const pass2Raw = pass2Msg.content[0].type === "text" ? pass2Msg.content[0].text : "";
+          if (!pass2Raw) throw new Error("Claude returned an empty response");
+
+          parsed = parseClaudeOutput(pass2Raw);
+
+          generatedIndexTs = parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "";
+          if (!generatedIndexTs.trim()) {
+            throw new Error(
+              "Generation failed: src/index.ts is empty. " +
+              "Claude may have returned malformed JSON. Please try again."
+            );
+          }
+
+          // ── Pass 3: Self-review quality checklist ──────────────────────────
+          send({ type: "progress", step: "pass3", message: "Pass 3 \u2014 Running quality checklist\u2026" });
+          try {
+            const pass3Msg = await Promise.race([
+              anthropic.messages.create({
+                model: "claude-sonnet-4-6",
+                max_tokens: 8000,
+                temperature: 0.1,
+                system: buildPass3System(),
+                messages: [{ role: "user", content: buildPass3User(generatedIndexTs) }],
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("Pass 3 timed out")), 70000)
+              ),
+            ]);
+            const pass3Raw = pass3Msg.content[0].type === "text" ? pass3Msg.content[0].text : "";
+            const reviewedCode = extractReviewedCode(pass3Raw);
+            if (reviewedCode && reviewedCode.trim()) {
+              // Pass 3 identified and corrected quality issues — use the fixed code
+              generatedIndexTs = reviewedCode;
+              if (parsed.files) parsed.files["src/index.ts"] = reviewedCode;
+            }
+          } catch {
+            // Non-fatal — use Pass 2 output as-is if Pass 3 fails
+          }
         } finally {
           clearInterval(keepAlive);
-        }
-
-        const raw = message.content[0].type === "text" ? message.content[0].text : "";
-        if (!raw) throw new Error("Claude returned an empty response");
-
-        const parsed = parseClaudeOutput(raw);
-
-        // Guard: index.ts must not be empty – catches silent parse failures
-        const generatedIndexTs =
-          parsed.files?.["src/index.ts"] ?? parsed.files?.["index.js"] ?? "";
-        if (!generatedIndexTs.trim()) {
-          throw new Error(
-            "Generation failed: src/index.ts is empty. " +
-            "Claude may have returned malformed JSON. Please try again."
-          );
         }
 
         // ── Run 22-check security validation ──────────────────────────────────
