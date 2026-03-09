@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
   try {
+    const supabase = createAdminClient();
     const body = await request.json();
     const { email, problem, interest, urgency, description, features, userAgent } = body;
 
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
           interest_type: interest,
           urgency: urgency || null,
           description: description || null,
+          features: Array.isArray(features) ? features : (features ? [features] : null),
           user_agent: userAgent || null,
           created_at: new Date().toISOString(),
         },
