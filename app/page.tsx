@@ -32,7 +32,7 @@ const FAQ_ITEMS = [
 const FREE_CREDIT_FEATURES = [
   "5 credits — one-time, never expire",
   "Full TypeScript source code",
-  "Security score on every server (22 checks)",
+  "3-pass quality engine + 22 security checks",
   "Download ZIP + auto-generated docs",
   "Works with Claude, Copilot & Cursor",
   "MCP Library access",
@@ -473,7 +473,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Describe what you need in plain English. FloMCP writes the TypeScript, wires the schemas, runs 22 security checks — and hands you a download-ready server. No boilerplate. No config guessing.
+            Describe what you need in plain English. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks. Download-ready. No boilerplate.
           </p>
 
           {/* Time Savings Showcase + live server counter */}
@@ -501,7 +501,7 @@ export default function Home() {
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>22 security checks on every server</span>
+              <span>3-pass generation + 22 security checks</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -1022,7 +1022,7 @@ export default function Home() {
                 {[
                   ["MCP-spec compliant output", "Built exactly to the Model Context Protocol — tools appear first try"],
                   ["Full Zod validation on every input", "Type-safe, runtime-safe, no crashes from malformed requests"],
-                  ["22 security checks built in", "OWASP-aligned: no hardcoded secrets, no SSRF, no injection"],
+                  ["3-pass quality verification + 22 security checks", "Schema contract → implementation → quality checklist → OWASP security checks"],
                   ["Complete project — not just a snippet", "README, .env.example, claude_desktop_config.json included"],
                   ["Download and run in under 2 min", "No debugging. No restarts. Open the zip and go."],
                 ].map(([title, detail]) => (

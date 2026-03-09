@@ -14,7 +14,7 @@ export const metadata = {
 const FREE_CREDIT_FEATURES = [
   "5 credits \u2014 one-time, never expire",
   "Full TypeScript source code",
-  "Security score on every server (22 checks)",
+  "3-pass quality engine + 22 security checks",
   "Download ZIP + auto-generated docs",
   "Works with Claude, Copilot & Cursor",
   "MCP Library access",
