@@ -8,8 +8,9 @@ import { createAdminClient } from "@/lib/supabase-admin";
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -22,7 +23,7 @@ export async function GET(
     .select(
       "id, name, description, status, security_score, generated_code, package_json, readme, tsconfig, env_example, api_config, created_at, downloaded, security_report, generation_input, user_feedback"
     )
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id) // ownership check
     .single();
 
@@ -30,7 +31,7 @@ export async function GET(
     // Distinguish DB errors (timeout/network) from actual "not found"
     if (error && error.code !== "PGRST116") {
       // PGRST116 = "JSON object requested, multiple (or no) rows returned" = not found
-      console.error("DB query error for server", params.id, error);
+      console.error("DB query error for server", id, error);
       return NextResponse.json(
         { error: "Failed to fetch server. Please try again." },
         { status: 500 }
@@ -48,8 +49,9 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -67,7 +69,7 @@ export async function PATCH(
   const { error } = await admin
     .from("mcp_servers")
     .update(updates)
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id); // ownership check
 
   if (error) {

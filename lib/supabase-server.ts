@@ -15,7 +15,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export function createServerClient() {
-  const cookieStore = cookies();
+  // In Next.js 15, cookies() returns a Promise. We capture it here and
+  // resolve it lazily inside each cookie handler (async getAll/setAll),
+  // avoiding the need to make createServerClient() itself async.
+  const cookieStorePromise = cookies();
 
   return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     global: {
@@ -30,13 +33,14 @@ export function createServerClient() {
       },
     },
     cookies: {
-      getAll() {
-        return cookieStore.getAll();
+      async getAll() {
+        return (await cookieStorePromise).getAll();
       },
-      setAll(cookiesToSet) {
+      async setAll(cookiesToSet) {
         try {
+          const store = await cookieStorePromise;
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            store.set(name, value, options)
           );
         } catch {
           // setAll may throw in Server Components (read-only context).

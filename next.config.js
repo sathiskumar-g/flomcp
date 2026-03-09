@@ -17,9 +17,9 @@ const nextConfig = {
   reactStrictMode: true,
   // Prevent webpack from bundling undici — it must run as a native Node module
   // so the TCP socket family:4 option works correctly.
-  experimental: {
-    serverComponentsExternalPackages: ["undici"],
-  },
+  serverExternalPackages: ["undici"],
+  // Silence the workspace root inference warning
+  outputFileTracingRoot: require("path").join(__dirname, "../../"),
 };
 
 module.exports = nextConfig;
