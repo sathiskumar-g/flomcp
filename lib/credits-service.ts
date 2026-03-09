@@ -5,7 +5,8 @@
  * All writes use the Supabase admin client (service role) so they can
  * bypass RLS and work inside API routes.
  *
- * Free plan: 5 lifetime credits (monthly_credits column, never resets).
+ * Free plan: 3 lifetime credits on signup.
+ *             First 50 signups receive 5 credits (early-adopter bonus).
  * Pro  plan: 50/month with rollover (Phase 3 — not yet active).
  *
  * The heavy lifting (atomicity) lives in SQL functions:
@@ -17,8 +18,10 @@ import { createAdminClient } from "@/lib/supabase-admin";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const FREE_TIER_CREDITS = 5;
-export const PRO_TIER_CREDITS  = 50;
+export const FREE_TIER_CREDITS       = 3;   // default on signup
+export const EARLY_ADOPTER_CREDITS   = 5;   // first 50 signups
+export const EARLY_ADOPTER_LIMIT     = 50;  // how many get the bonus
+export const PRO_TIER_CREDITS        = 50;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,8 +75,19 @@ export async function getBalance(userId: string): Promise<CreditBalance | null> 
  */
 export async function ensureCreditRow(userId: string): Promise<void> {
   const admin = createAdminClient();
+
+  // Grant more credits to early adopters (first 50 signups).
+  // Count is approximate — a small race window is acceptable.
+  const { count } = await admin
+    .from("user_credits")
+    .select("*", { count: "exact", head: true });
+  const initialCredits =
+    typeof count === "number" && count < EARLY_ADOPTER_LIMIT
+      ? EARLY_ADOPTER_CREDITS
+      : FREE_TIER_CREDITS;
+
   await admin.from("user_credits").upsert(
-    { user_id: userId, plan: "free", monthly_credits: FREE_TIER_CREDITS, bonus_credits: 0 },
+    { user_id: userId, plan: "free", monthly_credits: initialCredits, bonus_credits: 0 },
     { onConflict: "user_id", ignoreDuplicates: true }
   );
 }
@@ -83,15 +97,15 @@ export async function ensureCreditRow(userId: string): Promise<void> {
  * Uses the check_and_deduct_credits() SQL function for atomic read-modify-write.
  *
  * @param userId       — Supabase user id
- * @param cost         — credits to deduct (1 or 2)
+ * @param cost         — credits to deduct (1, 2, or 3)
  * @param generationId — mcp_servers.id to associate in the audit log (optional pre-insert)
- * @param complexity   — "1" or "2" for the audit log
+ * @param complexity   — "1", "2", or "3" for the audit log
  */
 export async function deductCredits(
   userId: string,
-  cost: 1 | 2,
+  cost: 1 | 2 | 3,
   generationId: string | null = null,
-  complexity: "1" | "2" = "1"
+  complexity: "1" | "2" | "3" = "1"
 ): Promise<DeductResult> {
   const admin = createAdminClient();
 

@@ -42,6 +42,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MAX_TOTAL_CONTENT_CHARS } from "@/lib/credits";
 
 // --- Constants ----------------------------------------------------------------
 
@@ -58,7 +59,7 @@ const PROMPT_MIME_OPTIONS: { value: PromptMimeType; label: string; hint: string 
 
 const RESOURCE_ACCEPT = ".txt,.md,.mdx,.json";
 const PROMPT_ACCEPT   = ".txt,.md,.mdx";
-const MAX_CONTENT_LEN = 50_000;
+const MAX_CONTENT_LEN = 10_000;
 
 type ActiveTab = "resources" | "prompts";
 
@@ -84,6 +85,10 @@ export function Step4Resources() {
 
   const isResourcesTab = activeTab === "resources";
   const totalCount     = resources.length + prompts.length;
+
+  const totalContentChars =
+    resources.reduce((s, r) => s + r.content.length, 0) +
+    prompts.reduce((s, p) => s + p.content.length, 0);
 
   // Auto-expand newly added items
   useEffect(() => {
@@ -178,6 +183,23 @@ export function Step4Resources() {
           );
         })}
       </div>
+
+      {/* Combined content pool meter */}
+      {totalCount > 0 && (
+        <div className={cn(
+          "rounded-lg border px-3 py-2 flex items-center justify-between text-xs",
+          totalContentChars > MAX_TOTAL_CONTENT_CHARS
+            ? "bg-destructive/10 border-destructive/30 text-destructive"
+            : totalContentChars > MAX_TOTAL_CONTENT_CHARS * 0.8
+              ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+              : "bg-muted/40 border-border/50 text-muted-foreground"
+        )}>
+          <span>Combined content (resources + prompts)</span>
+          <span className="font-mono font-medium tabular-nums">
+            {totalContentChars.toLocaleString()} / {MAX_TOTAL_CONTENT_CHARS.toLocaleString()} chars
+          </span>
+        </div>
+      )}
 
       {/* Info banner */}
       <div className="rounded-lg bg-muted/40 border border-border/50 px-3 py-2.5 text-xs text-muted-foreground">

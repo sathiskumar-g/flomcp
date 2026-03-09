@@ -8,11 +8,12 @@ import { Logo } from "@/components/Logo";
 export const metadata = {
   title: "Pricing \u2014 FloMCP",
   description:
-    "Credit-based pricing for MCP server generation. Start free with 5 credits \u2014 no card required. Upgrade to Pro for 50 credits/month.",
+    "Credit-based pricing for MCP server generation. Start free with 3 credits — no card required. First 50 signups get 5 credits. Upgrade to Pro for 50 credits/month.",
 };
 
 const FREE_CREDIT_FEATURES = [
-  "5 credits \u2014 one-time, never expire",
+  "3 credits on signup — never expire",
+  "Early birds (first 50 signups) get 5 credits",
   "Full TypeScript source code",
   "3-pass quality engine + 22 security checks",
   "Download ZIP + auto-generated docs",
@@ -51,7 +52,11 @@ const CREDIT_PACKS = [
 const FAQ = [
   {
     q: "What counts as a credit?",
-    a: "Each completed MCP server generation consumes 1 credit, or 2 credits for complex servers (5+ tools, resources, prompts, and API integration all at once). Abandoned or errored generations do not consume credits.",
+    a: "Tier is based only on tool count and content size. Simple (1 credit): ≤5 tools and content ≤2,000 chars. Complex (2 credits): 6–15 tools or content up to 5,000 chars. Premium (3 credits): 16–25 tools or content up to 10,000 chars. Description length and API use are always free and never affect the tier.",
+  },
+  {
+    q: "How many credits do I get on signup?",
+    a: "3 credits on signup — they never expire. The first 50 people to sign up get 5 credits as an early-adopter bonus.",
   },
   {
     q: "Can I re-download previously generated servers?",
@@ -59,7 +64,7 @@ const FAQ = [
   },
   {
     q: "Is there a free trial for Pro?",
-    a: "The Free plan gives you 5 credits one-time, no card required. You can try every feature before deciding to upgrade to Pro at $19/mo.",
+    a: "The Free plan gives you 3 credits on signup (5 for the first 50 users), no card required. You can try every feature before deciding to upgrade to Pro at $19/mo.",
   },
   {
     q: "What payment methods do you accept?",
@@ -154,7 +159,8 @@ export default function PricingPage() {
                 <span className="text-4xl font-bold">$0</span>
               </div>
               <CardDescription className="mt-2 text-base">
-                5 credits to get started &mdash; they never expire.
+                <span className="line-through text-muted-foreground/60">3 credits</span>{" "}
+                <span className="font-semibold text-foreground">5 credits</span> for the first 50 signups — they never expire.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -255,7 +261,7 @@ export default function PricingPage() {
               <span className="text-base px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3.5 w-3.5" /> Pro</span>
             </div>
             <span className="inline-flex items-center gap-1.5 text-base px-3 py-1 rounded-full bg-background border border-border/60 text-muted-foreground">
-              🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
+              🪙 1 credit simple &nbsp;·&nbsp; 🪙🪙 2 credits complex &nbsp;·&nbsp; 🪙🪙🪙 3 credits premium
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 max-w-xl mx-auto">
@@ -267,6 +273,24 @@ export default function PricingPage() {
                 <p className="text-center text-lg font-semibold text-primary mt-2">{pack.price}</p>
               </div>
             ))}
+          </div>
+          {/* Tier reference */}
+          <div className="mt-4 rounded-lg border border-border/60 overflow-hidden max-w-xl mx-auto">
+            <div className="px-4 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Credit cost per generation</div>
+            <div className="divide-y divide-border/40">
+              <div className="grid grid-cols-3 px-4 py-2 text-sm">
+                <span className="font-medium text-primary">▸ Simple — 1 credit</span>
+                <span className="text-muted-foreground col-span-2">≤5 tools · content ≤2,000 chars</span>
+              </div>
+              <div className="grid grid-cols-3 px-4 py-2 text-sm">
+                <span className="font-medium text-amber-500">▸ Complex — 2 credits</span>
+                <span className="text-muted-foreground col-span-2">6–15 tools · or content up to 5,000 chars</span>
+              </div>
+              <div className="grid grid-cols-3 px-4 py-2 text-sm">
+                <span className="font-medium text-orange-500">▸ Premium — 3 credits</span>
+                <span className="text-muted-foreground col-span-2">16–25 tools · or content up to 10,000 chars</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -326,7 +350,7 @@ export default function PricingPage() {
           <CardContent className="pt-8 pb-8">
             <h2 className="text-2xl font-bold mb-2">Start building MCP servers today</h2>
             <p className="text-muted-foreground mb-6">
-              5 free credits &middot; No credit card required &middot; Credits never expire
+              3 free credits · First 50 get 5 · No credit card required · Credits never expire
             </p>
             <Link href="/auth/signup">
               <Button size="lg">

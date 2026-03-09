@@ -166,40 +166,95 @@ export function Step3ToolConfig() {
 
       {/* Add custom tool */}
       {!suggestionsLoading && (
-        <Button
-          variant="outline"
-          className="w-full border-dashed"
-          onClick={() => {
-            const newId = Math.random().toString(36).slice(2, 9);
-            addTool(newId);
-            setExpandedIds((prev) => new Set([...prev, newId]));
-            setNewToolId(newId);
-          }}
-          disabled={tools.length >= 10}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Custom Tool
-          {tools.length >= 10 && (
-            <Badge variant="secondary" className="ml-2 text-xs">Max 10</Badge>
+        <>
+          <Button
+            variant="outline"
+            className="w-full border-dashed"
+            onClick={() => {
+              const newId = Math.random().toString(36).slice(2, 9);
+              addTool(newId);
+              setExpandedIds((prev) => new Set([...prev, newId]));
+              setNewToolId(newId);
+            }}
+            disabled={tools.length >= 25}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Custom Tool
+            {tools.length >= 25
+              ? <Badge variant="destructive" className="ml-2 text-xs">Max 25 reached</Badge>
+              : tools.length >= 20
+              ? <Badge variant="secondary" className="ml-2 text-xs">{tools.length}/25</Badge>
+              : null
+            }
+          </Button>
+          {tools.length >= 25 && (
+            <p className="text-xs text-red-500 flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Maximum 25 tools per server. Remove a tool to add another.
+            </p>
           )}
-        </Button>
+        </>
       )}
 
-      {/* Credit complexity badge */}
+      {/* Credit complexity badge + tier reference table */}
       {!suggestionsLoading && tools.length > 0 && (() => {
-        const estimate = estimateCredits({ tools, resources, prompts, apiConfig });
+        const estimate = estimateCredits({ tools, resources, prompts, apiConfig, description });
+        const tierColor =
+          estimate.tier === 3 ? "text-orange-500" :
+          estimate.tier === 2 ? "text-amber-500" : "text-primary";
+        const badgeClass =
+          estimate.tier === 3 ? "border-orange-500/30 bg-orange-500/10 text-orange-600" :
+          estimate.tier === 2 ? "border-amber-500/30 bg-amber-500/10 text-amber-600" :
+          "border-primary/20 bg-primary/10 text-primary";
+        const TIERS = [
+          { tier: 1 as const, label: "Simple",  cost: "1 credit",  rule: "≤5 tools · content ≤2,000 chars",             dotColor: "text-primary" },
+          { tier: 2 as const, label: "Complex", cost: "2 credits", rule: "6–15 tools · OR content 2,001–5,000 chars",  dotColor: "text-amber-500" },
+          { tier: 3 as const, label: "Premium", cost: "3 credits", rule: "≥16 tools · OR content >5,000 chars",          dotColor: "text-orange-500" },
+        ] as const;
         return (
-          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-4 py-2.5 text-sm">
-            <Zap className={cn("h-4 w-4 flex-shrink-0", estimate.isComplex ? "text-amber-500" : "text-primary")} />
-            <span className="text-muted-foreground">Generation cost:</span>
-            <span className={cn("font-semibold", estimate.isComplex ? "text-amber-500" : "text-primary")}>
-              {estimate.cost} credit{estimate.cost > 1 ? "s" : ""}
-            </span>
-            {estimate.isComplex && (
-              <span className="text-xs text-muted-foreground ml-1 hidden sm:inline">
-                (complex — {estimate.reasons.join(", ")})
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            {/* Cost header row */}
+            <div className="flex items-center gap-2 bg-muted/20 px-4 py-2.5 text-sm">
+              <Zap className={cn("h-4 w-4 flex-shrink-0", tierColor)} />
+              <span className="text-muted-foreground">Generation cost:</span>
+              <span className={cn("font-semibold", tierColor)}>
+                {estimate.cost} credit{estimate.cost > 1 ? "s" : ""}
               </span>
-            )}
+              <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded border", badgeClass)}>
+                {estimate.tierLabel}
+              </span>
+              {estimate.reasons.length > 0 && (
+                <span className="text-xs text-muted-foreground ml-1 hidden sm:inline truncate">
+                  — {estimate.reasons.join(", ")}
+                </span>
+              )}
+            </div>
+            {/* Tier reference rows */}
+            <div className="divide-y divide-border/40 border-t border-border/60">
+              {TIERS.map(row => {
+                const active = estimate.tier === row.tier;
+                return (
+                  <div
+                    key={row.tier}
+                    className={cn(
+                      "grid items-center gap-x-3 px-4 py-1.5 text-xs",
+                      "grid-cols-[70px_80px_1fr]",
+                      active ? "bg-muted/50" : ""
+                    )}
+                  >
+                    <span className={cn("font-medium flex items-center gap-1", active ? row.dotColor : "text-muted-foreground")}>
+                      {active ? "▸" : "○"} {row.label}
+                    </span>
+                    <span className={cn("tabular-nums", active ? "font-semibold text-foreground" : "text-muted-foreground")}>
+                      {row.cost}
+                    </span>
+                    <span className={active ? "text-foreground" : "text-muted-foreground"}>
+                      {row.rule}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })()}

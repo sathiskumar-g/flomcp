@@ -30,7 +30,7 @@ const FAQ_ITEMS = [
 ];
 
 const FREE_CREDIT_FEATURES = [
-  "5 credits — one-time, never expire",
+  "3 credits on signup — never expire",
   "Full TypeScript source code",
   "3-pass quality engine + 22 security checks",
   "Download ZIP + auto-generated docs",
@@ -1228,7 +1228,7 @@ export default function Home() {
                 </Dialog>
 
                 <p className="text-xs text-muted-foreground text-center pt-2">
-                  Free plan • 5 credits on signup • No credit card required.
+                  Free plan • 3 credits on signup (first 50 get 5 ★) • No credit card required.
                 </p>
               </CardContent>
             </Card>
@@ -1329,7 +1329,14 @@ export default function Home() {
               <CardHeader>
                 <CardTitle className="text-xl">Free</CardTitle>
                 <div className="text-3xl font-bold mt-2">$0</div>
-                <CardDescription>5 credits to get started — no card required</CardDescription>
+                <CardDescription>
+                  <span className="font-semibold text-foreground">5 credits</span>
+                  <span className="line-through text-muted-foreground/50 ml-2 text-sm">3 credits</span>
+                  <span className="ml-1"> to get started — no card required</span>
+                  <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium align-middle">
+                    First 50 members ★
+                  </span>
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {FREE_CREDIT_FEATURES.map((f) => (
@@ -1383,7 +1390,7 @@ export default function Home() {
                 <CardDescription>Bespoke MCP servers built to spec</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Everything in Pro, plus:</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Everything in Pro:</p>
                 {[
                   "Custom server built to your exact spec",
                   "Private codebase delivery",
@@ -1409,8 +1416,12 @@ export default function Home() {
                 <h3 className="text-xl font-semibold">Credit Top-Up Packs</h3>
                 <span className="text-sm px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1"><Crown className="h-3.5 w-3.5" /> Pro</span>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full bg-muted border border-border/60 text-muted-foreground">
-                🪙 1 credit for simple servers &nbsp;·&nbsp; 🪙🪙 2 credits for complex servers
+              <span className="inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full bg-muted border border-border/60 text-muted-foreground">
+                <Zap className="h-3.5 w-3.5" /><span className="font-medium">1 credit</span> Simple
+                <span className="opacity-40">·</span>
+                <Zap className="h-3.5 w-3.5" /><span className="font-medium">2 credits</span> Complex
+                <span className="opacity-40">·</span>
+                <Zap className="h-3.5 w-3.5" /><span className="font-medium">3 credits</span> Premium
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto">
@@ -1423,6 +1434,9 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <p className="text-xs text-center text-muted-foreground mt-3">
+              Credit used based on the number of tools, resources, and prompts in your server.
+            </p>
           </div>
         </div>
       </section>

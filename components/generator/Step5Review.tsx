@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
-import { estimateCredits } from "@/lib/credits";
+import { estimateCredits, validateInputLimits, MAX_TOOLS, MAX_DESCRIPTION_CHARS, MAX_SINGLE_RESOURCE_CHARS, MAX_SINGLE_PROMPT_CHARS, MAX_TOTAL_CONTENT_CHARS } from "@/lib/credits";
 import { useDrafts, DRAFT_FREE_LIMIT } from "@/lib/use-drafts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,25 +214,33 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
       </div>
       {/* Credit cost card */}
       {(() => {
-        const estimate = estimateCredits({ tools, resources, prompts, apiConfig });
+        const estimate = estimateCredits({ tools, resources, prompts, apiConfig, description });
         const canAfford = balance === null || balance >= estimate.cost;
+        // Per-tier colour tokens
+        const tierColor = !canAfford
+          ? { border: "border-red-500/30 bg-red-500/5", icon: "text-red-500", badge: "bg-red-500/10 text-red-600 border-red-500/30" }
+          : estimate.tier === 3
+          ? { border: "border-orange-500/30 bg-orange-500/5", icon: "text-orange-500", badge: "bg-orange-500/10 text-orange-600 border-orange-500/30" }
+          : estimate.tier === 2
+          ? { border: "border-amber-500/30 bg-amber-500/5", icon: "text-amber-500", badge: "bg-amber-500/10 text-amber-600 border-amber-500/30" }
+          : { border: "border-primary/20 bg-primary/5", icon: "text-primary", badge: "bg-primary/10 text-primary border-primary/20" };
         return (
-          <div className={cn(
-            "rounded-lg border px-4 py-3 flex items-center justify-between gap-3",
-            !canAfford
-              ? "border-red-500/30 bg-red-500/5"
-              : estimate.isComplex
-              ? "border-amber-500/30 bg-amber-500/5"
-              : "border-primary/20 bg-primary/5"
-          )}>
+          <div className={cn("rounded-lg border px-4 py-3 flex items-center justify-between gap-3", tierColor.border)}>
             <div className="flex items-center gap-3">
-              <Zap className={cn("h-5 w-5 flex-shrink-0", !canAfford ? "text-red-500" : estimate.isComplex ? "text-amber-500" : "text-primary")} />
+              <Zap className={cn("h-5 w-5 flex-shrink-0", tierColor.icon)} />
               <div>
-                <p className="text-sm font-medium">Generation cost</p>
+                <p className="text-sm font-medium">
+                  Generation cost
+                  <span className={cn("ml-2 text-xs font-normal px-1.5 py-0.5 rounded border", tierColor.badge)}>
+                    {estimate.tierLabel}
+                  </span>
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {estimate.isComplex
-                    ? `Complex server \u2014 ${estimate.reasons.join(", ")}`
-                    : "Standard server"}
+                  {estimate.tier === 3
+                    ? `Premium — ${estimate.reasons.join(", ")} · ≥16 tools or content >5,000 chars`
+                    : estimate.tier === 2
+                    ? `Complex — ${estimate.reasons.join(", ")} · 6–15 tools or content 2,001–5,000 chars`
+                    : "Simple — ≤5 tools and content ≤2,000 chars"}
                   {balance !== null && (
                     <span className={cn("ml-2", !canAfford ? "text-red-500" : "")}>
                       &middot; Balance: {balance} credit{balance !== 1 ? "s" : ""}
@@ -243,12 +251,8 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
               </div>
             </div>
             <span className={cn(
-              "inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full border",
-              !canAfford
-                ? "bg-red-500/10 text-red-600 border-red-500/30"
-                : estimate.isComplex
-                ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
-                : "bg-primary/10 text-primary border-primary/20"
+              "inline-flex items-center gap-1 text-sm font-bold px-3 py-1 rounded-full border flex-shrink-0",
+              tierColor.badge
             )}>
               <Coins className="h-3.5 w-3.5" />
               {estimate.cost} credit{estimate.cost > 1 ? "s" : ""}
@@ -256,6 +260,32 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
           </div>
         );
       })()}
+
+      {/* Input limit violations — blocks generation */}
+      {(() => {
+        const limitErrors = validateInputLimits({ tools, resources, prompts, description });
+        if (limitErrors.length === 0) return null;
+        return (
+          <div className="space-y-2">
+            {limitErrors.map((err) => (
+              <div key={err.code} className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 flex items-start gap-2.5">
+                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-red-600">
+                    {err.code === "TOOLS_LIMIT_EXCEEDED"             && `Tool limit — max ${MAX_TOOLS} tools`}
+                    {err.code === "DESCRIPTION_LIMIT_EXCEEDED"       && `Description too long — max ${MAX_DESCRIPTION_CHARS.toLocaleString()} chars`}
+                    {err.code === "RESOURCE_CONTENT_LIMIT_EXCEEDED"  && `Resource too large — max ${MAX_SINGLE_RESOURCE_CHARS.toLocaleString()} chars`}
+                    {err.code === "PROMPT_CONTENT_LIMIT_EXCEEDED"    && `Prompt too large — max ${MAX_SINGLE_PROMPT_CHARS.toLocaleString()} chars`}
+                    {err.code === "TOTAL_CONTENT_LIMIT_EXCEEDED"     && `Total content too large — max ${MAX_TOTAL_CONTENT_CHARS.toLocaleString()} chars`}
+                  </p>
+                  <p className="text-xs text-red-500/80 mt-0.5">{err.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Summary cards */}
       <div className="space-y-4">
         {/* 0 — Server Name (if set) */}
@@ -542,7 +572,11 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
         <Button
           size="lg"
           onClick={handleGenerate}
-          disabled={loading || (balance !== null && balance < estimateCredits({ tools, resources, prompts, apiConfig }).cost)}
+          disabled={
+            loading ||
+            (balance !== null && balance < estimateCredits({ tools, resources, prompts, apiConfig, description }).cost) ||
+            validateInputLimits({ tools, resources, prompts, description }).length > 0
+          }
           className="min-w-[200px] gap-2"
         >
           {loading ? (

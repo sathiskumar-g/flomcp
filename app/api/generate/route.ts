@@ -11,7 +11,7 @@ import {
   parseSchemaContract, extractReviewedCode,
   type SchemaContract,
 } from "@/lib/generation/passes";
-import { estimateCredits } from "@/lib/credits";
+import { estimateCredits, validateInputLimits } from "@/lib/credits";
 import { ensureCreditRow, deductCredits, refundCredits } from "@/lib/credits-service";
 import { sendEmail } from "@/lib/email";
 import type { ToolDefinition, ResourceDefinition, PromptDefinition, ApiConfig } from "@/lib/stores/generator-store";
@@ -152,6 +152,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ── Hard input limits (>25 tools, oversized content, etc.) ──
+  const limitErrors = validateInputLimits({
+    tools:       tools       as ToolDefinition[],
+    resources:   resources   as ResourceDefinition[],
+    prompts:     prompts     as PromptDefinition[],
+    description: String(description ?? ""),
+  });
+  if (limitErrors.length > 0) {
+    return new Response(
+      JSON.stringify({
+        error: limitErrors[0].message,
+        code:  limitErrors[0].code,
+        allErrors: limitErrors.map((e) => ({ field: e.field, code: e.code, message: e.message })),
+      }),
+      { status: 422 }
+    );
+  }
+
   // ── Rate limit (anti-abuse: hourly/daily/cooldown) ──
   const rateCheck = await checkRateLimit(supabase, user.id);
   if (!rateCheck.allowed) {
@@ -167,10 +185,11 @@ export async function POST(req: NextRequest) {
   // On generation failure the catch block inside the stream refunds.
   await ensureCreditRow(user.id);
   const creditCost = estimateCredits({
-    tools:     tools     as ToolDefinition[],
-    resources: resources as ResourceDefinition[],
-    prompts:   prompts   as PromptDefinition[],
-    apiConfig: apiConfig as ApiConfig,
+    tools:       tools       as ToolDefinition[],
+    resources:   resources   as ResourceDefinition[],
+    prompts:     prompts     as PromptDefinition[],
+    apiConfig:   apiConfig   as ApiConfig,
+    description: description as string,
   }).cost;
 
   const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
@@ -184,7 +203,7 @@ export async function POST(req: NextRequest) {
       user.id,
       creditCost,
       null,
-      String(creditCost) as "1" | "2"
+      String(creditCost) as "1" | "2" | "3"
     );
   }
 
