@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createAdminClient();
     const body = await request.json();
-    const { email, problem, interest, urgency, description, features, userAgent } = body;
+    const { email, problem, interest, urgency, description, features, userAgent, additionalEmail } = body;
 
     // Validate required fields
     if (!email || !interest) {
@@ -96,8 +96,7 @@ export async function POST(request: NextRequest) {
         if (interest === 'pro_interest') {
           emailHtml = getProInterestEmail(email, description || '', urgency || '', featuresStr);
         } else {
-          // freelance and enterprise — same template, subject distinguishes them
-          emailHtml = getSubmissionEmail(subject, email, description || problem || '', urgency || '');
+          emailHtml = getSubmissionEmail(subject, email, description || problem || '', urgency || '', additionalEmail);
         }
 
         const result = await sendEmail({ to: founderEmail, subject, html: emailHtml });

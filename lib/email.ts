@@ -99,6 +99,7 @@ export function getSubmissionEmail(
   email: string,
   description: string,
   urgency: string,
+  additionalEmail?: string,
 ) {
   const urgencyLabels: Record<string, string> = {
     // freelance
@@ -118,6 +119,7 @@ export function getSubmissionEmail(
   const body = `
     <div class="type-badge">${isEnterprise ? 'Enterprise Enquiry' : 'Custom Dev Request'}</div>
     ${infoBox('From', email)}
+    ${additionalEmail ? infoBox('Additional Email', additionalEmail) : ''}
     ${infoBox(isEnterprise ? 'Requirements' : 'Project description', description || '(none provided)')}
     ${infoBox(isEnterprise ? 'Timeline' : 'Urgency', urgencyLabels[urgency] ?? urgency)}
     ${infoBox('Submitted at', new Date().toLocaleString())}

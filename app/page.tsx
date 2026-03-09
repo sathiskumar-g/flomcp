@@ -57,7 +57,7 @@ const CREDIT_PACKS = [
   { name: "Growth",   credits: "+55",  price: "$25+", priceNum: 25 },
 ];
 
-function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function ProInterestModal({ open, onClose, userEmail }: { open: boolean; onClose: () => void; userEmail?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,7 +96,7 @@ function ProInterestModal({ open, onClose }: { open: boolean; onClose: () => voi
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <ProInterestForm onSuccess={onClose} />
+        <ProInterestForm initialEmail={userEmail} onSuccess={onClose} />
       </div>
     </div>
   );
@@ -183,7 +183,7 @@ function CodeEditorShowcase() {
   );
 }
 
-function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function EnterpriseModal({ open, onClose, userEmail }: { open: boolean; onClose: () => void; userEmail?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -230,7 +230,7 @@ function EnterpriseModal({ open, onClose }: { open: boolean; onClose: () => void
             <X className="h-5 w-5" />
           </button>
         </div>
-        <EnterpriseContactForm onSuccess={onClose} />
+        <EnterpriseContactForm initialEmail={userEmail} onSuccess={onClose} />
       </div>
     </div>
   );
@@ -282,6 +282,8 @@ export default function Home() {
   // Auth resolves in background; if user is logged in, button swaps to Dashboard.
   const [user, setUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(false);
+  // Stable string used in JSX to avoid TS narrowing issues with user?.email
+  const loggedInEmail = user?.email ?? "";
   
   // Modal state for custom development
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -303,7 +305,9 @@ export default function Home() {
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
         ]);
         if (isMounted && result && 'data' in result) {
-          setUser(result.data.session?.user ?? null);
+          const resolvedUser = result.data.session?.user ?? null;
+          setUser(resolvedUser);
+          if (resolvedUser?.email) setFreelanceEmail(resolvedUser.email);
         }
       } catch (error) {
         // Network error — silently ignore, show Sign In button
@@ -1079,8 +1083,12 @@ export default function Home() {
                           value={freelanceEmail}
                           onChange={(e) => setFreelanceEmail(e.target.value)}
                           required
-                          disabled={loading}
+                          disabled={loading || (!!loggedInEmail && freelanceEmail === loggedInEmail)}
+                          className={loggedInEmail && freelanceEmail === loggedInEmail ? "bg-muted/40 text-muted-foreground cursor-not-allowed" : ""}
                         />
+                        {loggedInEmail && freelanceEmail === loggedInEmail && (
+                          <p className="text-[11px] text-muted-foreground">Using your logged-in email.</p>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -1404,8 +1412,8 @@ export default function Home() {
       </footer>
 
       {/* Pro Interest Modal */}
-      <ProInterestModal open={proModalOpen} onClose={() => setProModalOpen(false)} />
-      <EnterpriseModal open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} />
+      <ProInterestModal open={proModalOpen} onClose={() => setProModalOpen(false)} userEmail={loggedInEmail} />
+      <EnterpriseModal open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} userEmail={loggedInEmail} />
     </main>
   );
 }

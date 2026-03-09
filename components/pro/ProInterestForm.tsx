@@ -22,6 +22,7 @@ interface ProInterestFormProps {
 
 export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFormProps) {
   const [email, setEmail] = useState(initialEmail);
+  const isEmailLocked = !!initialEmail;
   const [useCase, setUseCase] = useState("");
   const [volume, setVolume] = useState("");
   const [features, setFeatures] = useState<string[]>([]);
@@ -102,13 +103,19 @@ export function ProInterestForm({ initialEmail = "", onSuccess }: ProInterestFor
           id="pro-email"
           type="email"
           required
-          autoFocus
+          autoFocus={!isEmailLocked}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => !isEmailLocked && setEmail(e.target.value)}
           placeholder="you@example.com"
           autoComplete="email"
-          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+          disabled={isEmailLocked}
+          className={`w-full px-3 py-2 text-sm rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+            isEmailLocked ? "bg-muted/40 text-muted-foreground cursor-not-allowed" : "bg-background"
+          }`}
         />
+        {isEmailLocked && (
+          <p className="text-[11px] text-muted-foreground">Using your logged-in email.</p>
+        )}
       </div>
 
       {/* Use case */}

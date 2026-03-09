@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2, ArrowRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface EnterpriseContactFormProps {
@@ -13,19 +13,27 @@ interface EnterpriseContactFormProps {
 
 export function EnterpriseContactForm({ initialEmail = "", onSuccess }: EnterpriseContactFormProps) {
   const [entEmail, setEntEmail] = useState(initialEmail);
+  const isEmailLocked = !!initialEmail;
+  const [additionalEmail, setAdditionalEmail] = useState("");
+  const [showAdditionalEmail, setShowAdditionalEmail] = useState(false);
   const [entDesc, setEntDesc] = useState("");
   const [entTimeline, setEntTimeline] = useState("weeks");
   const [entSubmitted, setEntSubmitted] = useState(false);
   const [entLoading, setEntLoading] = useState(false);
   const [entError, setEntError] = useState("");
 
+  const EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setEntError("");
 
-    // Client-side format check before hitting the API
-    if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(entEmail.trim())) {
-      setEntError("Please enter a valid email address.");
+    if (!EMAIL_RE.test(entEmail.trim())) {
+      setEntError("Please enter a valid work email address.");
+      return;
+    }
+    if (additionalEmail && !EMAIL_RE.test(additionalEmail.trim())) {
+      setEntError("Please enter a valid additional email address.");
       return;
     }
 
@@ -40,6 +48,7 @@ export function EnterpriseContactForm({ initialEmail = "", onSuccess }: Enterpri
           interest: "enterprise",
           urgency: entTimeline,
           description: entDesc,
+          additionalEmail: additionalEmail.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -72,21 +81,70 @@ export function EnterpriseContactForm({ initialEmail = "", onSuccess }: Enterpri
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Work Email */}
       <div className="space-y-1">
-        <label htmlFor="ent-email" className="text-sm font-medium">
-          Work Email <span className="text-destructive">*</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="ent-email" className="text-sm font-medium">
+            Work Email <span className="text-destructive">*</span>
+          </label>
+          {!showAdditionalEmail && (
+            <button
+              type="button"
+              onClick={() => setShowAdditionalEmail(true)}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+            >
+              <Plus className="h-3 w-3" />
+              Add email
+            </button>
+          )}
+        </div>
         <input
           id="ent-email"
           type="email"
           required
-          autoFocus
+          autoFocus={!isEmailLocked}
           placeholder="you@company.com"
           value={entEmail}
-          onChange={(e) => setEntEmail(e.target.value)}
-          disabled={entLoading}
-          className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+          onChange={(e) => !isEmailLocked && setEntEmail(e.target.value)}
+          disabled={entLoading || isEmailLocked}
+          className={`w-full px-3 py-2 text-sm rounded-md border border-input focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+            isEmailLocked ? "bg-muted/40 text-muted-foreground cursor-not-allowed" : "bg-background"
+          }`}
         />
+        {isEmailLocked && (
+          <p className="text-[11px] text-muted-foreground">Using your logged-in email.</p>
+        )}
       </div>
+
+      {/* Additional Email */}
+      {showAdditionalEmail && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label htmlFor="ent-additional-email" className="text-sm font-medium">
+              Additional Email
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional)</span>
+            </label>
+            <button
+              type="button"
+              disabled={!!additionalEmail}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-default select-none"
+              aria-label="Only one additional email is allowed"
+            >
+              <Plus className="h-3 w-3" />
+              Add email
+            </button>
+          </div>
+          <input
+            id="ent-additional-email"
+            type="email"
+            autoFocus
+            placeholder="colleague@company.com"
+            value={additionalEmail}
+            onChange={(e) => setAdditionalEmail(e.target.value)}
+            disabled={entLoading}
+            className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          <p className="text-[11px] text-muted-foreground">One additional email allowed.</p>
+        </div>
+      )}
 
       {/* Description */}
       <div className="space-y-1">
