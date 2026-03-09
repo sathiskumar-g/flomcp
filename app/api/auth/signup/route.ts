@@ -101,16 +101,22 @@ export async function POST(request: Request) {
     }
 
     // Success — verification email sent by Supabase
+    // NOTE: wrap in try/catch so notification failures never return 503 to the
+    // user when signup itself already succeeded.
     if (data.user?.id) {
-      const admin = createAdminClient();
+      try {
+        const admin = createAdminClient();
 
-      // Welcome notification — fire-and-forget
-      admin.from("notifications").insert({
-        user_id: data.user.id,
-        type: "system_message",
-        title: "Welcome to FloMCP!",
-        body: "Your account is set up and ready. Generate your first MCP server to get started.",
-      }).then();
+        // Welcome notification — fire-and-forget
+        admin.from("notifications").insert({
+          user_id: data.user.id,
+          type: "system_message",
+          title: "Welcome to FloMCP!",
+          body: "Your account is set up and ready. Generate your first MCP server to get started.",
+        }).then();
+      } catch {
+        // Admin client unavailable (e.g. missing env var) — non-critical, skip
+      }
 
       // Notify support team about new signup — fire-and-forget
       const supportEmail = process.env.SUPPORT_EMAIL || "support@flomcp.com";
@@ -132,6 +138,26 @@ export async function POST(request: Request) {
     });
   } catch (err: any) {
     console.error("[api/auth/signup] Error:", err);
+    // A network timeout can occur AFTER Supabase has already created the account
+    // and sent the verification email. In that case, telling the user to "retry"
+    // is misleading — they may already have an account. Return a softer message.
+    const isNetworkErr =
+      err?.name === "AbortError" ||
+      err?.name === "AuthRetryableFetchError" ||
+      (err?.message || "").toLowerCase().includes("fetch failed") ||
+      (err?.message || "").toLowerCase().includes("timed out");
+
+    if (isNetworkErr) {
+      return NextResponse.json(
+        {
+          error:
+            "Your account may have been created. Please check your email for a verification link, or try signing in.",
+          code: "network_timeout",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       {
         error:
