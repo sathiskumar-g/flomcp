@@ -678,7 +678,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  No configuration required. Download your server, add your API keys to the env file, and start using it with Claude, Copilot, or any MCP-compatible AI assistant.
+                  Download your server, run <code className="text-xs font-mono bg-muted px-1 rounded">npm install</code>, then paste the ready-made STDIO config for your tool — Claude Desktop, Copilot, Cursor, Windsurf, or Cline. Each config is generated for you.
                 </p>
               </CardContent>
             </Card>
@@ -700,10 +700,24 @@ export default function Home() {
                 <Users className="h-12 w-12 mb-3 text-primary" />
                 <CardTitle className="text-xl">Works Everywhere</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <p className="text-muted-foreground">
-                  Compatible with Claude Desktop, GitHub Copilot, Cursor, Windsurf, and any tool supporting the Model Context Protocol.
+                  Every server uses STDIO transport — the standard for local MCP. Paste the ready-made config for your tool and restart. No port setup, no server to run separately.
                 </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "Claude Desktop", dot: "bg-orange-500" },
+                    { label: "VS Code / Copilot", dot: "bg-blue-500" },
+                    { label: "Cursor",          dot: "bg-violet-500" },
+                    { label: "Windsurf",        dot: "bg-cyan-500" },
+                    { label: "Cline",           dot: "bg-green-500" },
+                  ].map((c) => (
+                    <span key={c.label} className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/30 px-2.5 py-1 text-xs">
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+                      {c.label}
+                    </span>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 

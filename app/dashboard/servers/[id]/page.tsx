@@ -20,7 +20,6 @@ import {
   Shield,
   ChevronDown,
   ChevronUp,
-  MonitorPlay,
   FlaskConical,
   ThumbsUp,
   ThumbsDown,
@@ -30,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
 import { SecurityReport as SecurityReportComponent } from "@/components/security/SecurityReport";
 import type { SecurityReport } from "@/lib/security/types";
+import { IntegrationPanel } from "@/components/integration/IntegrationPanel";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
@@ -100,11 +100,7 @@ export default function ServerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FileTab["key"]>("generated_code");
   const [copied, setCopied] = useState(false);
-  const [copiedConfig, setCopiedConfig] = useState(false);
-  const [copiedVscode, setCopiedVscode] = useState(false);
   const [copiedGenInput, setCopiedGenInput] = useState(false);
-  const [vscodeOpen, setVscodeOpen] = useState(false);
-  const [claudeOpen, setClaudeOpen] = useState(false);
   const [configJsonOpen, setConfigJsonOpen] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [securityModalOpen, setSecurityModalOpen] = useState(false);
@@ -238,44 +234,6 @@ export default function ServerDetailPage() {
       prev ? { ...prev, user_feedback: { rating: fbRating, comment: fbComment.trim() || null, submittedAt: new Date().toISOString() } } : prev
     );
     toast.success("Thanks for your feedback!");
-  }
-
-  // Config JSON generators
-  const serverSlug = server.name.toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  const claudeConfig = JSON.stringify(
-    {
-      mcpServers: {
-        [serverSlug]: {
-          command: "npx",
-          args: ["tsx", `C:/Users/YourName/Downloads/${serverSlug}/src/index.ts`],
-        },
-      },
-    },
-    null,
-    2
-  );
-  const vscodeConfig = JSON.stringify(
-    {
-      "github.copilot.chat.mcp.servers": {
-        [serverSlug]: {
-          command: "npx",
-          args: ["tsx", `C:/Users/YourName/Downloads/${serverSlug}/src/index.ts`],
-        },
-      },
-    },
-    null,
-    2
-  );
-
-  async function handleCopyConfig() {
-    await navigator.clipboard.writeText(claudeConfig);
-    setCopiedConfig(true);
-    setTimeout(() => setCopiedConfig(false), 2000);
-  }
-  async function handleCopyVscode() {
-    await navigator.clipboard.writeText(vscodeConfig);
-    setCopiedVscode(true);
-    setTimeout(() => setCopiedVscode(false), 2000);
   }
 
   const createdDate = new Date(server.created_at).toLocaleDateString("en-US", {
@@ -526,108 +484,46 @@ export default function ServerDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Connect section */}
+      {/* Connect section — IntegrationPanel (B11 + B12) */}
       <Card className="border border-border/70">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Terminal className="h-4 w-4 text-primary" />
-            Connect to your AI client
+            Connect to Your AI Client
           </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            One-time setup. Pick your tool, paste the config, restart — your tools appear instantly.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Shared setup steps */}
+        <CardContent className="pt-0 space-y-4">
+          {/* Setup steps */}
           <div className="rounded-lg bg-muted/30 border border-border/50 px-4 py-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Setup (one time)</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">First: install &amp; configure (one time)</p>
             <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-              <li>Download all files and extract them into a folder</li>
+              <li>Download all files and extract them into a folder.</li>
               <li>
-                Open a terminal in that folder and run{" "}
+                Open a terminal <strong>in that folder</strong> and run{" "}
                 <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npm install</code>
               </li>
+              {server.env_example && (
+                <li>
+                  Copy{" "}
+                  <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">.env.example</code>
+                  {" to "}
+                  <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">.env</code>
+                  {" and fill in your API keys — the server won't work without this."}
+                </li>
+              )}
               <li>
-                Test it works:{" "}
+                Test it:{" "}
                 <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">npx tsx src/index.ts</code>
-                {" — should print: MCP server running on stdio"}
+                {" — should print: "}
+                <code className="text-xs font-mono bg-muted px-1 py-0.5 rounded">MCP server running on stdio</code>
               </li>
             </ol>
           </div>
-
-          {/* VS Code / GitHub Copilot */}
-          <div className="rounded-lg border border-border/60 overflow-hidden">
-            <button
-              onClick={() => setVscodeOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <MonitorPlay className="h-4 w-4 text-blue-500" />
-                VS Code (GitHub Copilot)
-              </div>
-              {vscodeOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {vscodeOpen && (
-              <div className="px-4 pb-4 space-y-2.5 border-t border-border/40">
-                <p className="text-xs text-muted-foreground pt-3">
-                  Create or edit{" "}
-                  <code className="font-mono bg-muted px-1 py-0.5 rounded">.vscode/settings.json</code>{" "}
-                  in your project folder (not the server folder):
-                </p>
-                <div className="rounded-lg border border-border/50 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/40 border-b border-border/50">
-                    <span className="text-xs font-mono text-muted-foreground">.vscode/settings.json</span>
-                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={handleCopyVscode}>
-                      {copiedVscode ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                      {copiedVscode ? "Copied!" : "Copy"}
-                    </Button>
-                  </div>
-                  <pre className="p-3 text-xs font-mono bg-background overflow-auto">
-                    <code>{vscodeConfig}</code>
-                  </pre>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Replace the path with your actual folder path. Then press{" "}
-                  <strong>Ctrl+Shift+P → Developer: Reload Window</strong>. A 🔌 icon will appear in Copilot Chat.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Claude Desktop */}
-          <div className="rounded-lg border border-border/60 overflow-hidden">
-            <button
-              onClick={() => setClaudeOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/30 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-orange-500" />
-                Claude Desktop
-              </div>
-              {claudeOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {claudeOpen && (
-              <div className="px-4 pb-4 space-y-2.5 border-t border-border/40">
-                <div className="text-xs text-muted-foreground pt-3 space-y-0.5">
-                  <p>Edit <code className="font-mono bg-muted px-1 py-0.5 rounded">claude_desktop_config.json</code>:</p>
-                  <p>Windows: <code className="font-mono bg-muted px-1 py-0.5 rounded">%APPDATA%\Claude\claude_desktop_config.json</code></p>
-                  <p>macOS: <code className="font-mono bg-muted px-1 py-0.5 rounded">~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
-                </div>
-                <div className="rounded-lg border border-border/50 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-1.5 bg-muted/40 border-b border-border/50">
-                    <span className="text-xs font-mono text-muted-foreground">claude_desktop_config.json</span>
-                    <Button variant="ghost" size="sm" className="h-6 text-xs gap-1" onClick={handleCopyConfig}>
-                      {copiedConfig ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                      {copiedConfig ? "Copied!" : "Copy"}
-                    </Button>
-                  </div>
-                  <pre className="p-3 text-xs font-mono bg-background overflow-auto">
-                    <code>{claudeConfig}</code>
-                  </pre>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Replace the path with your actual folder path, then <strong>restart Claude Desktop</strong> — your tools will appear.
-                </p>
-              </div>
-            )}
-          </div>
+          {/* Client config panel */}
+          <IntegrationPanel serverName={server.name} />
         </CardContent>
       </Card>
 

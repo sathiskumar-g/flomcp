@@ -23,6 +23,7 @@ import {
   ChevronUp,
   Code2,
   AlertTriangle,
+  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -168,6 +169,35 @@ export function PostGenerationReview() {
           </div>
         </div>
       )}
+
+      {/* Works-with client chips */}
+      <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-3.5 w-3.5 text-green-500" />
+          <span className="text-xs font-semibold text-green-600 dark:text-green-400">STDIO Transport</span>
+          <span className="text-xs text-muted-foreground">— works locally with all of these:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Claude Desktop",      dot: "bg-orange-500" },
+            { label: "VS Code / Copilot",   dot: "bg-blue-500"   },
+            { label: "Cursor",              dot: "bg-violet-500" },
+            { label: "Windsurf",            dot: "bg-cyan-500"   },
+            { label: "Cline",               dot: "bg-green-500"  },
+          ].map((c) => (
+            <div
+              key={c.label}
+              className="flex items-center gap-1.5 rounded-md border border-border/50 bg-background px-2.5 py-1 text-xs"
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", c.dot)} />
+              {c.label}
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Ready-to-paste config for each tool is on your server page — just download, run <code className="font-mono bg-muted px-1 rounded">npm install</code>, then paste the config.
+        </p>
+      </div>
 
       {/* Note */}
       <p className="text-xs text-center text-muted-foreground">
