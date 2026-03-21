@@ -1,4 +1,4 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
@@ -392,6 +392,9 @@ async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("SERVER_SLUG MCP server running on stdio");
+  // Graceful shutdown — prevents corrupted stdio sessions when AI client restarts
+  process.on("SIGTERM", () => { server.close(); process.exit(0); });
+  process.on("SIGINT",  () => { server.close(); process.exit(0); });
 }
 main().catch((error: unknown) => {
   console.error("Fatal error in main():", error);
@@ -473,6 +476,9 @@ SECURITY RULES (all required)
 [S20] main() at bottom: async function main(): Promise<void>
 [S21] main().catch() calls process.exit(1)
 [S22] "type": "module" in package.json; all local imports end in .js
+[S23] SIGTERM/SIGINT: register process.on("SIGTERM") AND process.on("SIGINT") inside main() — each calls server.close() then process.exit(0) — prevents corrupted stdio sessions when the AI client restarts the MCP process
+[S24] SQL parameterization: ALL database queries MUST use parameterized form — pg: $1/$2, sqlite3/better-sqlite3: ?, mysql2: ? — NEVER string concatenation in SQL — injection prevention, this is non-negotiable
+[S25] OAuth2: when OAuth is required, implement the COMPLETE token refresh flow — check expiry, call refresh endpoint, store updated token, retry request. NEVER leave TODO or placeholder comments in auth code — the refresh flow must be fully functional
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 CORRECT IMPORTS â€” only these three
@@ -709,7 +715,10 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 âœ“ README uses triple-backtick fences everywhere
 âœ“ README has both VS Code AND Claude Desktop config sections using npx tsx
 âœ“ package.json has vitest in devDependencies, "test": "vitest run"
-âœ“ .env.example has all process.env variables (or empty string if none)`;
+âœ .env.example has all process.env variables (or empty string if none)
+âœ main() registers both process.on("SIGTERM") and process.on("SIGINT") handlers calling server.close() then process.exit(0)
+âœ All database/SQL queries use parameterized form --- zero string concatenation in SQL
+âœ If OAuth2 used: token refresh flow is COMPLETE --- no TODO comments in auth code``;
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // USER MESSAGE

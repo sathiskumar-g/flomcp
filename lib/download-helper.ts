@@ -25,6 +25,7 @@ export interface DownloadableFiles {
   readme?: string | null;
   tsconfig?: string | null;
   env_example?: string | null;
+  env_filled?: string | null;
   tests_code?: string | null;
   name: string;
 }
@@ -151,6 +152,11 @@ export async function buildMCPZip(files: DownloadableFiles): Promise<Blob> {
   // .env.example
   if (files.env_example) {
     root.file(".env.example", files.env_example);
+  }
+
+  // .env (pre-filled by user — never committed; .gitignore already excludes it)
+  if (files.env_filled) {
+    root.file(".env", files.env_filled);
   }
 
   // README.md

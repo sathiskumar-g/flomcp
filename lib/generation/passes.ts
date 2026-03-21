@@ -28,6 +28,8 @@ export const PASS_3_CHECKLIST = [
   "Are all Zod schemas using plain shape (not z.object wrapper)?",
   "Does the shebang use /usr/bin/env node (not direct node path)?",
   "Is the output valid TypeScript with no syntax errors?",
+  "Does main() register both process.on('SIGTERM') and process.on('SIGINT') handlers that call server.close() then process.exit(0)?",
+  "Are ALL database/SQL queries parameterized ($1/$2 for pg, ? for sqlite3/mysql2)? Zero string concatenation in SQL?",
 ] as const;
 
 // ─── Pass 1 types ─────────────────────────────────────────────────────────────

@@ -35,9 +35,12 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +112,10 @@ export default function ServerDetailPage() {
   const [fbComment, setFbComment] = useState("");
   const [fbSent, setFbSent] = useState(false);
 
+  // B20 — env var setup modal
+  const [envModalOpen, setEnvModalOpen] = useState(false);
+  const [envValues, setEnvValues] = useState<Record<string, string>>({});
+
   useEffect(() => {
     async function load() {
       const res = await fetch(`/api/servers/${id}`);
@@ -153,6 +160,16 @@ export default function ServerDetailPage() {
   const activeFileTab = FILE_TABS.find((t) => t.key === activeTab)!;
   const activeContent = server[activeTab] ?? "";
 
+  /** Parse env var key names from .env.example content (KEY=value lines only). */
+  function parseEnvVarNames(example: string | null): string[] {
+    if (!example) return [];
+    return [...new Set(
+      example.split("\n")
+        .map((line) => line.split("=")[0].trim())
+        .filter((k) => /^[A-Z_][A-Z0-9_]*$/.test(k))
+    )];
+  }
+
   // Copy file content
   async function handleCopy() {
     await navigator.clipboard.writeText(activeContent);
@@ -174,6 +191,19 @@ export default function ServerDetailPage() {
   // Download all files as a ZIP archive
   async function handleDownloadAll() {
     if (!server) return;
+    const envVars = parseEnvVarNames(server.env_example);
+    if (envVars.length > 0) {
+      // Pre-populate keys with empty values so the form renders inputs
+      setEnvValues(Object.fromEntries(envVars.map((k) => [k, ""])));
+      setEnvModalOpen(true);
+      return;
+    }
+    await doDownload(null);
+  }
+
+  /** Performs the actual ZIP download with optional pre-filled .env content. */
+  async function doDownload(filledEnv: string | null) {
+    if (!server) return;
     await downloadMCPServerAsZip({
       name: server.name,
       generated_code: server.generated_code,
@@ -181,6 +211,7 @@ export default function ServerDetailPage() {
       readme: server.readme,
       tsconfig: server.tsconfig,
       env_example: server.env_example,
+      env_filled: filledEnv,
     });
     // Mark as downloaded via API
     await fetch(`/api/servers/${id}`, {
@@ -189,6 +220,19 @@ export default function ServerDetailPage() {
       body: JSON.stringify({ downloaded: true, downloaded_at: new Date().toISOString() }),
     });
     toast.success("Server downloaded successfully.");
+  }
+
+  /** Called when user submits the env var form. */
+  async function handleEnvDownload(skip: boolean) {
+    setEnvModalOpen(false);
+    if (skip) {
+      await doDownload(null);
+      return;
+    }
+    const lines = Object.entries(envValues)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+    await doDownload(lines);
   }
 
   // Re-run security validation via /api/validate
@@ -709,6 +753,53 @@ export default function ServerDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* B20 — Env var setup modal */}
+      <Dialog open={envModalOpen} onOpenChange={setEnvModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set up your environment variables</DialogTitle>
+            <DialogDescription className="text-xs">
+              Enter your API keys and secrets. These values are written directly
+              into a <code>.env</code> file inside your ZIP — they are{" "}
+              <strong>never sent to FloMCP servers</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {Object.keys(envValues).map((key) => (
+              <div key={key} className="space-y-1">
+                <label htmlFor={`env-${key}`} className="text-xs font-mono text-foreground">
+                  {key}
+                </label>
+                <Input
+                  id={`env-${key}`}
+                  type={key.toLowerCase().includes("secret") || key.toLowerCase().includes("key") || key.toLowerCase().includes("token") || key.toLowerCase().includes("pass") ? "password" : "text"}
+                  placeholder={`Enter ${key}`}
+                  value={envValues[key]}
+                  onChange={(e) =>
+                    setEnvValues((prev) => ({ ...prev, [key]: e.target.value }))
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+              onClick={() => handleEnvDownload(true)}
+            >
+              Skip — I&apos;ll fill it in later
+            </Button>
+            <Button size="sm" onClick={() => handleEnvDownload(false)}>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download with .env
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
