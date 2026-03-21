@@ -15,7 +15,7 @@ const FREE_CREDIT_FEATURES = [
   "3 credits on signup — never expire",
   "Early birds (first 50 signups) get 5 credits",
   "Full TypeScript source code",
-  "3-pass quality engine + 22 security checks",
+  "3-pass quality engine + 22 security checks + 10 protocol compliance checks",
   "Download ZIP + auto-generated docs",
   "Works with Claude, Copilot & Cursor",
   "MCP Library access",

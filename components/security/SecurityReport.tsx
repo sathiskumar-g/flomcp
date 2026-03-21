@@ -43,6 +43,8 @@ import {
   SEVERITY_LABELS,
   getGrade,
 } from "@/lib/security/types";
+import type { ProtocolReport, ProtocolCheck } from "@/lib/protocol/types";
+import { getProtocolSeverityColor, PROTOCOL_SEVERITY_LABELS } from "@/lib/protocol/types";
 import { SecurityBadge } from "./SecurityBadge";
 import { Recommendations } from "./Recommendations";
 
@@ -279,6 +281,164 @@ function CategorySection({
   );
 }
 
+// ─── Protocol Check Row ───────────────────────────────────────────────────────
+
+function ProtocolCheckRow({ check }: { check: ProtocolCheck }) {
+  const [expanded, setExpanded] = useState(!check.passed && !check.notApplicable);
+  const hasExpansion = !!(check.details || check.recommendation);
+
+  const statusIcon = check.notApplicable ? (
+    <Minus className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
+  ) : check.passed ? (
+    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+  ) : (
+    <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+  );
+
+  return (
+    <div
+      className={cn(
+        "rounded-md",
+        !check.notApplicable && !check.passed && "bg-red-500/5",
+        check.passed && "bg-transparent"
+      )}
+    >
+      <button
+        onClick={() => hasExpansion && setExpanded((p) => !p)}
+        className={cn(
+          "w-full flex items-start gap-2.5 p-2.5 text-left rounded-md",
+          hasExpansion && "hover:bg-muted/30 transition-colors cursor-pointer",
+          !hasExpansion && "cursor-default"
+        )}
+        disabled={!hasExpansion}
+        aria-expanded={hasExpansion ? expanded : undefined}
+      >
+        {statusIcon}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span
+              className={cn(
+                "text-xs font-medium",
+                check.notApplicable && "text-muted-foreground/60",
+                !check.notApplicable && !check.passed && "text-foreground",
+                check.passed && "text-foreground"
+              )}
+            >
+              {check.name}
+            </span>
+            <span className="text-[10px] text-muted-foreground/50 font-mono">
+              {check.id}
+            </span>
+            <Badge
+              className={cn(
+                "text-[9px] px-1 py-0 h-3.5 border ml-auto",
+                check.notApplicable
+                  ? "text-muted-foreground bg-muted/30 border-border"
+                  : getProtocolSeverityColor(check.severity)
+              )}
+              variant="outline"
+            >
+              {check.notApplicable ? "N/A" : PROTOCOL_SEVERITY_LABELS[check.severity]}
+            </Badge>
+          </div>
+          <p className="text-[11px] mt-0.5 text-muted-foreground">{check.message}</p>
+        </div>
+
+        {hasExpansion && (
+          <div className="flex-shrink-0 text-muted-foreground">
+            {expanded ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </div>
+        )}
+      </button>
+
+      {expanded && hasExpansion && (
+        <div className="px-3 pb-3 pt-0 space-y-2 border-t border-border/30 mt-0">
+          {check.details && (
+            <p className="text-[11px] text-muted-foreground pt-2">{check.details}</p>
+          )}
+          {check.recommendation && (
+            <div className="bg-muted/30 rounded p-2.5 border border-border/30">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                Fix
+              </p>
+              <pre className="text-[11px] font-mono whitespace-pre-wrap overflow-x-auto leading-relaxed">
+                {check.recommendation}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Protocol Checks Section ──────────────────────────────────────────────────
+
+function ProtocolChecksSection({ protocolReport }: { protocolReport: ProtocolReport }) {
+  const [open, setOpen] = useState(protocolReport.hadBlockers || protocolReport.warningCount > 0);
+
+  const statusColor =
+    protocolReport.blockerCount > 0
+      ? "text-red-500"
+      : protocolReport.warningCount > 0
+        ? "text-yellow-500"
+        : "text-green-500";
+
+  const summary =
+    protocolReport.blockerCount > 0
+      ? `${protocolReport.blockerCount} blocker${protocolReport.blockerCount !== 1 ? "s" : ""}`
+      : protocolReport.warningCount > 0
+        ? `${protocolReport.warningCount} warning${protocolReport.warningCount !== 1 ? "s" : ""}`
+        : "All checks passed";
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-blue-500" />
+            MCP Protocol Compliance
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {protocolReport.autoFixed && (
+              <Badge className="text-[9px] px-1.5 py-0 h-4 bg-blue-500/15 text-blue-400 border-blue-500/30" variant="outline">
+                Auto-fixed
+              </Badge>
+            )}
+            <span className={cn("text-xs font-medium", statusColor)}>{summary}</span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {protocolReport.passedChecks} of {protocolReport.totalChecks - protocolReport.naChecks} applicable checks passed
+          {protocolReport.naChecks > 0 && ` (${protocolReport.naChecks} N/A)`}
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <button
+          onClick={() => setOpen((p) => !p)}
+          className="w-full flex items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+        >
+          <span>{open ? "Hide" : "Show"} protocol checks</span>
+          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        </button>
+
+        {open && (
+          <div className="mt-2 space-y-1 divide-y divide-border/20">
+            {protocolReport.checks.map((check) => (
+              <ProtocolCheckRow key={check.id} check={check} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Download Gate Banner ─────────────────────────────────────────────────────
 
 function DownloadGateBanner({ score }: { score: number }) {
@@ -439,6 +599,11 @@ export function SecurityReport({
           ))}
         </CardContent>
       </Card>
+
+      {/* MCP Protocol Compliance */}
+      {report.protocolReport && (
+        <ProtocolChecksSection protocolReport={report.protocolReport} />
+      )}
 
       {/* Recommendations */}
       {showRecommendations && report.recommendations.length > 0 && (

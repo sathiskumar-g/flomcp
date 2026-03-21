@@ -5,6 +5,8 @@ import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
 import { createServerClient } from "@/lib/supabase-server";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
 import { runSecurityValidation } from "@/lib/security/validator";
+import { runProtocolValidation, buildProtocolFixPrompt } from "@/lib/protocol/validator";
+import type { ProtocolReport } from "@/lib/protocol/types";
 import {
   buildPass1System, buildPass1User,
   buildPass3System, buildPass3User,
@@ -776,6 +778,7 @@ Run command for users after download:
         // Declare outside the try so they stay in scope for security + DB steps below
         let parsed: { files?: Record<string, string>; tools?: object[] } = {};
         let generatedIndexTs = "";
+        let protocolReport: ProtocolReport | null = null;
 
         try {
           // ── Pass 1: Schema contract ────────────────────────────────────────
@@ -867,6 +870,38 @@ Run command for users after download:
           } catch {
             // Non-fatal — use Pass 2 output as-is if Pass 3 fails
           }
+
+          // ── Protocol compliance validation ─────────────────────────────
+          send({ type: "progress", step: "protocol", message: "Checking MCP protocol compliance\u2026" });
+          protocolReport = runProtocolValidation(generatedIndexTs);
+          if (protocolReport.hadBlockers) {
+            // Targeted re-gen: fix only the failing protocol blockers (non-fatal)
+            try {
+              const failedBlockers = protocolReport.checks.filter(
+                (c) => !c.notApplicable && !c.passed && c.severity === "blocker"
+              );
+              const fixMsg = await Promise.race([
+                anthropic.messages.create({
+                  model: "claude-sonnet-4-6",
+                  max_tokens: 8000,
+                  temperature: 0.1,
+                  messages: [{ role: "user", content: buildProtocolFixPrompt(generatedIndexTs, failedBlockers) }],
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error("Protocol fix timed out")), 60000)
+                ),
+              ]);
+              const fixedCode = fixMsg.content[0].type === "text" ? fixMsg.content[0].text.trim() : "";
+              if (fixedCode) {
+                generatedIndexTs = fixedCode;
+                if (parsed.files) parsed.files["src/index.ts"] = fixedCode;
+                // Re-run with autoFixed flag so the report reflects the correction
+                protocolReport = runProtocolValidation(generatedIndexTs, true);
+              }
+            } catch {
+              // Non-fatal — keep original code and protocol report if fix call fails
+            }
+          }
         } finally {
           clearInterval(keepAlive);
         }
@@ -885,15 +920,18 @@ Run command for users after download:
           envExample: generatedEnvExample ?? undefined,
         });
 
+        // Embed protocol report into the combined report (no DB schema change needed)
+        const combinedReport = { ...securityReport, protocolReport: protocolReport ?? undefined };
+
         // Send score to client immediately so UI can react
         send({
           type: "security",
-          score: securityReport.score,
-          grade: securityReport.grade,
-          passedChecks: securityReport.passedChecks,
-          failedChecks: securityReport.failedChecks,
-          blockDownload: securityReport.blockDownload,
-          report: securityReport,
+          score: combinedReport.score,
+          grade: combinedReport.grade,
+          passedChecks: combinedReport.passedChecks,
+          failedChecks: combinedReport.failedChecks,
+          blockDownload: combinedReport.blockDownload,
+          report: combinedReport,
         });
 
         send({ type: "progress", step: "saving", message: "Saving your server…" });
@@ -915,8 +953,8 @@ Run command for users after download:
             env_example: generatedEnvExample,
             api_config: apiConfig ?? null,
             status: "generated",
-            security_score: securityReport.score,
-            security_report: securityReport,
+            security_score: combinedReport.score,
+            security_report: combinedReport,
             generation_input: {
               serverName: serverName || (description).slice(0, 60),
               description,
@@ -960,9 +998,9 @@ Run command for users after download:
           type: "complete",
           id: insertedRow.id,
           tools: parsed.tools ?? tools,
-          securityScore: securityReport.score,
-          securityGrade: securityReport.grade,
-          blockDownload: securityReport.blockDownload,
+          securityScore: combinedReport.score,
+          securityGrade: combinedReport.grade,
+          blockDownload: combinedReport.blockDownload,
         });
       } catch (err: unknown) {
         // Refund credits — user should not be charged for a failed generation

@@ -49,6 +49,7 @@ const PROGRESS_STEPS = [
   { key: "pass1",    label: "Pass 1 — Designing tool schema contract" },
   { key: "pass2",    label: "Pass 2 — Writing TypeScript implementation" },
   { key: "pass3",    label: "Pass 3 — Running quality checklist" },
+  { key: "protocol", label: "Checking MCP protocol compliance" },
   { key: "security", label: "Running 22 security checks" },
   { key: "saving",   label: "Saving your server" },
 ];

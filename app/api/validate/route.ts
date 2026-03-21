@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { runSecurityValidation } from "@/lib/security/validator";
+import { runProtocolValidation } from "@/lib/protocol/validator";
 import type { CodeFiles } from "@/lib/security/types";
 
 // ─── Max sizes to prevent abuse ───────────────────────────────────────────────
@@ -89,17 +90,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     };
 
     const report = runSecurityValidation(files);
+    const protocolReport = runProtocolValidation(files.indexTs);
+    const combinedReport = { ...report, protocolReport };
 
     // Persist updated score + report (no updated_at — column may not exist)
     await adminClient
       .from("mcp_servers")
       .update({
-        security_score: report.score,
-        security_report: report,
+        security_score: combinedReport.score,
+        security_report: combinedReport,
       })
       .eq("id", serverId);
 
-    return NextResponse.json({ report }, { status: 200 });
+    return NextResponse.json({ report: combinedReport }, { status: 200 });
   }
 
   // ── Option A: Validate raw code files ───────────────────────────────────────
@@ -157,8 +160,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   };
 
   const report = runSecurityValidation(files);
+  const protocolReport = runProtocolValidation(files.indexTs);
+  const combinedReport = { ...report, protocolReport };
 
-  return NextResponse.json({ report }, { status: 200 });
+  return NextResponse.json({ report: combinedReport }, { status: 200 });
 }
 
 // GET — not supported

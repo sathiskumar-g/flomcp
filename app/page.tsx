@@ -26,13 +26,13 @@ const FAQ_ITEMS = [
   { q: "Are FloMCP servers secure?", a: "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one." },
   { q: "Can I use FloMCP for complex API integrations?", a: "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery." },
   { q: "How does FloMCP compare to building MCP manually?", a: "Manual MCP development takes 10+ hours across boilerplate, schemas, error handling, testing, and documentation. FloMCP does it in under 2 minutes — with security checks built in." },
-  { q: "What makes FloMCP different from just asking Claude or ChatGPT?", a: "FloMCP is purpose-built for MCP: the generated code follows the MCP specification exactly, includes Zod schemas, passes 22 security checks, and comes with a working README and claude_desktop_config.json — not a generic snippet that still needs hours of debugging." },
+  { q: "What makes FloMCP different from just asking Claude or ChatGPT?", a: "FloMCP is purpose-built for MCP: the generated code follows the MCP specification exactly, includes Zod schemas, passes 22 OWASP security checks + 10 MCP protocol compliance checks, and comes with a working README and claude_desktop_config.json — not a generic snippet that still needs hours of debugging." },
 ];
 
 const FREE_CREDIT_FEATURES = [
   "3 credits on signup — never expire",
   "Full TypeScript source code",
-  "3-pass quality engine + 22 security checks",
+  "3-pass quality engine + 22 security checks + 10 protocol compliance checks",
   "Download ZIP + auto-generated docs",
   "Works with Claude, Copilot & Cursor",
   "MCP Library access",
@@ -473,7 +473,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Describe what you need in plain English. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks. Download-ready. No boilerplate.
+            Describe what you need in plain English. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks and 10 MCP protocol compliance checks. Download-ready. No boilerplate.
           </p>
 
           {/* Time Savings Showcase + live server counter */}
@@ -501,7 +501,7 @@ export default function Home() {
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>3-pass generation + 22 security checks</span>
+              <span>3-pass generation + 22 security + 10 protocol checks</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -805,8 +805,35 @@ export default function Home() {
               Build Secure MCP Servers from Day One
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Recent analysis of 8,000+ MCP servers revealed widespread security vulnerabilities. FloMCP generates secure, production-ready code that follows industry best practices.
+              Recent analysis of 8,000+ MCP servers revealed widespread security vulnerabilities. FloMCP is the only generator that runs <strong className="text-foreground">22 OWASP security checks + 10 MCP protocol compliance checks</strong> — catching both security holes and protocol mistakes before they reach production.
             </p>
+          </div>
+
+          {/* 32-check callout banner */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-10">
+            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-green-500/30 bg-green-500/8">
+              <Shield className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">22 OWASP Security Checks</p>
+                <p className="text-xs text-muted-foreground">Injection, SSRF, secrets, dependencies…</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center text-muted-foreground font-bold text-lg">+</div>
+            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-blue-500/30 bg-blue-500/8">
+              <CheckCircle2 className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">10 Protocol Compliance Checks</p>
+                <p className="text-xs text-muted-foreground">Transport, shebang, response shape, signal handling…</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center text-muted-foreground font-bold text-lg">=</div>
+            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-primary/40 bg-primary/8">
+              <span className="text-2xl font-black text-primary">32</span>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-foreground">Total Automated Checks</p>
+                <p className="text-xs text-muted-foreground">No other MCP generator comes close.</p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
@@ -1022,7 +1049,7 @@ export default function Home() {
                 {[
                   ["MCP-spec compliant output", "Built exactly to the Model Context Protocol — tools appear first try"],
                   ["Full Zod validation on every input", "Type-safe, runtime-safe, no crashes from malformed requests"],
-                  ["3-pass quality verification + 22 security checks", "Schema contract → implementation → quality checklist → OWASP security checks"],
+                  ["3-pass quality + 22 security + 10 protocol checks", "Schema contract → implementation → quality checklist → OWASP security → MCP protocol compliance"],
                   ["Complete project — not just a snippet", "README, .env.example, claude_desktop_config.json included"],
                   ["Download and run in under 2 min", "No debugging. No restarts. Open the zip and go."],
                 ].map(([title, detail]) => (

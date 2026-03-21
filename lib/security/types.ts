@@ -109,6 +109,8 @@ export interface SecurityReport {
   /** Whether download should be blocked (score < 70) */
   blockDownload: boolean;
   timestamp: string;
+  /** MCP protocol compliance report (10 checks). Embedded after generation. */
+  protocolReport?: import("@/lib/protocol/types").ProtocolReport;
 }
 
 // ─── Input to Validator ───────────────────────────────────────────────────────
