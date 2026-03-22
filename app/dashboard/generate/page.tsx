@@ -10,7 +10,7 @@
 import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
-import { useDrafts, type SavedDraft } from "@/lib/use-drafts";
+import { useDrafts, DRAFT_FREE_LIMIT, type SavedDraft } from "@/lib/use-drafts";
 import { createClient } from "@/lib/supabase";
 import { Step1Description } from "@/components/generator/Step1Description";
 import { Step2APIConfig } from "@/components/generator/Step2APIConfig";
@@ -225,7 +225,7 @@ function GenerateWizard() {
                 {step === 2 && <Step2APIConfig />}
                 {step === 3 && <Step3ToolConfig />}
                 {step === 4 && <Step4Resources />}
-                {step === 5 && <Step5Review onSaveDraft={() => setMode("drafts")} />}
+                {step === 5 && <Step5Review userId={userId} onSaveDraft={() => setMode("drafts")} />}
                 {step === 6 && <PostGenerationReview />}
               </div>
 
@@ -263,6 +263,7 @@ function DraftsList({
   onDelete: (id: string) => void;
   onNew: () => void;
 }) {
+  const atLimit = drafts.length >= DRAFT_FREE_LIMIT;
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -272,10 +273,21 @@ function DraftsList({
             Drafts save your wizard configuration before generating. Free plan: up to 5 drafts.
           </p>
         </div>
-        <Button size="sm" className="gap-2 flex-shrink-0" onClick={onNew}>
-          <Plus className="h-4 w-4" />
-          New Server
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Badge
+            variant="secondary"
+            className={cn(
+              "text-xs tabular-nums",
+              atLimit ? "bg-red-500/10 text-red-600 border-red-500/20" : ""
+            )}
+          >
+            {drafts.length} of {DRAFT_FREE_LIMIT}
+          </Badge>
+          <Button size="sm" className="gap-2" onClick={onNew}>
+            <Plus className="h-4 w-4" />
+            New Server
+          </Button>
+        </div>
       </div>
 
       {drafts.length === 0 ? (

@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
 import { estimateCredits, validateInputLimits, MAX_TOOLS, MAX_DESCRIPTION_CHARS, MAX_SINGLE_RESOURCE_CHARS, MAX_SINGLE_PROMPT_CHARS, MAX_TOTAL_CONTENT_CHARS } from "@/lib/credits";
 import { useDrafts, DRAFT_FREE_LIMIT } from "@/lib/use-drafts";
@@ -56,34 +57,12 @@ const PROGRESS_STEPS = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
+export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => void; userId?: string }) {
   const { description, serverName, apiConfig, apiDocContext, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
 
-  const { saveDraft, drafts } = useDrafts();
+  const { saveDraft } = useDrafts(userId);
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [draftError, setDraftError] = useState<string | null>(null);
-
-  // Track whether generation succeeded — used by auto-save cleanup
-  const generatedRef = useRef(false);
-  // Keep latest wizard data in a ref so the cleanup closure always sees fresh values
-  const wizardDataRef = useRef({ serverName, description, apiConfig, tools, resources, prompts });
-  useEffect(() => {
-    wizardDataRef.current = { serverName, description, apiConfig, tools, resources, prompts };
-  });
-
-  // Auto-save as draft when leaving Review step without generating
-  useEffect(() => {
-    return () => {
-      if (!generatedRef.current) {
-        const d = wizardDataRef.current;
-        // Only auto-save if there's at least a server name or description
-        if (d.serverName.trim() || d.description.trim()) {
-          saveDraft({ serverName: d.serverName, description: d.description, apiConfig: d.apiConfig, tools: d.tools, resources: d.resources, prompts: d.prompts });
-        }
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState<string | null>(null);
@@ -152,13 +131,16 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
       // Local tracker for the current step — avoids stale closure from `activeStep` state
       // (on retry, `activeStep` in the closure still holds the previous run's last step)
       let currentStep: string | null = null;
+      // Flag so we can break out of the outer while loop from the inner event loop
+      let generationDone = false;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done || generationDone) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Parse SSE lines
+        // Parse SSE lines — process each event sequentially with yield points
+        // so React commits each step's state change as a separate render frame.
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
@@ -167,21 +149,30 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
           const event = JSON.parse(line.slice(6));
 
           if (event.type === "progress") {
-            // Mark previous step as complete using local tracker (not stale closure)
-            if (currentStep) {
-              setCompletedSteps((prev) => new Set([...prev, currentStep!]));
-            }
+            // flushSync forces React to render each step's state immediately,
+            // even when multiple progress events arrive in the same SSE chunk.
+            const prevStep = currentStep;
             currentStep = event.step;
-            setActiveStep(event.step);
+            flushSync(() => {
+              if (prevStep) setCompletedSteps((prev) => new Set([...prev, prevStep]));
+              setActiveStep(event.step);
+            });
           } else if (event.type === "security") {
             // Store security result — will be attached to generatedResult below
             securityScore = event.score as number;
             securityGrade = event.grade as string;
             blockDownload = event.blockDownload as boolean;
           } else if (event.type === "complete") {
-            // Mark all steps done
-            setCompletedSteps(new Set(PROGRESS_STEPS.map((s) => s.key)));
-            setActiveStep(null);
+            // Tick the last active step, pause briefly so user sees it, then mark all done
+            const lastStep = currentStep;
+            flushSync(() => {
+              if (lastStep) setCompletedSteps((prev) => new Set([...prev, lastStep]));
+            });
+            await new Promise<void>((r) => setTimeout(r, 300));
+            flushSync(() => {
+              setCompletedSteps(new Set(PROGRESS_STEPS.map((s) => s.key)));
+              setActiveStep(null);
+            });
             setGeneratedResult({
               id: event.id,
               tools: (event.tools ?? tools) as ToolDefinition[],
@@ -189,9 +180,10 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
               securityGrade,
               blockDownload,
             });
-            generatedRef.current = true; // mark success so unmount doesn't auto-save
-            nextStep(); // → Step 5: PostGenerationReview
-            return;
+            // Brief pause so user sees all 6 steps ticked before navigating
+            setTimeout(() => nextStep(), 700);
+            generationDone = true;
+            break;
           } else if (event.type === "error") {
             throw new Error(event.message);
           }
@@ -551,7 +543,7 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
           variant="outline"
           className="h-7 text-xs gap-1.5 flex-shrink-0"
           onClick={handleSaveAsDraft}
-          disabled={draftStatus === "saving" || drafts.length >= DRAFT_FREE_LIMIT}
+          disabled={draftStatus === "saving"}
         >
           {draftStatus === "saving" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

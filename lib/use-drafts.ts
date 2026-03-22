@@ -62,9 +62,9 @@ function writeDrafts(drafts: SavedDraft[], userId: string): void {
 export function useDrafts(userId: string = "") {
   const [drafts, setDrafts] = useState<SavedDraft[]>([]);
 
-  // Re-hydrate from localStorage whenever the userId becomes available
+  // Re-hydrate from localStorage on mount and whenever userId changes
   useEffect(() => {
-    if (userId) setDrafts(readDrafts(userId));
+    setDrafts(readDrafts(userId));
   }, [userId]);
 
   const saveDraft = useCallback(
