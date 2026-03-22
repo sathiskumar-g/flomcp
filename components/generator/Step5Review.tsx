@@ -57,7 +57,7 @@ const PROGRESS_STEPS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
-  const { description, serverName, apiConfig, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
+  const { description, serverName, apiConfig, apiDocContext, tools, resources, prompts, prevStep, nextStep, setGeneratedResult } = useGeneratorStore();
 
   const { saveDraft, drafts } = useDrafts();
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -132,7 +132,7 @@ export function Step5Review({ onSaveDraft }: { onSaveDraft?: () => void }) {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, serverName, apiConfig, tools, resources, prompts }),
+        body: JSON.stringify({ description, serverName, apiConfig, tools, resources, prompts, apiDocContext }),
       });
 
       if (!res.ok) {

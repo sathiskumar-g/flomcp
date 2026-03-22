@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase-admin";
 import { checkRateLimit, recordGeneration } from "@/lib/rate-limiter";
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { description, serverName = "", apiConfig, tools = [], resources = [], prompts = [] } = body;
+  const { description, serverName = "", apiConfig, tools = [], resources = [], prompts = [], apiDocContext = null } = body;
 
   // BUG-001: Guard — tools must be a non-empty array
   if (!Array.isArray(tools) || tools.length === 0) {
@@ -263,6 +263,12 @@ export async function POST(req: NextRequest) {
         const apiSection = apiConfig?.enabled
           ? `API Integration:\n- Base URL: ${apiConfig.baseUrl}\n- Auth type: ${apiConfig.authType}${apiConfig.apiDocUrl ? `\n- Docs: ${apiConfig.apiDocUrl}` : ""}`
           : "No external API â€” local tools only.";
+
+        // If the user pre-fetched API documentation, inject it into the context
+        const apiSectionFull =
+          apiDocContext && typeof apiDocContext === "string" && apiDocContext.length > 0
+            ? `${apiSection}\n\n### Fetched API Documentation\n${apiDocContext.slice(0, 12000)}${apiDocContext.length > 12000 ? "\n[truncated]" : ""}`
+            : apiSection;
 
         // Build resources section
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -718,7 +724,7 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 âœ .env.example has all process.env variables (or empty string if none)
 âœ main() registers both process.on("SIGTERM") and process.on("SIGINT") handlers calling server.close() then process.exit(0)
 âœ All database/SQL queries use parameterized form --- zero string concatenation in SQL
-âœ If OAuth2 used: token refresh flow is COMPLETE --- no TODO comments in auth code``;
+âœ If OAuth2 used: token refresh flow is COMPLETE --- no TODO comments in auth code`;
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // USER MESSAGE
@@ -736,7 +742,7 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 STDIO only â€” no HTTP, no Express, no ports. Runs locally on the developer's machine.
 
 ## API Integration
-${apiSection}
+${apiSectionFull}
 
 ## Tools to Implement (${tools.length} total)
 ${toolList}

@@ -95,6 +95,9 @@ export interface GeneratorState {
   resources: ResourceDefinition[];
   prompts: PromptDefinition[];
 
+  // ── Step 2: Fetched API documentation context ──
+  apiDocContext: string | null;
+
   // ── Step 6: Post-generation ──
   generatedResult: GeneratedResult | null;
   navigatingToServer: boolean;
@@ -141,6 +144,7 @@ export interface GeneratorState {
 
   // Step 6
   setGeneratedResult: (result: GeneratedResult) => void;
+  setApiDocContext: (ctx: string | null) => void;
   setNavigatingToServer: (v: boolean) => void;
   addToolField: (toolId: string) => void;
   updateToolField: (toolId: string, fieldId: string, patch: Partial<Omit<SchemaField, "id">>) => void;
@@ -234,6 +238,7 @@ const INITIAL_STATE = {
   suggestionsLoading: false,
   resources: [] as ResourceDefinition[],
   prompts: [] as PromptDefinition[],
+  apiDocContext: null as string | null,
   generatedResult: null as GeneratedResult | null,
   navigatingToServer: false,
 };
@@ -432,6 +437,7 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
     }),
 
   // Reset
+  setApiDocContext: (apiDocContext) => set({ apiDocContext }),
   setNavigatingToServer: (v) => set({ navigatingToServer: v }),
-  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], generatedResult: null, suggestionsLoading: false, navigatingToServer: false }),
+  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], apiDocContext: null, generatedResult: null, suggestionsLoading: false, navigatingToServer: false }),
 }));

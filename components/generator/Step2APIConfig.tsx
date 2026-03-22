@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { useGeneratorStore, type AuthType, type SchemaField } from "@/lib/stores/generator-store";
+import type { FetchDocResult } from "@/lib/context/fetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Link,
+  Loader2,
+  BookOpen,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,10 +58,12 @@ function isValidUrl(url: string) {
 export function Step2APIConfig() {
   const {
     apiConfig,
+    apiDocContext,
     setApiEnabled,
     setApiUrl,
     setAuthType,
     setApiDocUrl,
+    setApiDocContext,
     addSchemaField,
     updateSchemaField,
     removeSchemaField,
@@ -69,6 +75,41 @@ export function Step2APIConfig() {
   } = useGeneratorStore();
 
   const [urlTouched, setUrlTouched] = useState(false);
+  const [fetchingDoc, setFetchingDoc] = useState(false);
+  const [docFetchError, setDocFetchError] = useState<string | null>(null);
+  const [docMeta, setDocMeta] = useState<Pick<FetchDocResult, "type" | "title" | "endpointCount" | "truncated"> | null>(null);
+
+  async function handleFetchDoc() {
+    if (!apiConfig.apiDocUrl.trim()) return;
+    setFetchingDoc(true);
+    setDocFetchError(null);
+    setDocMeta(null);
+    setApiDocContext(null);
+    try {
+      const res = await fetch("/api/context-fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: apiConfig.apiDocUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDocFetchError(data?.error ?? "Failed to fetch documentation");
+        return;
+      }
+      const result = data as FetchDocResult;
+      setApiDocContext(result.content);
+      setDocMeta({
+        type: result.type,
+        title: result.title,
+        endpointCount: result.endpointCount,
+        truncated: result.truncated,
+      });
+    } catch {
+      setDocFetchError("Network error — could not reach the server.");
+    } finally {
+      setFetchingDoc(false);
+    }
+  }
 
   const urlValid = !apiConfig.enabled || isValidUrl(apiConfig.baseUrl);
   const urlError = urlTouched && apiConfig.enabled && !urlValid;
@@ -172,14 +213,91 @@ export function Step2APIConfig() {
               API Documentation URL
               <Badge variant="outline" className="text-xs">Optional</Badge>
             </label>
-            <Input
-              value={apiConfig.apiDocUrl}
-              onChange={(e) => setApiDocUrl(e.target.value)}
-              placeholder="https://docs.example.com/api"
-            />
-            <p className="text-xs text-muted-foreground">
-              Claude uses this to understand endpoint structure and generate better code
-            </p>
+            <div className="flex gap-2">
+              <Input
+                value={apiConfig.apiDocUrl}
+                onChange={(e) => {
+                  setApiDocUrl(e.target.value);
+                  // Clear stale fetched context when URL changes
+                  if (apiDocContext) { setApiDocContext(null); setDocMeta(null); }
+                }}
+                placeholder="https://docs.example.com/api or github.com/owner/repo"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!apiConfig.apiDocUrl.trim() || fetchingDoc}
+                onClick={handleFetchDoc}
+                className="flex-shrink-0 gap-1.5"
+              >
+                {fetchingDoc ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <BookOpen className="h-3.5 w-3.5" />
+                )}
+                {fetchingDoc ? "Fetching…" : "Fetch Docs"}
+              </Button>
+            </div>
+
+            {/* Fetch result preview */}
+            {docFetchError && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                {docFetchError}
+              </p>
+            )}
+
+            {apiDocContext && docMeta && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                    <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                      {docMeta.title ? `"${docMeta.title}" loaded` : "Documentation loaded"}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-green-500/40 text-green-700 dark:text-green-400"
+                    >
+                      {docMeta.type === "openapi" ? "OpenAPI" :
+                       docMeta.type === "github" ? "GitHub" :
+                       docMeta.type === "html"   ? "HTML Docs" : "Text"}
+                    </Badge>
+                    {docMeta.endpointCount !== undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        {docMeta.endpointCount} endpoint{docMeta.endpointCount !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {docMeta.truncated && (
+                      <span className="text-xs text-amber-600">truncated to 15k chars</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setApiDocContext(null); setDocMeta(null); }}
+                    className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                    aria-label="Clear fetched documentation"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {/* Preview first ~250 chars */}
+                <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap break-words line-clamp-4 bg-muted/30 rounded p-2">
+                  {apiDocContext.slice(0, 250)}{apiDocContext.length > 250 ? "\u2026" : ""}
+                </pre>
+                <p className="text-xs text-muted-foreground">
+                  {apiDocContext.length.toLocaleString()} chars — will be injected into Claude’s generation context
+                </p>
+              </div>
+            )}
+
+            {!apiDocContext && !docFetchError && (
+              <p className="text-xs text-muted-foreground">
+                Paste an OpenAPI spec URL, GitHub repo, or HTML docs page — FloMCP will fetch and parse it for Claude
+              </p>
+            )}
           </div>
 
           {/* Input Schema */}
