@@ -843,7 +843,7 @@ Run command for users after download:
               messages: [{ role: "user", content: pass2UserMessage }],
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 180000)
+              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 480000)
             ),
           ]);
 
