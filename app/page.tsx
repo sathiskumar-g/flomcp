@@ -464,16 +464,17 @@ export default function Home() {
             <span>From plain English to running MCP server — in under 5 minutes</span>
           </div>
           
+
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight">
             Build MCP Servers
             <br />
             <span className="bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              That Actually Work
+              That Actually Works Solid
             </span>
           </h1>
-          
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Describe what you need in plain English. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks and 10 MCP protocol compliance checks. Download-ready. No boilerplate.
+            We make your MCP servers bulletproof—secure, compliant, and ready for production in minutes. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks and 10 MCP protocol compliance checks.
           </p>
 
           {/* Time Savings Showcase + live server counter */}
