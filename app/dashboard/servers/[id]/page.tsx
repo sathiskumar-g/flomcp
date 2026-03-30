@@ -512,7 +512,7 @@ export default function ServerDetailPage() {
                 className="text-sm resize-none"
               />
             )}
-            <div className="flex gap-2 justify-end pt-1">
+            <div className="flex gap-2 justify-center pt-1">
               <Button variant="ghost" size="sm" onClick={() => setFeedbackModalOpen(false)}>
                 Skip
               </Button>
@@ -744,9 +744,11 @@ export default function ServerDetailPage() {
                     maxLength={500}
                     className="text-sm resize-none"
                   />
-                  <Button size="sm" onClick={handleFeedbackSubmit}>
-                    Submit Feedback
-                  </Button>
+                  <div className="flex justify-center">
+                    <Button size="sm" onClick={handleFeedbackSubmit}>
+                      Submit Feedback
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
