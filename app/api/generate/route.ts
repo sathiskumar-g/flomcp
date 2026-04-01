@@ -460,6 +460,12 @@ Always include usage_guide. Add 1-2 domain-specific prompts:
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 SECURITY RULES (all required)
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+[S0]  CRITICAL: Every server.tool() handler MUST call safeParse on args before use.
+      Example pattern:
+        const parsed = MyToolSchema.safeParse(args);
+        if (!parsed.success) return { content: [{ type: "text" as const, text: "Invalid input: " + parsed.error.issues[0].message }], isError: true };
+        const { param } = parsed.data;
+      NEVER destructure args directly without a safeParse call. Skipping this is VAL-001, a critical failure.
 [S1]  Destructure validated args directly â€” Zod shape pre-validates them
 [S2]  Add refinements: .min()/.max()/.url()/.email()/.regex() where sensible
 [S3]  File paths: .refine(s => !s.includes("..") && !path.isAbsolute(s) || allowedCheck, "Invalid path")

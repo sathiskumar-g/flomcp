@@ -237,10 +237,10 @@ export function MCPServersList({ userId, limit }: MCPServersListProps) {
                     <Clock className="h-3.5 w-3.5" />
                     {formatDate(server.created_at)}
                   </span>
-                  {server.tokens_used != null && (
+                  {server.tokens_used != null && server.tokens_used > 0 && (
                     <span>{server.tokens_used.toLocaleString()} tokens</span>
                   )}
-                  {server.cost_usd != null && (
+                  {server.cost_usd != null && server.cost_usd > 0 && (
                     <span>${server.cost_usd.toFixed(4)}</span>
                   )}
                 </div>

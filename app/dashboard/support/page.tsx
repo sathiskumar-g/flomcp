@@ -378,7 +378,7 @@ export default function SupportPage() {
               )}
             </div>
 
-            <Button type="submit" disabled={submitting || !isFormValid} className="w-full sm:w-auto">
+            <Button type="submit" disabled={submitting || !isFormValid} className="w-full">
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -76,6 +76,18 @@ function GenerateWizard() {
   }, []);
 
   const { drafts, deleteDraft } = useDrafts(userId);
+
+  // Auto-delete the matching draft when generation completes
+  const generatedResult = useGeneratorStore((s) => s.generatedResult);
+  const serverName = useGeneratorStore((s) => s.serverName);
+  useEffect(() => {
+    if (!generatedResult || !userId) return;
+    const matchingDraft = drafts.find(
+      (d) => d.serverName.trim().toLowerCase() === serverName.trim().toLowerCase()
+    );
+    if (matchingDraft) deleteDraft(matchingDraft.id);
+  }, [generatedResult]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [mode, setMode] = useState<"new" | "drafts">("new");
 
   function handleLoadDraft(draft: SavedDraft) {

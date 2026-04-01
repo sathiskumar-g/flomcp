@@ -24,6 +24,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageSquare,
+  Wrench,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadMCPServerAsZip } from "@/lib/download-helper";
@@ -288,7 +290,7 @@ export default function ServerDetailPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-start gap-4">
-        <Button variant="ghost" size="icon" className="mt-0.5 flex-shrink-0" onClick={() => router.push("/dashboard")}>
+        <Button variant="ghost" size="icon" className="mt-0.5 flex-shrink-0" onClick={() => router.push("/dashboard/servers")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1 min-w-0">
@@ -527,6 +529,154 @@ export default function ServerDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Server Capabilities */}
+      {server.generation_input && (
+        server.generation_input.tools.length > 0 ||
+        server.generation_input.resources.length > 0 ||
+        server.generation_input.prompts.length > 0
+      ) && (
+        <Card className="border border-border/70">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-primary" />
+              Server Capabilities
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              What this MCP server exposes to Claude —{" "}
+              {[
+                server.generation_input.tools.length > 0 &&
+                  `${server.generation_input.tools.length} tool${server.generation_input.tools.length !== 1 ? "s" : ""}`,
+                server.generation_input.resources.length > 0 &&
+                  `${server.generation_input.resources.length} resource${server.generation_input.resources.length !== 1 ? "s" : ""}`,
+                server.generation_input.prompts.length > 0 &&
+                  `${server.generation_input.prompts.length} prompt${server.generation_input.prompts.length !== 1 ? "s" : ""}`,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-6">
+
+            {/* ── Tools ── */}
+            {server.generation_input.tools.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tools</p>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                    {server.generation_input.tools.length}
+                  </Badge>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {server.generation_input.tools.map((tool, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-1.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <code className="text-xs font-mono font-semibold text-foreground break-all">
+                          {tool.name}
+                        </code>
+                        {tool.fields && tool.fields.length > 0 && (
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {tool.fields.length} param{tool.fields.length !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {tool.description}
+                      </p>
+                      {tool.fields && tool.fields.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {tool.fields.map((f, fi) => (
+                            <span
+                              key={fi}
+                              className={cn(
+                                "inline-flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 font-mono border",
+                                f.required
+                                  ? "bg-primary/10 border-primary/20 text-primary"
+                                  : "bg-muted border-border/60 text-muted-foreground"
+                              )}
+                            >
+                              {f.name}
+                              <span className="opacity-60">:{f.type}</span>
+                              {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Resources ── */}
+            {server.generation_input.resources.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-1.5">
+                  <Database className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resources</p>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                    {server.generation_input.resources.length}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {server.generation_input.resources.map((r, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
+                    >
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <code className="text-xs font-mono font-semibold text-foreground">{r.name}</code>
+                        {r.description && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
+                        {r.mimeType || "text/plain"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Prompts ── */}
+            {server.generation_input.prompts.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Prompts</p>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                    {server.generation_input.prompts.length}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  {server.generation_input.prompts.map((p, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5"
+                    >
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <code className="text-xs font-mono font-semibold text-foreground">{p.name}</code>
+                        {p.description && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">{p.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
+                        {p.mimeType || "text/plain"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </CardContent>
+        </Card>
+      )}
 
       {/* Connect section — IntegrationPanel (B11 + B12) */}
       <Card className="border border-border/70">

@@ -7,7 +7,8 @@
  * Includes example prompts, character counter, and helpful hints.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
 import { useSavedPrompts, PROMPT_FREE_LIMIT } from "@/lib/use-saved-prompts";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
-import { Lightbulb, ChevronRight, AlertCircle, BookMarked, Save, X, ChevronDown } from "lucide-react";
+import { Lightbulb, ChevronRight, AlertCircle, BookMarked, Save, X, ChevronDown, ChevronUp, Zap, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -67,13 +68,37 @@ const EXAMPLE_PROMPTS = [
 const MAX_CHARS = 2000;
 const MIN_CHARS = 50;
 
+// ─── MCP capabilities (shown in accordion) ───────────────────────────────────
+
+const MCP_CAPABILITIES = [
+  { type: "do" as const,   text: "Give Claude real-time access to your APIs, databases, and internal tools" },
+  { type: "do" as const,   text: "Expose read-only views of sensitive data so the AI can query without risk" },
+  { type: "do" as const,   text: "Chain multiple tools — Claude can call them in sequence to complete tasks" },
+  { type: "do" as const,   text: "Use tool descriptions to guide when Claude should call each tool" },
+  { type: "do" as const,   text: "Add resources to give Claude static context (docs, schemas, config)" },
+  { type: "dont" as const, text: "Don't give Claude destructive write access without an explicit confirmation tool" },
+  { type: "dont" as const, text: "Don't connect the same server to untrusted clients — it has access to real systems" },
+  { type: "dont" as const, text: "Don't hardcode API keys — use environment variables (.env) instead" },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Step1Description() {
   const { serverName, setServerName, description, setDescription, nextStep } = useGeneratorStore();
   const { prompts: savedPrompts, savePrompt, deletePrompt } = useSavedPrompts();
+  const router = useRouter();
 
   const [touched, setTouched] = useState(false);
+  const [showCapabilities, setShowCapabilities] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
+  const noCredits = credits !== null && credits <= 0;
+
+  useEffect(() => {
+    fetch("/api/credits/balance", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setCredits(d.total ?? 0); })
+      .catch(() => {});
+  }, []);
   // Prompt library UI state
   const [showLoadPrompt, setShowLoadPrompt] = useState(false);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
@@ -82,8 +107,8 @@ export function Step1Description() {
   const charCount = description.length;
   const isNameValid = serverName.trim().length >= 3;
   const isDescValid = charCount >= MIN_CHARS;
-  // Basic length gates (for live UI feedback)
-  const isValid = isNameValid && isDescValid;
+  // Basic length gates + credits gate (for live UI feedback)
+  const isValid = isNameValid && isDescValid && !noCredits;
   const showNameError = touched && !isNameValid;
   const showDescError = touched && !isDescValid;
 
@@ -102,6 +127,66 @@ export function Step1Description() {
         <p className="text-sm text-muted-foreground mt-1">
           Give it a name, then describe what it should do in detail.
         </p>
+      </div>
+
+      {/* Credits gate banner */}
+      {noCredits && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+          <Crown className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">You&apos;ve used all your credits</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Upgrade to generate more MCP servers and unlock higher limits.</p>
+          </div>
+          <Button
+            size="sm"
+            className="shrink-0 h-7 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+            onClick={() => router.push("/pricing")}
+          >
+            <Zap className="h-3.5 w-3.5 mr-1" />
+            Upgrade
+          </Button>
+        </div>
+      )}
+
+      {/* MCP capabilities accordion */}
+      <div className="rounded-lg border border-border/60">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors rounded-lg"
+          onClick={() => setShowCapabilities((v) => !v)}
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <Lightbulb className="h-4 w-4 text-yellow-500" />
+            What can MCP servers do?
+          </span>
+          {showCapabilities ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </button>
+        {showCapabilities && (
+          <div className="px-4 pb-4 space-y-2 border-t border-border/40 pt-3">
+            {MCP_CAPABILITIES.map((item, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                {item.type === "do" ? (
+                  <span className="mt-0.5 shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-green-500/15 text-green-600">
+                    <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                ) : (
+                  <span className="mt-0.5 shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+                    <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 3l6 6M9 3l-6 6" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground leading-relaxed">{item.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Server name */}
@@ -328,6 +413,10 @@ export function Step1Description() {
       <div className="flex justify-end">
         <Button
           onClick={() => {
+            if (noCredits) {
+              router.push("/pricing");
+              return;
+            }
             setTouched(true);
             if (!isValid) return;
 
@@ -343,11 +432,23 @@ export function Step1Description() {
 
             nextStep();
           }}
-          disabled={!isValid}
-          className="min-w-[160px]"
+          disabled={!isValid && !noCredits}
+          className={cn(
+            "min-w-[160px]",
+            noCredits && "bg-amber-500 hover:bg-amber-600 text-white"
+          )}
         >
-          Continue
-          <ChevronRight className="ml-2 h-4 w-4" />
+          {noCredits ? (
+            <>
+              <Crown className="mr-2 h-4 w-4" />
+              Upgrade to Continue
+            </>
+          ) : (
+            <>
+              Continue
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>

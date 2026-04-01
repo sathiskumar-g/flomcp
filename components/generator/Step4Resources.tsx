@@ -377,11 +377,19 @@ export function Step4Resources() {
       )}
 
       {/* Navigation */}
-      <div className="flex justify-between pt-2">
+      <div className="flex items-center justify-between pt-2">
         <Button variant="outline" onClick={prevStep}>
           <ChevronLeft className="h-4 w-4 mr-1.5" />
           Back
         </Button>
+        {totalCount > 0 && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <svg viewBox="0 0 12 12" className="h-3.5 w-3.5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Auto-saved
+          </span>
+        )}
         <Button onClick={nextStep}>
           {totalCount === 0 ? "Skip" : "Continue"}
           <ChevronRight className="h-4 w-4 ml-1.5" />

@@ -21,7 +21,7 @@ import { toast } from "sonner";
 const FAQ_ITEMS = [
   { q: "How do I generate an MCP server with FloMCP?", a: "Sign up for a free account, describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — schemas, handlers, error handling, and README included. No manual setup required." },
   { q: "What is an MCP server and why do I need one?", a: "An MCP server exposes your tools, APIs, and databases to AI assistants like Claude and GitHub Copilot. Without one, your AI can only use its training data. With one, it can query your database, call your APIs, and take real actions. FloMCP generates the server code so you don't have to write the boilerplate." },
-  { q: "How long does it take to build MCP online?", a: "Under 2 minutes with FloMCP versus 10+ hours manually. FloMCP automates every step from schema creation to error handling." },
+  { q: "How long does it take to build MCP online?", a: "Under 5 minutes with FloMCP versus 10+ hours manually. FloMCP automates every step from schema creation to error handling." },
   { q: "Can I build MCP for Claude and Copilot?", a: "Yes — generated servers work with Claude Desktop, GitHub Copilot, Cursor, Windsurf, Cline, and any assistant supporting the MCP standard." },
   { q: "Are FloMCP servers secure?", a: "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one." },
   { q: "Can I use FloMCP for complex API integrations?", a: "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery." },
@@ -461,7 +461,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>Describe your server in plain English. Get complete code in 2-3 minutes.</span>
+            <span>Describe your server in plain English and Get it under 5 minutes.</span>
           </div>
           
 
@@ -469,7 +469,7 @@ export default function Home() {
             Build MCP Servers
             <br />
             <span className="bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              That Work Solid
+            That Ship in Minutes
             </span>
           </h1>
 
@@ -483,7 +483,7 @@ export default function Home() {
               <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               <span className="text-muted-foreground line-through">10+ hours</span>
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="font-semibold text-primary">~2 minutes</span>
+              <span className="font-semibold text-primary">~5 minutes</span>
               <span className="text-muted-foreground">with FloMCP</span>
             </div>
             {serverTotal !== null && serverTotal > 0 && (

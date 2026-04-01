@@ -95,9 +95,12 @@ Include 1-4 fields per tool — only the essential parameters.`,
     return NextResponse.json({ tools });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error("[suggest-tools]", message);
+    console.error("[suggest-tools] ERROR:", message);
     return NextResponse.json(
-      { error: "Failed to generate tool suggestions. Please try again." },
+      {
+        error: "Failed to generate tool suggestions. Please try again.",
+        ...(process.env.NODE_ENV === "development" && { detail: message }),
+      },
       { status: 500 }
     );
   }
