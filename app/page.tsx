@@ -21,7 +21,7 @@ import { toast } from "sonner";
 const FAQ_ITEMS = [
   { q: "How do I generate an MCP server with FloMCP?", a: "Sign up for a free account, describe your server in plain English across 5 short steps, and FloMCP generates complete TypeScript code — schemas, handlers, error handling, and README included. No manual setup required." },
   { q: "What is an MCP server and why do I need one?", a: "An MCP server exposes your tools, APIs, and databases to AI assistants like Claude and GitHub Copilot. Without one, your AI can only use its training data. With one, it can query your database, call your APIs, and take real actions. FloMCP generates the server code so you don't have to write the boilerplate." },
-  { q: "How long does it take to build MCP online?", a: "As little as 1 minute with FloMCP versus 10+ hours manually. FloMCP automates every step from schema creation to error handling." },
+  { q: "How long does it take to build MCP online?", a: "Under 2 minutes with FloMCP versus 10+ hours manually. FloMCP automates every step from schema creation to error handling." },
   { q: "Can I build MCP for Claude and Copilot?", a: "Yes — generated servers work with Claude Desktop, GitHub Copilot, Cursor, Windsurf, Cline, and any assistant supporting the MCP standard." },
   { q: "Are FloMCP servers secure?", a: "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one." },
   { q: "Can I use FloMCP for complex API integrations?", a: "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery." },
@@ -30,7 +30,7 @@ const FAQ_ITEMS = [
 ];
 
 const FREE_CREDIT_FEATURES = [
-  "3 credits on signup — never expire",
+  "3 server generations — never expire",
   "Full TypeScript source code",
   "3-pass quality engine + 22 security checks + 10 protocol compliance checks",
   "Download ZIP + auto-generated docs",
@@ -461,7 +461,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span>From plain English to running MCP server — in under 5 minutes</span>
+            <span>Describe your server in plain English. Get complete code in 2-3 minutes.</span>
           </div>
           
 
@@ -469,12 +469,12 @@ export default function Home() {
             Build MCP Servers
             <br />
             <span className="bg-gradient-to-r from-primary via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              That Actually Works Solid
+              That Work Solid
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            We make your MCP servers bulletproof—secure, compliant, and ready for production in minutes. FloMCP runs a <span className="font-semibold text-foreground">3-pass generation engine</span> — schema contract, implementation, quality review — plus 22 security checks and 10 MCP protocol compliance checks.
+            Skip the boilerplate. FloMCP generates a complete, production-ready MCP server from a plain English description — full TypeScript source, <span className="font-semibold text-foreground">32 automated quality checks</span>, and a ready-made config for Claude, Copilot, and Cursor.
           </p>
 
           {/* Time Savings Showcase + live server counter */}
@@ -483,7 +483,7 @@ export default function Home() {
               <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               <span className="text-muted-foreground line-through">10+ hours</span>
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="font-semibold text-primary">1+ minutes</span>
+              <span className="font-semibold text-primary">~2 minutes</span>
               <span className="text-muted-foreground">with FloMCP</span>
             </div>
             {serverTotal !== null && serverTotal > 0 && (
@@ -502,7 +502,7 @@ export default function Home() {
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-              <span>3-pass generation + 22 security + 10 protocol checks</span>
+              <span>32 automated checks — schema, security, and protocol compliance</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
@@ -520,7 +520,7 @@ export default function Home() {
               className="text-lg px-8" 
               onClick={() => router.push('/auth/signup')}
             >
-              Start Free — 5 Credits
+              Generate Free — No Card Needed
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
@@ -529,7 +529,7 @@ export default function Home() {
               className="text-lg px-8" 
               onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              See Generated Code
+              Preview Real Output
             </Button>
           </div>
         </div>
@@ -554,10 +554,10 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
-            Why Building MCP Servers Manually Is So Painful
+            Why Developers Abandon MCP Servers Before They Work
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            Creating MCP servers manually takes 10+ hours - every single time
+            Building an MCP server manually takes 10+ hours of tedious work — and that&apos;s if you know exactly what you&apos;re doing. For most developers, the boilerplate, manual schemas, error handling, testing complexity, and documentation requirements create a mountain of friction that stops them from ever shipping a working server.
           </p>
           
           <Card className="border-2 border-primary/20 bg-card/50 backdrop-blur">
@@ -616,19 +616,19 @@ export default function Home() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-3xl font-bold text-primary">10+ hrs</div>
-                    <div className="text-xs text-muted-foreground mt-1">To write first server</div>
+                    <div className="text-xs text-muted-foreground mt-1">to write a first working server</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary">3 hrs</div>
-                    <div className="text-xs text-muted-foreground mt-1">Just to get schemas right</div>
+                    <div className="text-3xl font-bold text-primary">3+ hrs</div>
+                    <div className="text-xs text-muted-foreground mt-1">just to get the Zod schema right</div>
                   </div>
                   <div>
                     <div className="text-3xl font-bold text-primary">20+</div>
-                    <div className="text-xs text-muted-foreground mt-1">Restarts to test changes</div>
+                    <div className="text-xs text-muted-foreground mt-1">AI restarts to test a single change</div>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-primary">0</div>
-                    <div className="text-xs text-muted-foreground mt-1">Clear docs on why tools don&apos;t appear</div>
+                    <div className="text-3xl font-bold text-primary">3+ hrs</div>
+                    <div className="text-xs text-muted-foreground mt-1">to fix security issues &amp; vague errors</div>
                   </div>
                 </div>
               </div>
@@ -641,7 +641,7 @@ export default function Home() {
       <section id="features" className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            What FloMCP Generates for You
+            Everything Generated. Nothing Left to Figure Out.
           </h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
             Every server includes the complete project structure — not just a snippet
@@ -663,11 +663,11 @@ export default function Home() {
             <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Shield className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">Battle-Tested Code</CardTitle>
+                <CardTitle className="text-xl">Production Patterns, Not Tutorials</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Type-safe schemas, comprehensive error handling, input validation, and security best practices included by default.
+                  Zod-validated inputs, sanitized error messages, and correct MCP error signalling — the patterns senior engineers spend hours adding manually. Included in every generation, without asking.
                 </p>
               </CardContent>
             </Card>
@@ -725,11 +725,11 @@ export default function Home() {
             <Card className="border-2 border-primary/10 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
               <CardHeader>
                 <Target className="h-12 w-12 mb-3 text-primary" />
-                <CardTitle className="text-xl">Learn Best Practices</CardTitle>
+                <CardTitle className="text-xl">Own Everything You Generate</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  See how production MCP servers are structured. Learn patterns you can apply to your own tools and integrations.
+                  Full TypeScript source, no black box. Every file is yours — read it, modify it, extend it. No lock-in and no runtime dependency on FloMCP once you download.
                 </p>
               </CardContent>
             </Card>
@@ -858,12 +858,12 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
                     <Shield className="h-5 w-5 text-green-500" />
                   </div>
-                  <CardTitle className="text-lg">No SSRF Vulnerabilities</CardTitle>
+                  <CardTitle className="text-lg">SSRF Protection Checked on Every Build</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  FloMCP automatically implements safe URL validation and request boundaries. No server-side request forgery risks - we validate all external calls and block metadata endpoints by default.
+                  Every generated server is checked against SSRF patterns as part of the 22 OWASP security checks — catching unsafe URL handling, metadata endpoint exposure, and unvalidated redirects before the code reaches you.
                 </p>
               </CardContent>
             </Card>
@@ -967,11 +967,11 @@ export default function Home() {
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Best for conversational AI workflows</span>
+                  <span className="text-sm">Natural language tool use — Claude calls your tools like a teammate</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Great for research and analysis tasks</span>
+                  <span className="text-sm">Give Claude real-time data access instead of stale training context</span>
                 </div>
               </CardContent>
             </Card>
@@ -992,11 +992,11 @@ export default function Home() {
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Perfect for in-editor coding workflow</span>
+                  <span className="text-sm">Use your MCP tools directly inside VS Code while you code</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Great for code generation and refactoring</span>
+                  <span className="text-sm">Give Copilot access to your APIs, databases, and internal tools</span>
                 </div>
               </CardContent>
             </Card>
@@ -1144,9 +1144,9 @@ export default function Home() {
           ) : !submitted ? (
             <Card className="border-2 border-primary/30 shadow-lg">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl md:text-3xl">Start Building Today</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl">Your First MCP Server, Ready in under 5 Minutes</CardTitle>
                 <CardDescription className="text-base">
-                  Generate your first production-ready MCP server in under a minute — free.
+                  Describe what you want in plain English. Get complete TypeScript code, config files, and docs — free.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1270,7 +1270,7 @@ export default function Home() {
                 </Dialog>
 
                 <p className="text-xs text-muted-foreground text-center pt-2">
-                  Free plan • 3 credits on signup (first 50 get 5 ★) • No credit card required.
+                  Free to start • 3 credits on signup (first 50 get 5 ★) • No credit card required
                 </p>
               </CardContent>
             </Card>
@@ -1309,7 +1309,7 @@ export default function Home() {
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Explore the MCP Library</h2>
           <p className="text-muted-foreground mb-8 text-lg max-w-2xl mx-auto">
-            Browse 10+ curated open-source MCP servers and FloMCP-generated examples — ready to deploy or use as a starting point.
+            Browse curated open-source MCP servers and FloMCP-generated examples — clone, extend, or deploy as-is. No setup required.
           </p>
           <div className="flex flex-wrap gap-3 justify-center mb-8">
             {["GitHub MCP", "PostgreSQL MCP", "Filesystem MCP", "Brave Search", "Slack MCP", "Puppeteer MCP"].map((name) => (
@@ -1329,7 +1329,7 @@ export default function Home() {
       <section id="pricing" className="container mx-auto px-4 py-16">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, Credit-Based Pricing</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Start Free. Scale When You Need To.</h2>
             <p className="text-muted-foreground text-lg">Pay for generations, not subscriptions you won&apos;t use.</p>
           </div>
 
