@@ -1,13 +1,11 @@
-/**
- * Acceptable Use Policy Page
- * 
- * Defines prohibited uses and enforcement
- * Required for abuse prevention and legal protection
- */
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
+
+export const metadata = {
+  title: "Acceptable Use Policy — FloMCP",
+  description: "FloMCP Acceptable Use Policy — what is and is not permitted when using the service.",
+};
 
 export default function AcceptableUsePolicyPage() {
   return (
@@ -31,7 +29,7 @@ export default function AcceptableUsePolicyPage() {
           <h1 className="text-4xl font-bold">Acceptable Use Policy</h1>
         </div>
         <p className="text-muted-foreground mb-8">
-          Last Updated: March 6, 2026
+          Last Updated: April 2, 2026
         </p>
 
         <div className="prose prose-gray dark:prose-invert max-w-none space-y-6">
@@ -80,7 +78,7 @@ export default function AcceptableUsePolicyPage() {
           {/* Prohibited Uses - Privacy */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">2. Privacy Violations</h2>
-            <p>You may NOT use FlowMCP to:</p>
+            <p>You may NOT use FloMCP to:</p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>
                 Generate tools that collect personal data without proper consent and legal basis
@@ -101,7 +99,7 @@ export default function AcceptableUsePolicyPage() {
           {/* Prohibited Uses - Legal */}
           <section>
             <h2 className="text-2xl font-semibold mb-3">3. Illegal Activities</h2>
-            <p>You may NOT use FlowMCP to:</p>
+            <p>You may NOT use FloMCP to:</p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>Violate any laws or regulations</li>
               <li>Infringe on intellectual property rights (copyright, trademarks, patents)</li>

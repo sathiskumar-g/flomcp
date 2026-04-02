@@ -24,6 +24,7 @@ import {
   Code2,
   AlertTriangle,
   Terminal,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -172,10 +173,17 @@ export function PostGenerationReview() {
 
       {/* Works-with client chips */}
       <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Terminal className="h-3.5 w-3.5 text-green-500" />
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400">STDIO Transport</span>
-          <span className="text-xs text-muted-foreground">— works locally with all of these:</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <Terminal className="h-3.5 w-3.5 text-green-500" />
+            <span className="text-xs font-semibold text-green-600 dark:text-green-400">STDIO</span>
+          </div>
+          <span className="text-xs text-muted-foreground">+</span>
+          <div className="flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">SSE Transport</span>
+          </div>
+          <span className="text-xs text-muted-foreground">— both supported, works with all of these:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {[
@@ -195,7 +203,7 @@ export function PostGenerationReview() {
           ))}
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Ready-to-paste config for each tool is on your server page — just download, run <code className="font-mono bg-muted px-1 rounded">npm install</code>, then paste the config.
+          Ready-to-paste config is on your server page. Download, run <code className="font-mono bg-muted px-1 rounded">npm install</code>, then start with <code className="font-mono bg-muted px-1 rounded">npm start</code> (STDIO) or <code className="font-mono bg-muted px-1 rounded">npm run start:http</code> (SSE).
         </p>
       </div>
 

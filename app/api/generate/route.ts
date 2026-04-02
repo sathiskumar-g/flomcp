@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
   let deductResult: Awaited<ReturnType<typeof deductCredits>>;
 
   if (skipCredits) {
-    console.log(`[generate] ⚠️  DISABLE_CREDIT_DEDUCTION=true — skipping ${creditCost} credit deduction for user ${user.id}`);
+    console.warn(`[generate] DISABLE_CREDIT_DEDUCTION=true — skipping ${creditCost} credit deduction for user ${user.id}`);
     deductResult = { ok: true, monthlyUsed: 0, bonusUsed: 0, balanceAfter: 999 };
   } else {
     deductResult = await deductCredits(
@@ -395,12 +395,37 @@ server.prompt(
 
 // â”€â”€ Start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function main(): Promise<void> {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("SERVER_SLUG MCP server running on stdio");
-  // Graceful shutdown — prevents corrupted stdio sessions when AI client restarts
-  process.on("SIGTERM", () => { server.close(); process.exit(0); });
-  process.on("SIGINT",  () => { server.close(); process.exit(0); });
+  const useHttp = process.argv.includes("--http");
+  if (useHttp) {
+    // SSE mode: npm run start:http
+    const sseTransports = new Map<string, SSEServerTransport>();
+    const httpServer = http.createServer(async (req, res) => {
+      if (req.url === "/sse" && req.method === "GET") {
+        const transport = new SSEServerTransport("/message", res);
+        sseTransports.set(transport.sessionId, transport);
+        res.on("close", () => sseTransports.delete(transport.sessionId));
+        await server.connect(transport);
+      } else if (req.url?.startsWith("/message") && req.method === "POST") {
+        const sessionId = new URL(req.url, "http://localhost").searchParams.get("sessionId") ?? "";
+        const t = sseTransports.get(sessionId);
+        if (t) await t.handlePostMessage(req, res);
+        else { res.writeHead(404); res.end("Session not found"); }
+      } else {
+        res.writeHead(404); res.end("Not found");
+      }
+    });
+    const PORT = parseInt(process.env.PORT ?? "3001", 10);
+    httpServer.listen(PORT, () => console.error(`SERVER_SLUG MCP server running on SSE at http://localhost:${PORT}/sse`));
+    process.on("SIGTERM", () => { httpServer.close(); server.close(); process.exit(0); });
+    process.on("SIGINT",  () => { httpServer.close(); server.close(); process.exit(0); });
+  } else {
+    // STDIO mode (default): npm start
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    console.error("SERVER_SLUG MCP server running on stdio");
+    process.on("SIGTERM", () => { server.close(); process.exit(0); });
+    process.on("SIGINT",  () => { server.close(); process.exit(0); });
+  }
 }
 main().catch((error: unknown) => {
   console.error("Fatal error in main():", error);
@@ -684,6 +709,7 @@ package.json EXACT SPEC:
   "type": "module",
   "scripts": {
     "start": "npx tsx src/index.ts",
+    "start:http": "npx tsx src/index.ts --http",
     "build": "tsc",
     "test": "vitest run"
   },
@@ -745,7 +771,7 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 - Description: ${description}
 
 ## Transport
-STDIO only â€” no HTTP, no Express, no ports. Runs locally on the developer's machine.
+STDIO (default, `npm start`) + SSE (`npm run start:http` on port 3001) -- runs locally on the developer's machine.
 
 ## API Integration
 ${apiSectionFull}

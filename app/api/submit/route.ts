@@ -100,9 +100,7 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await sendEmail({ to: founderEmail, subject, html: emailHtml });
-        if (result.success) {
-          console.log(`✅ Notification sent to ${founderEmail}`);
-        } else {
+        if (!result.success) {
           console.error('❌ Email failed:', result.error);
         }
       } catch (emailError) {

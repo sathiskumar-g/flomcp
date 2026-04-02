@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, ArrowRight, Zap, Shield, Users, Crown } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { createServerClient } from "@/lib/supabase-server";
 
 export const metadata = {
   title: "Pricing \u2014 FloMCP",
@@ -80,7 +81,16 @@ const FAQ = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  let isLoggedIn = false;
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    isLoggedIn = !!user;
+  } catch {
+    // treat as logged-out if session unavailable
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-secondary/10">
       {/* Header */}
@@ -93,12 +103,20 @@ export default function PricingPage() {
             <Link href="/docs/getting-started">
               <Button variant="ghost" size="sm">Docs</Button>
             </Link>
-            <Link href="/auth/signin">
-              <Button variant="outline" size="sm">Sign In</Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button size="sm">Start Free</Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard">
+                <Button size="sm">Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/signin">
+                  <Button variant="outline" size="sm">Sign In</Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm">Start Free</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

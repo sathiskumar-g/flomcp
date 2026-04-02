@@ -11,18 +11,12 @@ interface SendEmailParams {
 export async function sendEmail({ to, subject, html }: SendEmailParams) {
   // DISABLE_EMAILS=true blocks all outgoing email (use during local dev/testing)
   if (process.env.DISABLE_EMAILS === 'true') {
-    console.log(`📭 [sendEmail] DISABLED — skipping: "${subject}" → ${to}`);
     return { success: true, data: null };
   }
 
   const senderEmail = process.env.NOREPLY_EMAIL || 'no-reply@flomcp.com';
   const fromAddress = `FloMCP <${senderEmail}>`;
   try {
-    console.log('📨 Sending email via Resend...');
-    console.log('From:', fromAddress);
-    console.log('To:', to);
-    console.log('Subject:', subject);
-    
     const { data, error } = await resend.emails.send({
       from: fromAddress,
       to: [to],
@@ -35,7 +29,6 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
       return { success: false, error };
     }
 
-    console.log('✅ Resend email sent, id:', data?.id);
     return { success: true, data };
   } catch (error) {
     console.error('❌ Resend threw exception:', error);

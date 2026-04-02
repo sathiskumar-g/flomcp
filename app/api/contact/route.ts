@@ -122,7 +122,6 @@ export async function POST(request: Request) {
       console.error("❌ Contact admin email failed:", adminResult.error);
       return NextResponse.json({ error: "Failed to send message. Please try again." }, { status: 500 });
     }
-    console.log(`✅ Contact query sent to ${supportEmail} — subject: ${subject}`);
 
     // User confirmation — fire-and-forget, don't fail the request if this bounces
     sendEmail({
@@ -131,7 +130,6 @@ export async function POST(request: Request) {
       html: userHtml,
     }).then((r) => {
       if (!r.success) console.error("❌ Contact user confirmation failed:", r.error);
-      else console.log(`✅ Contact confirmation sent to ${cleanEmail}`);
     });
 
     return NextResponse.json({ success: true });

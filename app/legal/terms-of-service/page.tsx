@@ -1,13 +1,11 @@
-/**
- * Terms of Service Page
- * 
- * Legal protection and user agreement
- * Required for liability protection
- */
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+
+export const metadata = {
+  title: "Terms of Service — FloMCP",
+  description: "FloMCP Terms of Service — the agreement that governs your use of the platform.",
+};
 
 export default function TermsOfServicePage() {
   return (
@@ -28,7 +26,7 @@ export default function TermsOfServicePage() {
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
         <p className="text-muted-foreground mb-8">
-          Last Updated: March 6, 2026
+          Last Updated: April 2, 2026
         </p>
 
         <div className="prose prose-gray dark:prose-invert max-w-none space-y-6">
@@ -186,18 +184,23 @@ export default function TermsOfServicePage() {
 
           {/* Data Collection */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">10. Data Collection &amp; Privacy</h2>
+            <h2 className="text-2xl font-semibold mb-3">10. Data &amp; Privacy</h2>
             <p>
-              We collect minimal data necessary to provide the Service:
+              We collect personal data as described in our{" "}
+              <Link href="/legal/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
+              By using the Service you agree to that policy.
             </p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Email address (for authentication)</li>
-              <li>Usage statistics (generation count, timestamps)</li>
-              <li>Generated code metadata (for rate limiting and abuse prevention)</li>
-            </ul>
-            <p className="mt-2">
-              We do NOT store the actual code you generate. All generation happens in real-time, 
-              and we only keep metadata for service operation.
+            <p className="mt-3">
+              <strong>What we store:</strong> Your account information, usage metadata, and the
+              MCP servers you generate (source code, security score, tool definitions) are saved
+              in your dashboard. You can download or delete your servers at any time.
+              Your generation prompts are processed by Anthropic&apos;s Claude API but FloMCP
+              does not retain them beyond what is necessary to produce your server.
+            </p>
+            <p className="mt-3">
+              <strong>What we do not sell:</strong> We do not sell, rent, or share your personal
+              data with third parties for their own marketing purposes. See our Privacy Policy for
+              the complete list of data processors we use.
             </p>
           </section>
 
@@ -205,30 +208,30 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-semibold mb-3">11. Billing &amp; Subscriptions (Pro Plan)</h2>
             <p>
-              FloMCP offers both a free tier and paid Pro subscription plan. By subscribing to a paid plan:
+              FloMCP offers a free tier and a paid Pro subscription. By subscribing to a paid plan:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
               <li>
                 <strong>Billing:</strong> Subscriptions are billed monthly or annually via our payment
-                provider <em>(payment integration coming soon)</em>.
-                You authorise us to charge your payment method on a recurring basis.
+                processor. You authorise us to charge your payment method on a recurring basis.
               </li>
               <li>
                 <strong>Cancellation:</strong> You may cancel at any time from your account settings.
                 Cancellation takes effect at the end of the current billing period.
               </li>
               <li>
-                <strong>Refunds:</strong> Please see our{" "}
-                <a href="/legal/refund-policy" className="text-primary hover:underline">Refund Policy</a>{" "}
-                for full details on eligibility and how to request a refund.
+                <strong>Refunds:</strong> See our{" "}
+                <Link href="/legal/refund-policy" className="text-primary hover:underline">Refund Policy</Link>{" "}
+                for full details.
               </li>
               <li>
-                <strong>Price Changes:</strong> We will provide at least 30 days notice before
+                <strong>Price Changes:</strong> We will provide at least 30 days&apos; notice before
                 increasing subscription prices for existing subscribers.
               </li>
               <li>
-                <strong>Credits:</strong> Unused generation credits do not roll over between billing periods
-                unless stated otherwise.
+                <strong>Credits:</strong> Unused generation credits may roll over according to your plan
+                terms. Credits have no cash value and cannot be transferred or refunded except as
+                described in the Refund Policy.
               </li>
             </ul>
           </section>
@@ -251,7 +254,7 @@ export default function TermsOfServicePage() {
 
           {/* Changes to Terms */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">13. Changes to Terms</h2>
+            <h2 className="text-2xl font-semibold mb-3">13. Changes to These Terms</h2>
             <p>
               We may update these Terms of Service at any time. If we make material changes, 
               we will notify you via email or through the Service. Your continued use of the Service 
@@ -261,18 +264,74 @@ export default function TermsOfServicePage() {
 
           {/* Governing Law */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">14. Governing Law &amp; Jurisdiction</h2>
+            <h2 className="text-2xl font-semibold mb-3">14. Governing Law &amp; Dispute Resolution</h2>
             <p>
-              These Terms shall be governed by and construed in accordance with the laws of India.
-              Any disputes arising from these Terms or the use of the Service shall first be
-              attempted to be resolved through good-faith negotiation. If unresolved within 30 days,
-              disputes shall be subject to the exclusive jurisdiction of the courts of India.
+              These Terms are governed by and construed in accordance with the laws of India,
+              including the Information Technology Act 2000 and the Digital Personal Data
+              Protection Act 2023, without regard to conflict-of-law principles.
+            </p>
+            <p className="mt-3">
+              Before initiating any legal proceedings, the parties agree to attempt to resolve
+              disputes through good-faith negotiation for a period of 30 days. If unresolved,
+              disputes shall be subject to the exclusive jurisdiction of the competent courts of
+              India.
+            </p>
+            <p className="mt-3">
+              Nothing in this section limits your rights under applicable consumer protection laws
+              in your country of residence.
+            </p>
+          </section>
+
+          {/* Severability */}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">15. Severability</h2>
+            <p>
+              If any provision of these Terms is found invalid, unlawful, or unenforceable by a
+              court of competent jurisdiction, that provision shall be limited or eliminated to the
+              minimum extent necessary, and the remaining provisions shall continue in full force
+              and effect.
+            </p>
+          </section>
+
+          {/* Force Majeure */}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">16. Force Majeure</h2>
+            <p>
+              We shall not be liable for any failure or delay in performance due to circumstances
+              beyond our reasonable control, including but not limited to acts of God, natural
+              disasters, war, terrorism, civil unrest, government action, internet outages, power
+              failures, or third-party service disruptions (including Anthropic API or Supabase
+              outages).
+            </p>
+          </section>
+
+          {/* Waiver */}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">17. No Waiver</h2>
+            <p>
+              Our failure to enforce any right or provision of these Terms shall not constitute a
+              waiver of that right or provision. Any waiver must be in writing and signed by an
+              authorised representative of FloMCP to be effective.
+            </p>
+          </section>
+
+          {/* Entire Agreement */}
+          <section>
+            <h2 className="text-2xl font-semibold mb-3">18. Entire Agreement</h2>
+            <p>
+              These Terms of Service, together with our{" "}
+              <Link href="/legal/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>,{" "}
+              <Link href="/legal/acceptable-use" className="text-primary hover:underline">Acceptable Use Policy</Link>, and{" "}
+              <Link href="/legal/refund-policy" className="text-primary hover:underline">Refund Policy</Link>,
+              constitute the entire agreement between you and FloMCP with respect to the Service
+              and supersede all prior or contemporaneous agreements, representations, and
+              understandings.
             </p>
           </section>
 
           {/* Contact */}
           <section>
-            <h2 className="text-2xl font-semibold mb-3">15. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-3">19. Contact Us</h2>
             <p>
               If you have questions about these Terms of Service, please contact us at:
             </p>

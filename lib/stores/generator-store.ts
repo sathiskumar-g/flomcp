@@ -90,6 +90,7 @@ export interface GeneratorState {
   // ── Step 3: Tool Config ──
   tools: ToolDefinition[];
   suggestionsLoading: boolean;
+  suggestedIds: string[];
 
   // ── Step 4: Resources & Prompts ──
   resources: ResourceDefinition[];
@@ -126,6 +127,7 @@ export interface GeneratorState {
   // Step 3
   setTools: (tools: ToolDefinition[]) => void;
   setSuggestionsLoading: (loading: boolean) => void;
+  setSuggestedIds: (ids: string[]) => void;
   addTool: (id?: string) => void;
   updateTool: (id: string, patch: Partial<Omit<ToolDefinition, "id">>) => void;
   removeTool: (id: string) => void;
@@ -236,6 +238,7 @@ const INITIAL_STATE = {
   apiConfig: DEFAULT_API_CONFIG,
   tools: [defaultTool()],
   suggestionsLoading: false,
+  suggestedIds: [] as string[],
   resources: [] as ResourceDefinition[],
   prompts: [] as PromptDefinition[],
   apiDocContext: null as string | null,
@@ -323,6 +326,7 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
   // Step 3 — tools
   setTools: (tools) => set({ tools }),
   setSuggestionsLoading: (suggestionsLoading) => set({ suggestionsLoading }),
+  setSuggestedIds: (suggestedIds) => set({ suggestedIds }),
   addTool: (id?: string) =>
     set((s) => { const t = defaultTool(); return { tools: [...s.tools, id ? { ...t, id } : t] }; }),
   updateTool: (id, patch) =>
@@ -434,10 +438,11 @@ export const useGeneratorStore = create<GeneratorState>((set) => ({
       step: 1,
       generatedResult: null,
       suggestionsLoading: false,
+      suggestedIds: [],
     }),
 
   // Reset
   setApiDocContext: (apiDocContext) => set({ apiDocContext }),
   setNavigatingToServer: (v) => set({ navigatingToServer: v }),
-  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], apiDocContext: null, generatedResult: null, suggestionsLoading: false, navigatingToServer: false }),
+  reset: () => set({ ...INITIAL_STATE, tools: [defaultTool()], resources: [], prompts: [], apiDocContext: null, generatedResult: null, suggestionsLoading: false, suggestedIds: [], navigatingToServer: false }),
 }));

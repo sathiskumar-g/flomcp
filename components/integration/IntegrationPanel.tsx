@@ -22,6 +22,7 @@ import {
   Terminal,
   MonitorPlay,
   MousePointerClick,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,7 @@ interface ClientDef {
   colorClass: string;
   configPaths: ConfigPath[];
   getConfig: (slug: string) => object;
+  getSseConfig: (slug: string) => object;
   restartNote: string;
   addViaUI?: string;
 }
@@ -70,6 +72,13 @@ const CLIENTS: ClientDef[] = [
           command: "npx",
           args: ["tsx", "src/index.ts"],
           cwd: `/absolute/path/to/${slug}`,
+        },
+      },
+    }),
+    getSseConfig: (slug) => ({
+      mcpServers: {
+        [slug]: {
+          url: "http://localhost:3001/sse",
         },
       },
     }),
@@ -104,6 +113,14 @@ const CLIENTS: ClientDef[] = [
         },
       },
     }),
+    getSseConfig: (slug) => ({
+      servers: {
+        [slug]: {
+          type: "sse",
+          url: "http://localhost:3001/sse",
+        },
+      },
+    }),
     restartNote:
       'For .vscode/mcp.json: Ctrl+Shift+P → "MCP: List Servers" to confirm it loaded. For global settings.json: wrap the above in "mcp": { ... } and Reload Window.',
   },
@@ -122,6 +139,13 @@ const CLIENTS: ClientDef[] = [
           command: "npx",
           args: ["tsx", "src/index.ts"],
           cwd: `/absolute/path/to/${slug}`,
+        },
+      },
+    }),
+    getSseConfig: (slug) => ({
+      mcpServers: {
+        [slug]: {
+          url: "http://localhost:3001/sse",
         },
       },
     }),
@@ -146,6 +170,13 @@ const CLIENTS: ClientDef[] = [
           command: "npx",
           args: ["tsx", "src/index.ts"],
           cwd: `/absolute/path/to/${slug}`,
+        },
+      },
+    }),
+    getSseConfig: (slug) => ({
+      mcpServers: {
+        [slug]: {
+          url: "http://localhost:3001/sse",
         },
       },
     }),
@@ -183,6 +214,15 @@ const CLIENTS: ClientDef[] = [
         },
       },
     }),
+    getSseConfig: (slug) => ({
+      mcpServers: {
+        [slug]: {
+          url: "http://localhost:3001/sse",
+          disabled: false,
+          autoApprove: [],
+        },
+      },
+    }),
     restartNote: "Ctrl+Shift+P → Developer: Reload Window.",
     addViaUI:
       'In VS Code open the Cline extension, click the MCP server icon (top-right of the Cline panel), then "Add Server" and paste the JSON manually.',
@@ -199,6 +239,7 @@ interface IntegrationPanelProps {
 
 export function IntegrationPanel({ serverName, compact = false }: IntegrationPanelProps) {
   const [activeId, setActiveId] = useState<ClientId>("claude");
+  const [transportMode, setTransportMode] = useState<"stdio" | "sse">("stdio");
   const [copied, setCopied] = useState(false);
 
   const serverSlug = serverName
@@ -208,7 +249,9 @@ export function IntegrationPanel({ serverName, compact = false }: IntegrationPan
     .replace(/^-+/, "");
 
   const client = CLIENTS.find((c) => c.id === activeId)!;
-  const configJson = JSON.stringify(client.getConfig(serverSlug), null, 2);
+  const configJson = transportMode === "sse"
+    ? JSON.stringify(client.getSseConfig(serverSlug), null, 2)
+    : JSON.stringify(client.getConfig(serverSlug), null, 2);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(configJson);
@@ -218,25 +261,51 @@ export function IntegrationPanel({ serverName, compact = false }: IntegrationPan
 
   return (
     <div className="space-y-4">
-      {/* Transport banner */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
-          <Terminal className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-            STDIO Transport
-          </span>
-          <Badge
-            variant="outline"
-            className="text-[9px] px-1.5 py-0 h-4 border-green-500/30 text-green-600 dark:text-green-400"
-          >
-            Local
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Runs on your machine — no server, no port, no internet required.
-          Works with every client below.
-        </p>
+      {/* Transport mode tabs */}
+      <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/50 border border-border/60 w-fit">
+        <button
+          onClick={() => { setTransportMode("stdio"); setCopied(false); }}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+            transportMode === "stdio" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          STDIO Transport
+        </button>
+        <button
+          onClick={() => { setTransportMode("sse"); setCopied(false); }}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+            transportMode === "sse" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Globe className="h-3.5 w-3.5" />
+          SSE Transport
+        </button>
       </div>
+      <p className="text-xs text-muted-foreground -mt-2">
+        {transportMode === "stdio"
+          ? "Runs on your machine — no server, no port, no internet required. Works with every client below."
+          : "HTTP-based transport — run the server locally then connect any client via URL. Ideal for testing."}
+      </p>
+
+      {/* SSE start instruction */}
+      {transportMode === "sse" && (
+        <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold flex items-center gap-2">
+            <Globe className="h-3.5 w-3.5 text-blue-500" />
+            Step 1 — start the SSE server
+          </p>
+          <code className="block text-xs font-mono bg-muted/60 rounded px-2 py-1.5">
+            npm run start:http
+          </code>
+          <p className="text-xs text-muted-foreground">
+            Starts an HTTP server on port 3001. Your MCP server is then reachable at{" "}
+            <code className="font-mono text-xs bg-muted px-1 rounded">http://localhost:3001/sse</code>
+          </p>
+        </div>
+      )}
 
       {/* Client selector tabs */}
       <div className="flex flex-wrap gap-1.5">
@@ -324,7 +393,8 @@ export function IntegrationPanel({ serverName, compact = false }: IntegrationPan
         </div>
       </div>
 
-      {/* Path placeholder warning */}
+      {/* Path placeholder warning — STDIO only (SSE uses URL, no path needed) */}
+      {transportMode === "stdio" && (
       <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-yellow-500/8 border border-yellow-500/20">
         <span className="text-yellow-500 text-sm flex-shrink-0 mt-px">⚠</span>
         <p className="text-xs text-muted-foreground">
@@ -346,6 +416,7 @@ export function IntegrationPanel({ serverName, compact = false }: IntegrationPan
           </span>
         </p>
       </div>
+      )}
     </div>
   );
 }

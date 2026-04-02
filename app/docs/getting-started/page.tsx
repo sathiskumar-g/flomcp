@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { createServerClient } from "@/lib/supabase-server";
 
 export const metadata = {
   title: "Getting Started — FloMCP Documentation",
@@ -20,7 +21,15 @@ export const metadata = {
     "Learn how to generate your first production-ready MCP server with FloMCP in under 5 minutes.",
 };
 
-export default function GettingStartedPage() {
+export default async function GettingStartedPage() {
+  let isLoggedIn = false;
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    isLoggedIn = !!user;
+  } catch {
+    // treat as logged-out if session unavailable
+  }
   return (
     <main className="min-h-screen bg-gradient-to-b from-background to-secondary/10">
       {/* Header */}
@@ -36,14 +45,20 @@ export default function GettingStartedPage() {
                 Docs
               </Button>
             </Link>
-            <Link href="/auth/signin">
-              <Button variant="outline" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button size="sm">Start Free</Button>
-            </Link>
+            {isLoggedIn ? (
+              <Link href="/dashboard">
+                <Button size="sm">Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/signin">
+                  <Button variant="outline" size="sm">Sign In</Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button size="sm">Start Free</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -66,46 +81,15 @@ export default function GettingStartedPage() {
           </CardHeader>
           <CardContent>
             <ol className="space-y-1 text-sm text-muted-foreground list-decimal list-inside">
-              <li>
-                <a href="#what-is-mcp" className="hover:text-foreground transition-colors">
-                  What is MCP?
-                </a>
-              </li>
-              <li>
-                <a href="#create-account" className="hover:text-foreground transition-colors">
-                  Create Your Account
-                </a>
-              </li>
-              <li>
-                <a href="#generate-server" className="hover:text-foreground transition-colors">
-                  Generate Your First MCP Server
-                </a>
-              </li>
-              <li>
-                <a href="#download-setup" className="hover:text-foreground transition-colors">
-                  Download &amp; Setup
-                </a>
-              </li>
-              <li>
-                <a href="#connect-claude" className="hover:text-foreground transition-colors">
-                  Connect to Claude Desktop
-                </a>
-              </li>
-              <li>
-                <a href="#connect-copilot" className="hover:text-foreground transition-colors">
-                  Connect to GitHub Copilot
-                </a>
-              </li>
-              <li>
-                <a href="#security-score" className="hover:text-foreground transition-colors">
-                  Understanding Your Security Score
-                </a>
-              </li>
-              <li>
-                <a href="#faq" className="hover:text-foreground transition-colors">
-                  FAQ
-                </a>
-              </li>
+              <li><a href="#what-is-mcp" className="hover:text-foreground transition-colors">What is MCP?</a></li>
+              <li><a href="#create-account" className="hover:text-foreground transition-colors">Create Your Account</a></li>
+              <li><a href="#generate-server" className="hover:text-foreground transition-colors">The 5-Step Generator Wizard</a></li>
+              <li><a href="#download-setup" className="hover:text-foreground transition-colors">Download &amp; Setup</a></li>
+              <li><a href="#connect-claude" className="hover:text-foreground transition-colors">Connect to Claude Desktop</a></li>
+              <li><a href="#connect-copilot" className="hover:text-foreground transition-colors">Connect to GitHub Copilot</a></li>
+              <li><a href="#security-score" className="hover:text-foreground transition-colors">Understanding Your Security Score</a></li>
+              <li><a href="#credits" className="hover:text-foreground transition-colors">Credits &amp; Pricing</a></li>
+              <li><a href="#faq" className="hover:text-foreground transition-colors">FAQ</a></li>
             </ol>
           </CardContent>
         </Card>
@@ -167,7 +151,7 @@ export default function GettingStartedPage() {
               </span>
               <span>
                 You&apos;re taken to your dashboard. The free plan includes{" "}
-                <strong>5 credits on signup (one-time, never expire)</strong>.
+                <strong>3 credits on signup — they never expire</strong>.
               </span>
             </li>
           </ol>
@@ -175,7 +159,7 @@ export default function GettingStartedPage() {
 
         {/* Generate Server */}
         <section id="generate-server" className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">3. Generate Your First MCP Server</h2>
+          <h2 className="text-2xl font-bold mb-4">3. The 5-Step Generator Wizard</h2>
           <p className="text-muted-foreground mb-6">
             Navigate to{" "}
             <Link href="/dashboard/generate" className="text-primary underline">
@@ -187,23 +171,23 @@ export default function GettingStartedPage() {
             {[
               {
                 step: "Step 1 — Describe",
-                desc: 'Describe your integration in plain English. Example: "A GitHub MCP server that can list repositories, create issues, and read file contents."',
+                desc: 'Give your server a name and describe what it should do in plain English. Use the built-in example prompts (GitHub, Weather, Database, Slack…) or load a saved prompt. A clear, detailed description yields better tool suggestions and higher-quality generated code.',
               },
               {
-                step: "Step 2 — Tools",
-                desc: 'Define the tools your server will expose. Each tool has a name, description, and input parameters. Example tool: "list_repos" with parameter "username: string".',
+                step: "Step 2 — API Setup (optional)",
+                desc: 'Configure an external API your server will call: base URL, authentication type (None, API Key, Bearer Token, or OAuth 2.0), API documentation URL (FloMCP fetches and uses it as context), input schema fields, and config options. Skip this step if your server does not call an external API.',
               },
               {
-                step: "Step 3 — Authentication",
-                desc: "Choose how your server authenticates with external services: API Key (env var), OAuth, or None. FloMCP generates the right auth scaffolding automatically.",
+                step: "Step 3 — Tools",
+                desc: 'Define the tools your server exposes (up to 25). Three ways to add tools: (1) Generate Tools — Claude suggests 3 tools based on your description; (2) Import Schema — paste OpenAI function JSON, MCP inputSchema, or FloMCP native format; (3) Add Custom Tool — define name, description, parameters, and an optional example output. FloMCP shows a live credit cost estimate as you build.',
               },
               {
-                step: "Step 4 — Review",
-                desc: "Preview the generated server structure, tool list, and security configuration before generating.",
+                step: "Step 4 — Resources & Prompts (optional)",
+                desc: 'Attach static context (Resources) or reusable message templates (Prompts) to your server. Drag & drop .txt, .md, or .json files, or type content directly. Each resource/prompt can be scoped to all tools or a specific tool. This step is optional — skip it if your server needs no injected context.',
               },
               {
-                step: "Step 5 — Generate",
-                desc: "FloMCP calls Claude to generate your full MCP server. Watch it stream in real time. When done, download the ZIP and you're ready.",
+                step: "Step 5 — Review & Generate",
+                desc: 'Full summary of your configuration with live credit cost. Click Generate — watch the 3-pass engine stream in real time: Pass 1 (schema contract) → Pass 2 (TypeScript implementation) → Pass 3 (quality checklist) → MCP protocol compliance checks → 22 OWASP security checks. When complete, download the ZIP and view your security score.',
               },
             ].map(({ step, desc }) => (
               <Card key={step} className="border-border/60">
@@ -346,9 +330,44 @@ Windows: %APPDATA%\\Claude\\claude_desktop_config.json`}
           </p>
         </section>
 
+        {/* Credits */}
+        <section id="credits" className="mb-12">
+          <h2 className="text-2xl font-bold mb-4">8. Credits &amp; Pricing</h2>
+          <p className="text-muted-foreground mb-4">
+            FloMCP uses a credit system. The cost of each generation depends on its complexity:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            {[
+              { tier: "Simple", cost: "1 credit", rule: "≤5 tools · content ≤2,000 chars", color: "border-primary/20 bg-primary/5" },
+              { tier: "Complex", cost: "2 credits", rule: "6–15 tools · OR content 2,001–5,000 chars", color: "border-amber-500/20 bg-amber-500/5" },
+              { tier: "Premium", cost: "3 credits", rule: "≥16 tools · OR content >5,000 chars", color: "border-orange-500/20 bg-orange-500/5" },
+            ].map(({ tier, cost, rule, color }) => (
+              <Card key={tier} className={`border ${color}`}>
+                <CardContent className="pt-4 pb-4">
+                  <p className="font-semibold text-sm">{tier} — {cost}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{rule}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-muted-foreground mb-4">
+            The wizard shows your estimated credit cost in real time on Step 3 (Tools) and Step 5 (Review).
+          </p>
+          <Card className="border-border/60 mb-4">
+            <CardContent className="pt-4">
+              <p className="text-sm font-semibold mb-2">Plans</p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li><strong className="text-foreground">Free:</strong> 3 credits on signup — never expire. No credit card required.</li>
+                <li><strong className="text-foreground">Pro ($19/mo):</strong> 50 credits/month. Up to 25 unused credits roll over (max 75 total). Priority queue. Credit top-up packs available.</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Security Score */}
         <section id="security-score" className="mb-12">
           <h2 className="text-2xl font-bold mb-4">7. Understanding Your Security Score</h2>
+          {/* anchor for credits section which comes after */}
           <p className="text-muted-foreground mb-4">
             Every FloMCP-generated server automatically receives a{" "}
             <strong>security score out of 100</strong>, calculated across 22 checks in 6 categories:
@@ -385,12 +404,12 @@ Windows: %APPDATA%\\Claude\\claude_desktop_config.json`}
 
         {/* FAQ */}
         <section id="faq" className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">8. FAQ</h2>
+          <h2 className="text-2xl font-bold mb-6">9. FAQ</h2>
           <div className="space-y-4">
             {[
               {
                 q: "How many servers can I generate on the free plan?",
-                a: "The free plan gives you 5 credits on signup \u2014 they never expire. Each server generation costs 1 credit (or 2 for complex servers with 5+ tools, API, resources, and prompts). Upgrade to Pro for 50 credits/month with rollover.",
+                a: "Free accounts start with 3 credits — they never expire. Simple servers (≤5 tools, content ≤2,000 chars) cost 1 credit. Complex (6–15 tools or content up to 5,000 chars) cost 2 credits. Premium (≥16 tools or content >5,000 chars) cost 3 credits. Upgrade to Pro for 50 credits/month with 25-credit rollover.",
               },
               {
                 q: "What languages does FloMCP generate?",
@@ -402,7 +421,19 @@ Windows: %APPDATA%\\Claude\\claude_desktop_config.json`}
               },
               {
                 q: "Does FloMCP store my generated servers?",
-                a: "Yes, your generated servers are saved in your dashboard under Servers. You can re-download, view the security score, and access setup instructions at any time.",
+                a: "Yes. Generated servers are saved in your dashboard (Dashboard → Servers). You can re-download the ZIP, view the full source code, check the security score, and access integration instructions at any time.",
+              },
+              {
+                q: "How do AI Tool Suggestions work?",
+                a: "On Step 3 (Tools), click Generate Tools. FloMCP sends your description to Claude and receives 3 suggested tool definitions — names, descriptions, and parameter schemas — pre-filled and ready to edit. You can regenerate as many times as you like.",
+              },
+              {
+                q: "Can I import an existing tool schema into the wizard?",
+                a: "Yes. On Step 3, click Import Schema and paste JSON. FloMCP supports four formats: OpenAI function-calling format, MCP inputSchema, FloMCP native, and plain arrays. Duplicates are detected and skipped automatically so you never get two tools with the same name.",
+              },
+              {
+                q: "What are Resources and Prompts?",
+                a: "Resources are static context blocks (docs, schemas, data files) attached to your server so Claude can reference them during tool calls. Prompts are reusable message templates. Both are optional and can be scoped to all tools or a specific tool. Drag & drop .txt, .md, or .json files in Step 4.",
               },
               {
                 q: "What if my API key is wrong in .env?",

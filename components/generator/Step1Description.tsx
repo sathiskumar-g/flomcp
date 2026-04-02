@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useGeneratorStore } from "@/lib/stores/generator-store";
 import { useSavedPrompts, PROMPT_FREE_LIMIT } from "@/lib/use-saved-prompts";
 import { validateGeneratorStep1 } from "@/lib/validate-input";
-import { Lightbulb, ChevronRight, AlertCircle, BookMarked, Save, X, ChevronDown, ChevronUp, Zap, Crown } from "lucide-react";
+import { ChevronRight, ChevronDown, AlertCircle, BookMarked, Save, X, Zap, Crown, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -68,19 +68,6 @@ const EXAMPLE_PROMPTS = [
 const MAX_CHARS = 2000;
 const MIN_CHARS = 50;
 
-// ─── MCP capabilities (shown in accordion) ───────────────────────────────────
-
-const MCP_CAPABILITIES = [
-  { type: "do" as const,   text: "Give Claude real-time access to your APIs, databases, and internal tools" },
-  { type: "do" as const,   text: "Expose read-only views of sensitive data so the AI can query without risk" },
-  { type: "do" as const,   text: "Chain multiple tools — Claude can call them in sequence to complete tasks" },
-  { type: "do" as const,   text: "Use tool descriptions to guide when Claude should call each tool" },
-  { type: "do" as const,   text: "Add resources to give Claude static context (docs, schemas, config)" },
-  { type: "dont" as const, text: "Don't give Claude destructive write access without an explicit confirmation tool" },
-  { type: "dont" as const, text: "Don't connect the same server to untrusted clients — it has access to real systems" },
-  { type: "dont" as const, text: "Don't hardcode API keys — use environment variables (.env) instead" },
-];
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Step1Description() {
@@ -89,7 +76,6 @@ export function Step1Description() {
   const router = useRouter();
 
   const [touched, setTouched] = useState(false);
-  const [showCapabilities, setShowCapabilities] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const noCredits = credits !== null && credits <= 0;
 
@@ -148,46 +134,7 @@ export function Step1Description() {
         </div>
       )}
 
-      {/* MCP capabilities accordion */}
-      <div className="rounded-lg border border-border/60">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors rounded-lg"
-          onClick={() => setShowCapabilities((v) => !v)}
-        >
-          <span className="flex items-center gap-2 text-sm font-medium">
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-            What can MCP servers do?
-          </span>
-          {showCapabilities ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </button>
-        {showCapabilities && (
-          <div className="px-4 pb-4 space-y-2 border-t border-border/40 pt-3">
-            {MCP_CAPABILITIES.map((item, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                {item.type === "do" ? (
-                  <span className="mt-0.5 shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-green-500/15 text-green-600">
-                    <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                ) : (
-                  <span className="mt-0.5 shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500/15 text-red-500">
-                    <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 3l6 6M9 3l-6 6" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground leading-relaxed">{item.text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+
 
       {/* Server name */}
       <div className="space-y-2">

@@ -7,7 +7,7 @@
  * Users can remove suggestions they don't want, edit them, or add custom ones.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   useGeneratorStore,
   type ToolDefinition,
@@ -20,6 +20,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -31,6 +39,8 @@ import {
   ChevronUp,
   Loader2,
   Zap,
+  FileJson,
+  CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -46,8 +56,10 @@ export function Step3ToolConfig() {
     prompts,
     apiConfig,
     suggestionsLoading,
+    suggestedIds: suggestedIdsArr,
     setTools,
     setSuggestionsLoading,
+    setSuggestedIds,
     addTool,
     updateTool,
     removeTool,
@@ -58,7 +70,7 @@ export function Step3ToolConfig() {
     prevStep,
   } = useGeneratorStore();
 
-  const [suggestedIds, setSuggestedIds] = useState<Set<string>>(new Set());
+  const suggestedIds = new Set(suggestedIdsArr);
   // First tool starts expanded so users see it immediately
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(tools.length > 0 ? [tools[0].id] : [])
@@ -66,14 +78,28 @@ export function Step3ToolConfig() {
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   // Track the most-recently manually added tool ID so we can auto-focus its name input
   const [newToolId, setNewToolId] = useState<string | null>(null);
-  const fetched = useRef(false);
 
-  // Fetch 3 AI suggestions on first mount if tools are still blank
-  useEffect(() => {
-    if (fetched.current) return;
-    const allBlank = tools.every((t) => t.name === "");
-    if (!allBlank) return;
-    fetched.current = true;
+  // Schema import modal state
+  const [schemaModalOpen, setSchemaModalOpen] = useState(false);
+  const [schemaInput, setSchemaInput] = useState("");
+  const [schemaParseError, setSchemaParseError] = useState<string | null>(null);
+  const [schemaPreview, setSchemaPreview] = useState<ToolDefinition | null>(null);
+  const [sampleOpen, setSampleOpen] = useState(false);
+  const [schemaParsedCount, setSchemaParsedCount] = useState(0);
+  const [schemaSkippedCount, setSchemaSkippedCount] = useState(0);
+
+  function openSchemaModal() {
+    setSchemaInput("");
+    setSchemaParseError(null);
+    setSchemaPreview(null);
+    setSchemaParsedCount(0);
+    setSchemaSkippedCount(0);
+    setSampleOpen(false);
+    setSchemaModalOpen(true);
+  }
+
+  function runAISuggest() {
+    if (suggestionsLoading) return;
     setSuggestionsLoading(true);
     setSuggestionError(null);
 
@@ -86,7 +112,7 @@ export function Step3ToolConfig() {
       .then((data) => {
         if (data.tools && Array.isArray(data.tools)) {
           setTools(data.tools);
-          setSuggestedIds(new Set(data.tools.map((t: ToolDefinition) => t.id)));
+          setSuggestedIds(data.tools.map((t: ToolDefinition) => t.id));
           setExpandedIds(new Set(data.tools.map((t: ToolDefinition) => t.id)));
         } else {
           setSuggestionError("Could not load suggestions — add your tools manually.");
@@ -94,8 +120,84 @@ export function Step3ToolConfig() {
       })
       .catch(() => setSuggestionError("Could not load suggestions — add your tools manually."))
       .finally(() => setSuggestionsLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }
+
+  // ─── Schema Parser ────────────────────────────────────────────────────────
+  const uid = () => Math.random().toString(36).slice(2, 9);
+
+  function mapFieldType(raw: unknown): SchemaField["type"] {
+    const t = String(raw ?? "string").toLowerCase();
+    if (t === "integer") return "number";
+    if (["string", "number", "boolean", "object", "array"].includes(t)) return t as SchemaField["type"];
+    return "string";
+  }
+
+  function parseSingleTool(obj: Record<string, unknown>): ToolDefinition | null {
+    const name = String(obj.name ?? obj.tool_name ?? obj.function_name ?? "").replace(/\s+/g, "_");
+    if (!name) return null;
+    const description = String(obj.description ?? obj.summary ?? "");
+    const fields: SchemaField[] = [];
+    const nativeFields = obj.fields as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(nativeFields)) {
+      nativeFields.forEach((f) => {
+        fields.push({ id: uid(), name: String(f.name ?? ""), type: mapFieldType(f.type), required: Boolean(f.required ?? true), description: String(f.description ?? "") });
+      });
+    } else {
+      const schema = (obj.parameters ?? obj.inputSchema ?? obj.input_schema ?? obj.schema) as Record<string, unknown> | undefined;
+      if (schema && typeof schema === "object") {
+        const props = schema.properties as Record<string, Record<string, unknown>> | undefined;
+        const required = schema.required as string[] | undefined;
+        if (props) {
+          Object.entries(props).forEach(([pName, def]) => {
+            fields.push({ id: uid(), name: pName, type: mapFieldType(def.type), required: Array.isArray(required) ? required.includes(pName) : true, description: String(def.description ?? "") });
+          });
+        }
+      }
+    }
+    return { id: uid(), name, description, fields, exampleOutput: "" };
+  }
+
+  function parseSchemaJson(raw: string): ToolDefinition[] | string {
+    try {
+      const parsed = JSON.parse(raw.trim());
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      const result: ToolDefinition[] = [];
+      const seenNames = new Set<string>();
+      for (const item of items) {
+        if (typeof item !== "object" || !item) continue;
+        const tool = parseSingleTool(item as Record<string, unknown>);
+        if (!tool) continue;
+        // Deduplicate within the imported JSON itself — keep first occurrence
+        if (seenNames.has(tool.name)) continue;
+        seenNames.add(tool.name);
+        result.push(tool);
+      }
+      if (result.length === 0) return "No recognisable tool structure found. Expected { name, description, parameters } or { name, description, fields }.";
+      return result;
+    } catch {
+      return "Invalid JSON — please check your input.";
+    }
+  }
+
+  function handleSchemaApply() {
+    const result = parseSchemaJson(schemaInput);
+    if (typeof result === "string") { setSchemaParseError(result); return; }
+    // Deduplicate against existing tools — skip any whose name already exists, keep first
+    const existingNames = new Set(tools.map((t) => t.name));
+    const toAdd = result.filter((t) => !existingNames.has(t.name));
+    const skipped = result.length - toAdd.length;
+    const merged = [...tools, ...toAdd];
+    setTools(merged);
+    setExpandedIds(new Set(toAdd.map((t) => t.id)));
+    setSchemaModalOpen(false);
+    setSchemaInput("");
+    setSchemaParseError(null);
+    setSchemaPreview(null);
+    setSchemaParsedCount(0);
+    setSchemaSkippedCount(0);
+    // Surface skipped count via brief console note (non-blocking)
+    if (skipped > 0) {/* duplicate tools silently skipped */}
+  }
 
   const toggleExpand = (id: string) =>
     setExpandedIds((prev) => {
@@ -111,13 +213,28 @@ export function Step3ToolConfig() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold">Define Your Tools</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          We've suggested 3 tools based on your description. Remove any you don't need,
-          edit them, or add custom ones.
-        </p>
+      {/* Header + top action buttons */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-xl font-semibold">Define Your Tools</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            At least one tool is required to continue.{" "}
+            <span className="text-foreground/70">Use <strong>Generate Tools</strong> to get 3 AI-suggested tools instantly, or import an existing JSON schema.</span>
+          </p>
+        </div>
+        {/* Always-visible action buttons */}
+        {!suggestionsLoading && (
+          <div className="flex gap-2">
+            <Button onClick={runAISuggest} disabled={suggestionsLoading} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate Tools
+            </Button>
+            <Button variant="outline" onClick={openSchemaModal} className="gap-2">
+              <FileJson className="h-4 w-4" />
+              Import Schema
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Loading skeleton */}
@@ -138,6 +255,17 @@ export function Step3ToolConfig() {
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-center gap-2 text-sm text-amber-600">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {suggestionError}
+        </div>
+      )}
+
+      {/* Empty state — shown when no tools, not loading */}
+      {!suggestionsLoading && tools.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border/70 bg-muted/10 px-6 py-10 text-center">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted/50 border border-border mx-auto mb-3">
+            <Wrench className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium">No tools yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Click <strong>Generate Tools</strong> above to get 3 AI-suggested tools, or import a schema.</p>
         </div>
       )}
 
@@ -164,8 +292,8 @@ export function Step3ToolConfig() {
         </div>
       )}
 
-      {/* Add custom tool */}
-      {!suggestionsLoading && (
+      {/* Add custom tool (only shown when tools exist) */}
+      {!suggestionsLoading && tools.length > 0 && (
         <>
           <Button
             variant="outline"
@@ -266,6 +394,162 @@ export function Step3ToolConfig() {
           Every tool needs a name and description before continuing
         </p>
       )}
+
+      {/* Schema Import Modal */}
+      <Dialog open={schemaModalOpen} onOpenChange={setSchemaModalOpen}>
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileJson className="h-4 w-4 text-primary" />
+              Import Tool Schema
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Paste an array of tool objects — supports OpenAI function format, MCP inputSchema, or FloMCP native.
+              {tools.length > 0 && (
+                <span className="text-primary font-medium"> Imported tools will be added to your {tools.length} existing tool{tools.length !== 1 ? "s" : ""}.</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+
+            {/* Sample schema accordion */}
+            <div className="rounded-lg border border-border/60 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setSampleOpen((v) => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-xs"
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform text-muted-foreground", sampleOpen && "rotate-180")} />
+                  See example schema (array of 2 tools)
+                </span>
+                <span className="text-muted-foreground">expand to see format</span>
+              </button>
+              {sampleOpen && (
+                <div className="border-t border-border/50 bg-muted/10">
+                  <pre className="text-[11px] font-mono p-3 overflow-x-auto leading-relaxed text-foreground/80">{`[
+  {
+    "name": "get_weather",
+    "description": "Get current weather for a city",
+    "parameters": {
+      "properties": {
+        "city":  { "type": "string",  "description": "City name" },
+        "units": { "type": "string",  "description": "celsius or fahrenheit" }
+      },
+      "required": ["city"]
+    }
+  },
+  {
+    "name": "search_web",
+    "description": "Search the web and return results",
+    "parameters": {
+      "properties": {
+        "query": { "type": "string", "description": "Search query" },
+        "limit": { "type": "number", "description": "Max results (default 5)" }
+      },
+      "required": ["query"]
+    }
+  }
+]`}</pre>
+                  <div className="px-3 pb-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
+                    <span className="flex items-center gap-1"><code className="bg-muted px-1 rounded">name</code> → tool function name</span>
+                    <span className="flex items-center gap-1"><code className="bg-muted px-1 rounded">description</code> → what the tool does</span>
+                    <span className="flex items-center gap-1"><code className="bg-muted px-1 rounded">parameters.properties</code> → input fields</span>
+                    <span className="flex items-center gap-1"><code className="bg-muted px-1 rounded">required</code> → required field names</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Textarea
+              value={schemaInput}
+              onChange={(e) => {
+                setSchemaInput(e.target.value);
+                setSchemaParseError(null);
+                if (e.target.value.trim()) {
+                  const r = parseSchemaJson(e.target.value);
+                  if (typeof r !== "string") {
+                    const existingNames = new Set(tools.map((t) => t.name));
+                    const newOnes = r.filter((t) => !existingNames.has(t.name));
+                    setSchemaPreview(newOnes[0] ?? r[0]);
+                    setSchemaParsedCount(newOnes.length);
+                    setSchemaSkippedCount(r.length - newOnes.length);
+                  } else {
+                    setSchemaPreview(null);
+                    setSchemaParsedCount(0);
+                    setSchemaSkippedCount(0);
+                  }
+                } else {
+                  setSchemaPreview(null);
+                  setSchemaParsedCount(0);
+                  setSchemaSkippedCount(0);
+                }
+              }}
+              placeholder={`Paste an array of tool objects here.\n\n[\n  {\n    "name": "tool_name",\n    "description": "What this tool does",\n    "parameters": {\n      "properties": {\n        "param": { "type": "string" }\n      },\n      "required": ["param"]\n    }\n  },\n  {\n    "name": "another_tool",\n    ...\n  }\n]`}
+              rows={11}
+              className="text-xs font-mono resize-none"
+            />
+            {schemaParseError && (
+              <div className="flex items-start gap-2 text-xs text-red-500">
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                {schemaParseError}
+              </div>
+            )}
+            {schemaPreview && !schemaParseError && (
+              <div className="rounded-lg border border-green-500/30 bg-green-500/5 overflow-hidden">
+                <div className="px-3 py-2 border-b border-green-500/20 flex items-center justify-between flex-wrap gap-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                      {schemaParsedCount} tool{schemaParsedCount !== 1 ? "s" : ""} will be added
+                      {schemaSkippedCount > 0 && (
+                        <span className="text-amber-600 dark:text-amber-400 ml-1">
+                          · {schemaSkippedCount} duplicate name{schemaSkippedCount !== 1 ? "s" : ""} skipped
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {tools.length > 0 && schemaParsedCount > 0 && (
+                    <span className="text-[10px] text-muted-foreground">{tools.length} existing + {schemaParsedCount} new = {tools.length + schemaParsedCount} total</span>
+                  )}
+                </div>
+                <div className="p-3 space-y-1.5">
+                  <code className="text-xs font-mono font-semibold text-foreground">{schemaPreview.name}</code>
+                  {schemaPreview.description && (
+                    <p className="text-xs text-muted-foreground">{schemaPreview.description}</p>
+                  )}
+                  {schemaPreview.fields.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {schemaPreview.fields.map((f, fi) => (
+                        <span
+                          key={fi}
+                          className={cn(
+                            "inline-flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 font-mono border",
+                            f.required ? "bg-primary/10 border-primary/20 text-primary" : "bg-muted border-border/60 text-muted-foreground"
+                          )}
+                        >
+                          {f.name}<span className="opacity-60">:{f.type}</span>
+                          {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="pt-2 border-t border-border/40">
+            <Button variant="ghost" onClick={() => setSchemaModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSchemaApply} disabled={!schemaInput.trim() || schemaParsedCount === 0}>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {schemaParsedCount > 0
+                ? `Add ${schemaParsedCount} Tool${schemaParsedCount !== 1 ? "s" : ""}`
+                : "Add Tools"
+              }
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-2">
