@@ -3,7 +3,7 @@
 /**
  * Step 3 — Tool Configuration
  *
- * On mount: calls /api/suggest-tools to get 3 AI-suggested tools pre-selected.
+ * On mount: calls /api/suggest-tools to get 2 AI-suggested tools pre-selected.
  * Users can remove suggestions they don't want, edit them, or add custom ones.
  */
 
@@ -219,7 +219,7 @@ export function Step3ToolConfig() {
           <h2 className="text-xl font-semibold">Define Your Tools</h2>
           <p className="text-sm text-muted-foreground mt-1">
             At least one tool is required to continue.{" "}
-            <span className="text-foreground/70">Use <strong>Generate Tools</strong> to get 3 AI-suggested tools instantly, or import an existing JSON schema.</span>
+            <span className="text-foreground/70">Use <strong>Generate Tools</strong> to get 2 AI-suggested tools instantly, or import an existing JSON schema.</span>
           </p>
         </div>
         {/* Always-visible action buttons */}
@@ -265,7 +265,7 @@ export function Step3ToolConfig() {
             <Wrench className="h-5 w-5 text-muted-foreground" />
           </div>
           <p className="text-sm font-medium">No tools yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Click <strong>Generate Tools</strong> above to get 3 AI-suggested tools, or import a schema.</p>
+          <p className="text-xs text-muted-foreground mt-1">Click <strong>Generate Tools</strong> above to get 2 AI-suggested tools, or import a schema.</p>
         </div>
       )}
 

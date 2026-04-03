@@ -38,11 +38,12 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 1500,
       temperature: 0.3,
       system: `You are an MCP (Model Context Protocol) tool design expert.
 Given a description of an MCP server, you suggest the 2 most practical tools it should expose.
 Each tool name must be snake_case. Field types must be one of: string, number, boolean, object, array.
+For exampleOutput: write a realistic, concise sample response the tool would return (plain text or compact JSON, max 3 lines).
 Respond ONLY with valid JSON — no markdown, no explanation, no fences.`,
       messages: [
         {
@@ -60,12 +61,14 @@ Suggest exactly 2 tools. Return JSON in this format:
       "description": "What this tool does and when an AI client should call it",
       "fields": [
         { "name": "param", "type": "string", "required": true, "description": "What this param does" }
-      ]
+      ],
+      "exampleOutput": "A realistic sample response this tool would return"
     }
   ]
 }
 
-Include 1-4 fields per tool — only the essential parameters.`,
+Include 1-4 fields per tool — only the essential parameters.
+exampleOutput: write what the tool actually returns, e.g. a JSON snippet or plain string. Keep it under 3 lines.`,
         },
       ],
     });
@@ -83,6 +86,7 @@ Include 1-4 fields per tool — only the essential parameters.`,
       id: uid(),
       name: t.name ?? "unnamed_tool",
       description: t.description ?? "",
+      exampleOutput: t.exampleOutput ?? "",
       fields: (t.fields ?? []).map((f: any) => ({
         id: uid(),
         name: f.name ?? "",
