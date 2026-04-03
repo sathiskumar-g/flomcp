@@ -87,6 +87,7 @@ export function Step3ToolConfig() {
   const [sampleOpen, setSampleOpen] = useState(false);
   const [schemaParsedCount, setSchemaParsedCount] = useState(0);
   const [schemaSkippedCount, setSchemaSkippedCount] = useState(0);
+  const [skippedNotice, setSkippedNotice] = useState<string | null>(null);
 
   function openSchemaModal() {
     setSchemaInput("");
@@ -98,22 +99,34 @@ export function Step3ToolConfig() {
     setSchemaModalOpen(true);
   }
 
+  const isBlankTool = (t: ToolDefinition) => t.name.trim() === "" && t.description.trim() === "";
+
   function runAISuggest() {
     if (suggestionsLoading) return;
     setSuggestionsLoading(true);
     setSuggestionError(null);
+    setSkippedNotice(null);
+
+    // Send existing non-blank tool names so Claude avoids suggesting duplicates
+    const existingToolNames = tools.filter((t) => t.name.trim()).map((t) => t.name);
 
     fetch("/api/suggest-tools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description }),
+      body: JSON.stringify({ description, existingToolNames }),
     })
       .then((r) => r.json())
       .then((data) => {
         if (data.tools && Array.isArray(data.tools)) {
-          setTools(data.tools);
-          setSuggestedIds(data.tools.map((t: ToolDefinition) => t.id));
-          setExpandedIds(new Set(data.tools.map((t: ToolDefinition) => t.id)));
+          const existingNames = new Set(tools.map((t) => t.name));
+          const toAdd = (data.tools as ToolDefinition[]).filter((t) => !existingNames.has(t.name));
+          const skipped = data.tools.length - toAdd.length;
+          // Drop blank placeholder tools before merging — keep only tools the user has filled in
+          const filledTools = tools.filter((t) => !isBlankTool(t));
+          setTools([...filledTools, ...toAdd]);
+          setSuggestedIds(toAdd.map((t: ToolDefinition) => t.id));
+          setExpandedIds(new Set(toAdd.map((t: ToolDefinition) => t.id)));
+          if (skipped > 0) setSkippedNotice(`${skipped} suggested tool${skipped !== 1 ? "s" : ""} skipped — name already exists.`);
         } else {
           setSuggestionError("Could not load suggestions — add your tools manually.");
         }
@@ -182,12 +195,12 @@ export function Step3ToolConfig() {
   function handleSchemaApply() {
     const result = parseSchemaJson(schemaInput);
     if (typeof result === "string") { setSchemaParseError(result); return; }
-    // Deduplicate against existing tools — skip any whose name already exists, keep first
-    const existingNames = new Set(tools.map((t) => t.name));
+    // Drop blank placeholder tools before merging — keep only tools the user has filled in
+    const filledTools = tools.filter((t) => !isBlankTool(t));
+    const existingNames = new Set(filledTools.map((t) => t.name));
     const toAdd = result.filter((t) => !existingNames.has(t.name));
     const skipped = result.length - toAdd.length;
-    const merged = [...tools, ...toAdd];
-    setTools(merged);
+    setTools([...filledTools, ...toAdd]);
     setExpandedIds(new Set(toAdd.map((t) => t.id)));
     setSchemaModalOpen(false);
     setSchemaInput("");
@@ -195,8 +208,7 @@ export function Step3ToolConfig() {
     setSchemaPreview(null);
     setSchemaParsedCount(0);
     setSchemaSkippedCount(0);
-    // Surface skipped count via brief console note (non-blocking)
-    if (skipped > 0) {/* duplicate tools silently skipped */}
+    if (skipped > 0) setSkippedNotice(`${skipped} tool${skipped !== 1 ? "s" : ""} skipped — name already exists.`);
   }
 
   const toggleExpand = (id: string) =>
@@ -223,38 +235,34 @@ export function Step3ToolConfig() {
           </p>
         </div>
         {/* Always-visible action buttons */}
-        {!suggestionsLoading && (
-          <div className="flex gap-2">
-            <Button onClick={runAISuggest} disabled={suggestionsLoading} className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Generate Tools
-            </Button>
-            <Button variant="outline" onClick={openSchemaModal} className="gap-2">
-              <FileJson className="h-4 w-4" />
-              Import Schema
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Loading skeleton */}
-      {suggestionsLoading && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Asking Claude to suggest the best tools for your server…</span>
-          </div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-lg border border-border/50 bg-muted/20 animate-pulse" />
-          ))}
+        <div className="flex gap-2">
+          <Button onClick={runAISuggest} disabled={suggestionsLoading} className="gap-2">
+            {suggestionsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {suggestionsLoading ? "Generating…" : "Generate Tools"}
+          </Button>
+          <Button variant="outline" onClick={openSchemaModal} disabled={suggestionsLoading} className="gap-2">
+            <FileJson className="h-4 w-4" />
+            Import Schema
+          </Button>
         </div>
-      )}
+      </div>
 
       {/* Suggestion error */}
       {suggestionError && !suggestionsLoading && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-center gap-2 text-sm text-amber-600">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />
           {suggestionError}
+        </div>
+      )}
+
+      {/* Skipped notice — shown when duplicate tool names were skipped */}
+      {skippedNotice && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 flex items-center justify-between gap-2 text-sm text-amber-600">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {skippedNotice}
+          </div>
+          <button onClick={() => setSkippedNotice(null)} className="text-amber-500 hover:text-amber-700 text-xs underline shrink-0">Dismiss</button>
         </div>
       )}
 
@@ -269,8 +277,8 @@ export function Step3ToolConfig() {
         </div>
       )}
 
-      {/* Tool cards */}
-      {!suggestionsLoading && (
+      {/* Tool cards — always visible so existing tools stay put during generate */}
+      {tools.length > 0 && (
         <div className="space-y-3">
           {tools.map((tool, idx) => (
             <ToolCard
@@ -292,8 +300,21 @@ export function Step3ToolConfig() {
         </div>
       )}
 
+      {/* Inline loading skeleton — appended below existing tools while generating */}
+      {suggestionsLoading && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>{tools.length > 0 ? "Adding AI-suggested tools…" : "Asking Claude to suggest tools for your server…"}</span>
+          </div>
+          {[1, 2].map((i) => (
+            <div key={i} className="h-16 rounded-lg border border-border/50 bg-muted/20 animate-pulse" />
+          ))}
+        </div>
+      )}
+
       {/* Add custom tool (only shown when tools exist) */}
-      {!suggestionsLoading && tools.length > 0 && (
+      {tools.length > 0 && (
         <>
           <Button
             variant="outline"
@@ -304,7 +325,7 @@ export function Step3ToolConfig() {
               setExpandedIds((prev) => new Set([...prev, newId]));
               setNewToolId(newId);
             }}
-            disabled={tools.length >= 25}
+            disabled={tools.length >= 25 || suggestionsLoading}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Custom Tool
@@ -325,7 +346,7 @@ export function Step3ToolConfig() {
       )}
 
       {/* Credit complexity badge + tier reference table */}
-      {!suggestionsLoading && tools.length > 0 && (() => {
+      {tools.length > 0 && (() => {
         const estimate = estimateCredits({ tools, resources, prompts, apiConfig, description });
         const tierColor =
           estimate.tier === 3 ? "text-orange-500" :

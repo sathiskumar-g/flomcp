@@ -13,6 +13,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase";
 import {
   useGeneratorStore,
   type ResourceDefinition,
@@ -77,11 +78,20 @@ export function Step4Resources() {
   const [isDragging, setIsDragging]        = useState(false);
   const [expandedIds, setExpandedIds]      = useState<Set<string>>(new Set());
   const [showLibraryDropdown, setShowLibraryDropdown] = useState(false);
+  const [showResourceLibraryDropdown, setShowResourceLibraryDropdown] = useState(false);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const prevResLen    = useRef(resources.length);
   const prevProLen    = useRef(prompts.length);
 
-  const { prompts: savedLibraryPrompts } = useSavedPrompts();
+  const [userId, setUserId] = useState("");
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? "");
+    });
+  }, []);
+
+  const { prompts: savedLibraryPrompts } = useSavedPrompts(userId);
 
   const isResourcesTab = activeTab === "resources";
   const totalCount     = resources.length + prompts.length;
@@ -266,7 +276,60 @@ export function Step4Resources() {
 
       {/* ADD CUSTOM / FROM LIBRARY BUTTONS */}
       <div className="flex justify-center gap-2">
-        {/* From Library dropdown — prompts tab only */}
+        {/* From Library dropdown — resources tab */}
+        {isResourcesTab && (
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowResourceLibraryDropdown(v => !v)}
+              className="gap-1.5 border-dashed"
+            >
+              <BookMarked className="h-3.5 w-3.5" />
+              From Library
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showResourceLibraryDropdown && "rotate-180")} />
+            </Button>
+            {showResourceLibraryDropdown && (
+              <div className="absolute left-0 top-full mt-1 w-72 rounded-lg border border-border/70 bg-card shadow-md z-20">
+                <div className="px-3 py-2 border-b border-border/50 flex items-center justify-between">
+                  <p className="text-xs font-medium">Saved Prompts → Resources ({savedLibraryPrompts.length}/{PROMPT_FREE_LIMIT})</p>
+                  <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowResourceLibraryDropdown(false)} aria-label="Close">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {savedLibraryPrompts.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-3 py-4 text-center">No saved prompts. Add them in the Library page.</p>
+                ) : (
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    {savedLibraryPrompts.map((sp) => (
+                      <button
+                        key={sp.id}
+                        className="w-full px-3 py-2 hover:bg-muted/40 text-left"
+                        onClick={() => {
+                          addResource();
+                          const last = useGeneratorStore.getState().resources.slice(-1)[0];
+                          if (last) {
+                            updateResource(last.id, {
+                              name: sp.name.toLowerCase().replace(/[^a-z0-9-_]/g, "_").replace(/_+/g, "_"),
+                              content: sp.text,
+                              mimeType: sp.mimeType === "text/markdown" ? "text/markdown" : "text/plain",
+                            });
+                          }
+                          setShowResourceLibraryDropdown(false);
+                        }}
+                      >
+                        <p className="text-xs font-medium truncate">{sp.name}</p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{sp.text}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* From Library dropdown — prompts tab */}
         {!isResourcesTab && (
           <div className="relative">
             <Button
@@ -360,6 +423,7 @@ export function Step4Resources() {
               key={p.id}
               prompt={p}
               index={idx}
+              userId={userId}
               expanded={expandedIds.has(p.id)}
               onToggle={() => toggleExpand(p.id)}
               onChange={patch => updatePrompt(p.id, patch)}
@@ -470,6 +534,7 @@ function ResourceCard({ resource, index, expanded, onToggle, onChange, onRemove,
 interface PromptCardProps {
   prompt: PromptDefinition;
   index: number;
+  userId: string;
   expanded: boolean;
   onToggle: () => void;
   onChange: (patch: Partial<Omit<PromptDefinition, "id">>) => void;
@@ -477,10 +542,10 @@ interface PromptCardProps {
   tools: ToolDefinition[];
 }
 
-function PromptCard({ prompt, index, expanded, onToggle, onChange, onRemove, tools }: PromptCardProps) {
+function PromptCard({ prompt, index, userId, expanded, onToggle, onChange, onRemove, tools }: PromptCardProps) {
   const chars     = prompt.content.length;
   const overLimit = chars > MAX_CONTENT_LEN;
-  const { prompts: lib, savePrompt: saveToLib } = useSavedPrompts();
+  const { prompts: lib, savePrompt: saveToLib } = useSavedPrompts(userId);
   const libraryFull = lib.length >= PROMPT_FREE_LIMIT;
 
   return (

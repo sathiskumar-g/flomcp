@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -72,7 +73,14 @@ const MIN_CHARS = 50;
 
 export function Step1Description() {
   const { serverName, setServerName, description, setDescription, nextStep } = useGeneratorStore();
-  const { prompts: savedPrompts, savePrompt, deletePrompt } = useSavedPrompts();
+  const [userId, setUserId] = useState("");
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? "");
+    });
+  }, []);
+  const { prompts: savedPrompts, savePrompt, deletePrompt } = useSavedPrompts(userId);
   const router = useRouter();
 
   const [touched, setTouched] = useState(false);

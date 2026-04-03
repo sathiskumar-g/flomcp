@@ -30,11 +30,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { description } = await req.json();
+    const body = await req.json();
+    const { description, existingToolNames } = body;
 
     if (!description || typeof description !== "string" || description.length < 10) {
       return NextResponse.json({ error: "Description too short" }, { status: 400 });
     }
+
+    const existingNamesClause =
+      Array.isArray(existingToolNames) && existingToolNames.length > 0
+        ? `\nThe user already has these tools — do NOT suggest any tool with these exact names: ${existingToolNames.join(", ")}.`
+        : "";
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
@@ -44,7 +50,7 @@ export async function POST(req: NextRequest) {
 Given a description of an MCP server, you suggest the 2 most practical tools it should expose.
 Each tool name must be snake_case. Field types must be one of: string, number, boolean, object, array.
 For exampleOutput: write a realistic, concise sample response the tool would return (plain text or compact JSON, max 3 lines).
-Respond ONLY with valid JSON — no markdown, no explanation, no fences.`,
+Respond ONLY with valid JSON — no markdown, no explanation, no fences.${existingNamesClause}`,
       messages: [
         {
           role: "user",
@@ -52,8 +58,8 @@ Respond ONLY with valid JSON — no markdown, no explanation, no fences.`,
 """
 ${description}
 """
-
-Suggest exactly 2 tools. Return JSON in this format:
+${existingToolNames?.length > 0 ? `\nAlready-existing tools (do NOT suggest these): ${existingToolNames.join(", ")}\n` : ""}
+Suggest exactly 2 NEW tools not already in the list above. Return JSON in this format:
 {
   "tools": [
     {

@@ -140,11 +140,11 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 export default async function AdminCostsPage() {
   // ── Auth check ──
+  // getUser() validates the JWT with Supabase Auth server — prevents revoked token bypass
   const supabaseUser = createServerClient();
   const {
-    data: { session },
-  } = await supabaseUser.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabaseUser.auth.getUser();
 
   if (!user) redirect("/auth/signin");
 
