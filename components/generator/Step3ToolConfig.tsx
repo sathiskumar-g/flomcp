@@ -508,7 +508,7 @@ export function Step3ToolConfig() {
               }}
               placeholder={`Paste an array of tool objects here.\n\n[\n  {\n    "name": "tool_name",\n    "description": "What this tool does",\n    "parameters": {\n      "properties": {\n        "param": { "type": "string" }\n      },\n      "required": ["param"]\n    }\n  },\n  {\n    "name": "another_tool",\n    ...\n  }\n]`}
               rows={11}
-              className="text-xs font-mono resize-none"
+              className="text-xs font-mono resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             {schemaParseError && (
               <div className="flex items-start gap-2 text-xs text-red-500">
@@ -696,7 +696,7 @@ function ToolCard({
               onChange={(e) => onUpdate({ description: e.target.value })}
               placeholder="What does this tool do?"
               rows={2}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 resize-none"
             />
           </div>
 
@@ -736,7 +736,7 @@ function ToolCard({
               onChange={(e) => onUpdate({ exampleOutput: e.target.value })}
               placeholder={`e.g. { "id": 123, "status": "active", "name": "Acme Corp" }\n\nor describe it: "Returns a list of customer objects with id, name, email and plan."`}
               rows={3}
-              className="text-xs font-mono resize-none"
+              className="text-xs font-mono resize-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <p className="text-xs text-muted-foreground">
               Paste a real API response or describe the return shape — Claude will generate more accurate parsing logic.

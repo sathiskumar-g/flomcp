@@ -826,6 +826,7 @@ Run command for users after download:
         let parsed: { files?: Record<string, string>; tools?: object[] } = {};
         let generatedIndexTs = "";
         let protocolReport: ProtocolReport | null = null;
+        const genStartMs = Date.now();
 
         try {
           // ── Pass 1: Schema contract ────────────────────────────────────────
@@ -875,7 +876,7 @@ Run command for users after download:
               messages: [{ role: "user", content: pass2UserMessage }],
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 480000)
+              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 240000)
             ),
           ]);
 
@@ -893,29 +894,33 @@ Run command for users after download:
           }
 
           // ── Pass 3: Self-review quality checklist ──────────────────────────
-          send({ type: "progress", step: "pass3", message: "Pass 3 \u2014 Running quality checklist\u2026" });
-          try {
-            const pass3Msg = await Promise.race([
-              anthropic.messages.create({
-                model: "claude-sonnet-4-6",
-                max_tokens: 8000,
-                temperature: 0.1,
-                system: buildPass3System(),
-                messages: [{ role: "user", content: buildPass3User(generatedIndexTs) }],
-              }),
-              new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("Pass 3 timed out")), 70000)
-              ),
-            ]);
-            const pass3Raw = pass3Msg.content[0].type === "text" ? pass3Msg.content[0].text : "";
-            const reviewedCode = extractReviewedCode(pass3Raw);
-            if (reviewedCode && reviewedCode.trim()) {
-              // Pass 3 identified and corrected quality issues — use the fixed code
-              generatedIndexTs = reviewedCode;
-              if (parsed.files) parsed.files["src/index.ts"] = reviewedCode;
+          // Skip Pass 3 if we're already past 200s — leave headroom for DB save + security checks
+          const elapsedMs = Date.now() - genStartMs;
+          if (elapsedMs < 200000) {
+            send({ type: "progress", step: "pass3", message: "Pass 3 \u2014 Running quality checklist\u2026" });
+            try {
+              const pass3Msg = await Promise.race([
+                anthropic.messages.create({
+                  model: "claude-sonnet-4-6",
+                  max_tokens: 4096,
+                  temperature: 0.1,
+                  system: buildPass3System(),
+                  messages: [{ role: "user", content: buildPass3User(generatedIndexTs) }],
+                }),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error("Pass 3 timed out")), 30000)
+                ),
+              ]);
+              const pass3Raw = pass3Msg.content[0].type === "text" ? pass3Msg.content[0].text : "";
+              const reviewedCode = extractReviewedCode(pass3Raw);
+              if (reviewedCode && reviewedCode.trim()) {
+                // Pass 3 identified and corrected quality issues — use the fixed code
+                generatedIndexTs = reviewedCode;
+                if (parsed.files) parsed.files["src/index.ts"] = reviewedCode;
+              }
+            } catch {
+              // Non-fatal — use Pass 2 output as-is if Pass 3 fails or times out
             }
-          } catch {
-            // Non-fatal — use Pass 2 output as-is if Pass 3 fails
           }
 
           // ── Protocol compliance validation ─────────────────────────────
@@ -930,12 +935,12 @@ Run command for users after download:
               const fixMsg = await Promise.race([
                 anthropic.messages.create({
                   model: "claude-sonnet-4-6",
-                  max_tokens: 8000,
+                  max_tokens: 4096,
                   temperature: 0.1,
                   messages: [{ role: "user", content: buildProtocolFixPrompt(generatedIndexTs, failedBlockers) }],
                 }),
                 new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error("Protocol fix timed out")), 60000)
+                  setTimeout(() => reject(new Error("Protocol fix timed out")), 40000)
                 ),
               ]);
               const fixedCode = fixMsg.content[0].type === "text" ? fixMsg.content[0].text.trim() : "";
