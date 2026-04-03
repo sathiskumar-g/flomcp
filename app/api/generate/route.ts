@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Hard input limits (>25 tools, oversized content, etc.) ──
+  // ── Hard input limits (>20 tools, oversized content, etc.) ──
   const limitErrors = validateInputLimits({
     tools:       tools       as ToolDefinition[],
     resources:   resources   as ResourceDefinition[],

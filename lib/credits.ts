@@ -4,13 +4,13 @@
  * Tier is determined solely by TOOL COUNT and CONTENT size.
  * Description and API usage are FREE — they never affect tier cost.
  *
- * Tier 1 — Simple   (1 credit): ≤5 tools  AND combined content ≤ 2,000 chars
- * Tier 2 — Complex  (2 credits): ≤15 tools AND combined content ≤ 5,000 chars
- *                                 (i.e. >5 tools OR content >2,000 → at least Tier 2)
- * Tier 3 — Premium  (3 credits): ≤25 tools AND combined content ≤10,000 chars
- *                                 (i.e. >15 tools OR content >5,000 → Tier 3)
+ * Tier 1 — Simple   (1 credit): ≤3 tools  AND combined content ≤ 2,000 chars
+ * Tier 2 — Complex  (2 credits): ≤10 tools AND combined content ≤ 5,000 chars
+ *                                 (i.e. >3 tools OR content >2,000 → at least Tier 2)
+ * Tier 3 — Premium  (3 credits): ≤20 tools AND combined content ≤10,000 chars
+ *                                 (i.e. >10 tools OR content >5,000 → Tier 3)
  *
- * Hard cap (422 error): >25 tools, description >2,000 chars,
+ * Hard cap (422 error): >20 tools, description >2,000 chars,
  *                       single resource >10,000 chars,
  *                       single prompt >10,000 chars,
  *                       total content >10,000 chars.
@@ -27,8 +27,8 @@ import type {
 
 // ─── Hard limits (enforced server-side, surfaced client-side) ─────────────────
 
-/** Maximum tools allowed per server. >25 → 422 error. */
-export const MAX_TOOLS = 25;
+/** Maximum tools allowed per server. >20 → 422 error. */
+export const MAX_TOOLS = 20;
 
 /** Maximum description length in characters. */
 export const MAX_DESCRIPTION_CHARS = 2_000;
@@ -44,13 +44,13 @@ export const MAX_TOTAL_CONTENT_CHARS = 10_000;
 
 // ─── Tier thresholds (tools + content only — description and API are free) ────
 
-/** Max tools for Tier 1 (Simple). >5 tools → at least Tier 2. */
-export const TIER1_MAX_TOOLS = 5;
+/** Max tools for Tier 1 (Simple). >3 tools → at least Tier 2. */
+export const TIER1_MAX_TOOLS = 3;
 /** Max combined content chars for Tier 1 (Simple). >2,000 → at least Tier 2. */
 export const TIER1_MAX_CONTENT_CHARS = 2_000;
 
-/** Max tools for Tier 2 (Complex). >15 tools → Tier 3. */
-export const TIER2_MAX_TOOLS = 15;
+/** Max tools for Tier 2 (Complex). >10 tools → Tier 3. */
+export const TIER2_MAX_TOOLS = 10;
 /** Max combined content chars for Tier 2 (Complex). >5,000 → Tier 3. */
 export const TIER2_MAX_CONTENT_CHARS = 5_000;
 
@@ -200,13 +200,13 @@ export function estimateCredits(config: {
   if (totalContentChars > TIER1_MAX_CONTENT_CHARS)
                                            reasons.push(`${totalContentChars.toLocaleString()} chars content`);
 
-  // ── Tier 3: >15 tools OR content >5,000 chars ────────────────────────────
+  // ── Tier 3: >10 tools OR content >5,000 chars ────────────────────────────
   const isTier3 = toolCount > TIER2_MAX_TOOLS || totalContentChars > TIER2_MAX_CONTENT_CHARS;
   if (isTier3) {
     return { cost: 3, tier: 3, tierLabel: "Premium", isComplex: true, reasons, totalContentChars };
   }
 
-  // ── Tier 1: ≤5 tools AND content ≤2,000 ─────────────────────────────────
+  // ── Tier 1: ≤3 tools AND content ≤2,000 ─────────────────────────────────
   const isTier1 = toolCount <= TIER1_MAX_TOOLS && totalContentChars <= TIER1_MAX_CONTENT_CHARS;
   if (isTier1) {
     return { cost: 1, tier: 1, tierLabel: "Simple", isComplex: false, reasons: [], totalContentChars };

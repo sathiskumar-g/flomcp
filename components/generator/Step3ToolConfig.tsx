@@ -315,10 +315,10 @@ export function Step3ToolConfig() {
               : null
             }
           </Button>
-          {tools.length >= 25 && (
+          {tools.length >= 20 && (
             <p className="text-xs text-red-500 flex items-center gap-1.5">
               <AlertCircle className="h-3.5 w-3.5" />
-              Maximum 25 tools per server. Remove a tool to add another.
+              Maximum 20 tools per server. Remove a tool to add another.
             </p>
           )}
         </>
@@ -335,9 +335,9 @@ export function Step3ToolConfig() {
           estimate.tier === 2 ? "border-amber-500/30 bg-amber-500/10 text-amber-600" :
           "border-primary/20 bg-primary/10 text-primary";
         const TIERS = [
-          { tier: 1 as const, label: "Simple",  cost: "1 credit",  rule: "≤5 tools · content ≤2,000 chars",             dotColor: "text-primary" },
-          { tier: 2 as const, label: "Complex", cost: "2 credits", rule: "6–15 tools · OR content 2,001–5,000 chars",  dotColor: "text-amber-500" },
-          { tier: 3 as const, label: "Premium", cost: "3 credits", rule: "≥16 tools · OR content >5,000 chars",          dotColor: "text-orange-500" },
+          { tier: 1 as const, label: "Simple",  cost: "1 credit",  rule: "≤3 tools · content ≤2,000 chars",             dotColor: "text-primary" },
+          { tier: 2 as const, label: "Complex", cost: "2 credits", rule: "4–10 tools · OR content 2,001–5,000 chars",  dotColor: "text-amber-500" },
+          { tier: 3 as const, label: "Premium", cost: "3 credits", rule: "11–20 tools · OR content >5,000 chars",          dotColor: "text-orange-500" },
         ] as const;
         return (
           <div className="rounded-lg border border-border/60 overflow-hidden">

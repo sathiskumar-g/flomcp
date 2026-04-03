@@ -53,7 +53,7 @@ const CREDIT_PACKS = [
 const FAQ = [
   {
     q: "What counts as a credit?",
-    a: "Tier is based only on tool count and content size. Simple (1 credit): ≤5 tools and content ≤2,000 chars. Complex (2 credits): 6–15 tools or content up to 5,000 chars. Premium (3 credits): 16–25 tools or content up to 10,000 chars. Description length and API use are always free and never affect the tier.",
+    a: "Tier is based only on tool count and content size. Simple (1 credit): ≤3 tools and content ≤2,000 chars. Complex (2 credits): 4–10 tools or content up to 5,000 chars. Premium (3 credits): 11–20 tools or content up to 10,000 chars. Description length and API use are always free and never affect the tier.",
   },
   {
     q: "How many credits do I get on signup?",
@@ -298,15 +298,15 @@ export default async function PricingPage() {
             <div className="divide-y divide-border/40">
               <div className="grid grid-cols-3 px-4 py-2 text-sm">
                 <span className="font-medium text-primary">▸ Simple — 1 credit</span>
-                <span className="text-muted-foreground col-span-2">≤5 tools · content ≤2,000 chars</span>
+                <span className="text-muted-foreground col-span-2">≤3 tools · content ≤2,000 chars</span>
               </div>
               <div className="grid grid-cols-3 px-4 py-2 text-sm">
                 <span className="font-medium text-amber-500">▸ Complex — 2 credits</span>
-                <span className="text-muted-foreground col-span-2">6–15 tools · or content up to 5,000 chars</span>
+                <span className="text-muted-foreground col-span-2">4–10 tools · or content up to 5,000 chars</span>
               </div>
               <div className="grid grid-cols-3 px-4 py-2 text-sm">
                 <span className="font-medium text-orange-500">▸ Premium — 3 credits</span>
-                <span className="text-muted-foreground col-span-2">16–25 tools · or content up to 10,000 chars</span>
+                <span className="text-muted-foreground col-span-2">11–20 tools · or content up to 10,000 chars</span>
               </div>
             </div>
           </div>

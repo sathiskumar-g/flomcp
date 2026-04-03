@@ -230,10 +230,10 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {estimate.tier === 3
-                    ? `Premium — ${estimate.reasons.join(", ")} · ≥16 tools or content >5,000 chars`
+                    ? `Premium — ${estimate.reasons.join(", ")} · ≥11 tools or content >5,000 chars`
                     : estimate.tier === 2
-                    ? `Complex — ${estimate.reasons.join(", ")} · 6–15 tools or content 2,001–5,000 chars`
-                    : "Simple — ≤5 tools and content ≤2,000 chars"}
+                    ? `Complex — ${estimate.reasons.join(", ")} · 4–10 tools or content 2,001–5,000 chars`
+                    : "Simple — ≤3 tools and content ≤2,000 chars"}
                   {balance !== null && (
                     <span className={cn("ml-2", !canAfford ? "text-red-500" : "")}>
                       &middot; Balance: {balance} credit{balance !== 1 ? "s" : ""}

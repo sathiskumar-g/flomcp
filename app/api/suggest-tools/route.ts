@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       max_tokens: 1024,
       temperature: 0.3,
       system: `You are an MCP (Model Context Protocol) tool design expert.
-Given a description of an MCP server, you suggest the 3 most practical tools it should expose.
+Given a description of an MCP server, you suggest the 2 most practical tools it should expose.
 Each tool name must be snake_case. Field types must be one of: string, number, boolean, object, array.
 Respond ONLY with valid JSON — no markdown, no explanation, no fences.`,
       messages: [
@@ -52,7 +52,7 @@ Respond ONLY with valid JSON — no markdown, no explanation, no fences.`,
 ${description}
 """
 
-Suggest exactly 3 tools. Return JSON in this format:
+Suggest exactly 2 tools. Return JSON in this format:
 {
   "tools": [
     {

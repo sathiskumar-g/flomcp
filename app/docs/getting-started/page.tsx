@@ -179,7 +179,7 @@ export default async function GettingStartedPage() {
               },
               {
                 step: "Step 3 — Tools",
-                desc: 'Define the tools your server exposes (up to 25). Three ways to add tools: (1) Generate Tools — Claude suggests 3 tools based on your description; (2) Import Schema — paste OpenAI function JSON, MCP inputSchema, or FloMCP native format; (3) Add Custom Tool — define name, description, parameters, and an optional example output. FloMCP shows a live credit cost estimate as you build.',
+                desc: 'Define the tools your server exposes (up to 20). Three ways to add tools: (1) Generate Tools — Claude suggests 2 tools based on your description; (2) Import Schema — paste OpenAI function JSON, MCP inputSchema, or FloMCP native format; (3) Add Custom Tool — define name, description, parameters, and an optional example output. FloMCP shows a live credit cost estimate as you build.',
               },
               {
                 step: "Step 4 — Resources & Prompts (optional)",
@@ -338,9 +338,9 @@ Windows: %APPDATA%\\Claude\\claude_desktop_config.json`}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {[
-              { tier: "Simple", cost: "1 credit", rule: "≤5 tools · content ≤2,000 chars", color: "border-primary/20 bg-primary/5" },
-              { tier: "Complex", cost: "2 credits", rule: "6–15 tools · OR content 2,001–5,000 chars", color: "border-amber-500/20 bg-amber-500/5" },
-              { tier: "Premium", cost: "3 credits", rule: "≥16 tools · OR content >5,000 chars", color: "border-orange-500/20 bg-orange-500/5" },
+              { tier: "Simple", cost: "1 credit", rule: "≤3 tools · content ≤2,000 chars", color: "border-primary/20 bg-primary/5" },
+              { tier: "Complex", cost: "2 credits", rule: "4–10 tools · OR content 2,001–5,000 chars", color: "border-amber-500/20 bg-amber-500/5" },
+              { tier: "Premium", cost: "3 credits", rule: "11–20 tools · OR content >5,000 chars", color: "border-orange-500/20 bg-orange-500/5" },
             ].map(({ tier, cost, rule, color }) => (
               <Card key={tier} className={`border ${color}`}>
                 <CardContent className="pt-4 pb-4">
@@ -409,7 +409,7 @@ Windows: %APPDATA%\\Claude\\claude_desktop_config.json`}
             {[
               {
                 q: "How many servers can I generate on the free plan?",
-                a: "Free accounts start with 3 credits — they never expire. Simple servers (≤5 tools, content ≤2,000 chars) cost 1 credit. Complex (6–15 tools or content up to 5,000 chars) cost 2 credits. Premium (≥16 tools or content >5,000 chars) cost 3 credits. Upgrade to Pro for 50 credits/month with 25-credit rollover.",
+                a: "Free accounts start with 3 credits — they never expire. Simple servers (≤3 tools, content ≤2,000 chars) cost 1 credit. Complex (4–10 tools or content up to 5,000 chars) cost 2 credits. Premium (11–20 tools or content >5,000 chars) cost 3 credits. Upgrade to Pro for 50 credits/month with 25-credit rollover.",
               },
               {
                 q: "What languages does FloMCP generate?",
