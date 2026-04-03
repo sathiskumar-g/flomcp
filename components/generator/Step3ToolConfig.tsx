@@ -357,8 +357,8 @@ export function Step3ToolConfig() {
           "border-primary/20 bg-primary/10 text-primary";
         const TIERS = [
           { tier: 1 as const, label: "Simple",  cost: "1 credit",  rule: "≤3 tools · content ≤2,000 chars",             dotColor: "text-primary" },
-          { tier: 2 as const, label: "Complex", cost: "2 credits", rule: "4–10 tools · OR content 2,001–4,000 chars",  dotColor: "text-amber-500" },
-          { tier: 3 as const, label: "Premium", cost: "3 credits", rule: "11–20 tools · OR content >4,000 chars",          dotColor: "text-orange-500" },
+          { tier: 2 as const, label: "Complex", cost: "2 credits", rule: "4–10 tools · OR content 2,001–3,000 chars",  dotColor: "text-amber-500" },
+          { tier: 3 as const, label: "Premium", cost: "3 credits", rule: "11–20 tools · OR content 3,001–4,000 chars", dotColor: "text-orange-500" },
         ] as const;
         return (
           <div className="rounded-lg border border-border/60 overflow-hidden">

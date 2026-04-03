@@ -41,9 +41,10 @@ import {
   Wrench,
   BookMarked,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MAX_TOTAL_CONTENT_CHARS } from "@/lib/credits";
+import { MAX_TOTAL_CONTENT_CHARS, MAX_SINGLE_RESOURCE_CHARS, MAX_SINGLE_PROMPT_CHARS, validateInputLimits } from "@/lib/credits";
 
 // --- Constants ----------------------------------------------------------------
 
@@ -99,6 +100,9 @@ export function Step4Resources() {
   const totalContentChars =
     resources.reduce((s, r) => s + r.content.length, 0) +
     prompts.reduce((s, p) => s + p.content.length, 0);
+
+  const contentLimitErrors = validateInputLimits({ tools, resources, prompts, description: "" })
+    .filter(e => e.field === "resource" || e.field === "prompt" || e.field === "content");
 
   // Auto-expand newly added items
   useEffect(() => {
@@ -440,13 +444,32 @@ export function Step4Resources() {
         </p>
       )}
 
+      {/* Content limit errors — blocks proceeding */}
+      {contentLimitErrors.length > 0 && (
+        <div className="space-y-2">
+          {contentLimitErrors.map((err) => (
+            <div key={err.code} className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2.5 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-red-600">
+                  {err.code === "RESOURCE_CONTENT_LIMIT_EXCEEDED" && `Resource too large — max ${MAX_SINGLE_RESOURCE_CHARS.toLocaleString()} chars`}
+                  {err.code === "PROMPT_CONTENT_LIMIT_EXCEEDED"   && `Prompt too large — max ${MAX_SINGLE_PROMPT_CHARS.toLocaleString()} chars`}
+                  {err.code === "TOTAL_CONTENT_LIMIT_EXCEEDED"    && `Total content too large — max ${MAX_TOTAL_CONTENT_CHARS.toLocaleString()} chars combined`}
+                </p>
+                <p className="text-xs text-red-500/80 mt-0.5">{err.message}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Navigation */}
       <div className="flex items-center justify-between pt-2">
         <Button variant="outline" onClick={prevStep}>
           <ChevronLeft className="h-4 w-4 mr-1.5" />
           Back
         </Button>
-        {totalCount > 0 && (
+        {totalCount > 0 && contentLimitErrors.length === 0 && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <svg viewBox="0 0 12 12" className="h-3.5 w-3.5 text-green-500" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
@@ -454,7 +477,7 @@ export function Step4Resources() {
             Auto-saved
           </span>
         )}
-        <Button onClick={nextStep}>
+        <Button onClick={nextStep} disabled={contentLimitErrors.length > 0}>
           {totalCount === 0 ? "Skip" : "Continue"}
           <ChevronRight className="h-4 w-4 ml-1.5" />
         </Button>

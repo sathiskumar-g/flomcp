@@ -5,15 +5,15 @@
  * Description and API usage are FREE — they never affect tier cost.
  *
  * Tier 1 — Simple   (1 credit): ≤3 tools  AND combined content ≤ 2,000 chars
- * Tier 2 — Complex  (2 credits): ≤10 tools AND combined content ≤ 5,000 chars
+ * Tier 2 — Complex  (2 credits): ≤10 tools AND combined content ≤ 3,000 chars
  *                                 (i.e. >3 tools OR content >2,000 → at least Tier 2)
- * Tier 3 — Premium  (3 credits): ≤20 tools AND combined content ≤10,000 chars
- *                                 (i.e. >10 tools OR content >5,000 → Tier 3)
+ * Tier 3 — Premium  (3 credits): ≤20 tools AND combined content ≤ 4,000 chars
+ *                                 (i.e. >10 tools OR content >3,000 → Tier 3)
  *
  * Hard cap (422 error): >20 tools, description >2,000 chars,
- *                       single resource >10,000 chars,
- *                       single prompt >10,000 chars,
- *                       total content >10,000 chars.
+ *                       single resource >2,000 chars,
+ *                       single prompt >2,000 chars,
+ *                       total content >4,000 chars.
  *
  * Tier 3 is evaluated first — a Premium generation is never downgraded.
  */
@@ -51,8 +51,8 @@ export const TIER1_MAX_CONTENT_CHARS = 2_000;
 
 /** Max tools for Tier 2 (Complex). >10 tools → Tier 3. */
 export const TIER2_MAX_TOOLS = 10;
-/** Max combined content chars for Tier 2 (Complex). >4,000 → Tier 3. */
-export const TIER2_MAX_CONTENT_CHARS = 4_000;
+/** Max combined content chars for Tier 2 (Complex). >3,000 → Tier 3. */
+export const TIER2_MAX_CONTENT_CHARS = 3_000;
 
 // ─── Other ────────────────────────────────────────────────────────────────────
 
@@ -200,7 +200,7 @@ export function estimateCredits(config: {
   if (totalContentChars > TIER1_MAX_CONTENT_CHARS)
                                            reasons.push(`${totalContentChars.toLocaleString()} chars content`);
 
-  // ── Tier 3: >10 tools OR content >5,000 chars ────────────────────────────
+  // ── Tier 3: >10 tools OR content >3,000 chars ────────────────────────────
   const isTier3 = toolCount > TIER2_MAX_TOOLS || totalContentChars > TIER2_MAX_CONTENT_CHARS;
   if (isTier3) {
     return { cost: 3, tier: 3, tierLabel: "Premium", isComplex: true, reasons, totalContentChars };

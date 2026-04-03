@@ -53,7 +53,7 @@ const CREDIT_PACKS = [
 const FAQ = [
   {
     q: "What counts as a credit?",
-    a: "Tier is based only on tool count and content size. Simple (1 credit): ≤3 tools and content ≤2,000 chars. Complex (2 credits): 4–10 tools or content up to 5,000 chars. Premium (3 credits): 11–20 tools or content up to 10,000 chars. Description length and API use are always free and never affect the tier.",
+    a: "Tier is based only on tool count and content size. Simple (1 credit): ≤3 tools and content ≤2,000 chars. Complex (2 credits): 4–10 tools or content 2,001–3,000 chars. Premium (3 credits): 11–20 tools or content 3,001–4,000 chars — content above 4,000 chars is rejected outright. Description length and API use are always free and never affect the tier.",
   },
   {
     q: "How many credits do I get on signup?",
@@ -302,11 +302,11 @@ export default async function PricingPage() {
               </div>
               <div className="grid grid-cols-3 px-4 py-2 text-sm">
                 <span className="font-medium text-amber-500">▸ Complex — 2 credits</span>
-                <span className="text-muted-foreground col-span-2">4–10 tools · or content up to 5,000 chars</span>
+                <span className="text-muted-foreground col-span-2">4–10 tools · or content 2,001–3,000 chars</span>
               </div>
               <div className="grid grid-cols-3 px-4 py-2 text-sm">
                 <span className="font-medium text-orange-500">▸ Premium — 3 credits</span>
-                <span className="text-muted-foreground col-span-2">11–20 tools · or content up to 10,000 chars</span>
+                <span className="text-muted-foreground col-span-2">11–20 tools · or content 3,001–4,000 chars</span>
               </div>
             </div>
           </div>
