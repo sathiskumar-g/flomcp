@@ -703,8 +703,18 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-muted-foreground">
-                  Every server uses STDIO transport — the standard for local MCP. Paste the ready-made config for your tool and restart. No port setup, no server to run separately.
+                  Every server supports both STDIO and SSE transport — the two standard MCP connection methods. Paste the ready-made config for your tool and restart. No port setup, no server to run separately.
                 </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/30 px-2.5 py-1 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    STDIO transport
+                  </span>
+                  <span className="flex items-center gap-1.5 rounded-md border border-border/50 bg-muted/30 px-2.5 py-1 text-xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    SSE transport
+                  </span>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     { label: "Claude Desktop", dot: "bg-orange-500" },
