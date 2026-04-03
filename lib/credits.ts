@@ -34,13 +34,13 @@ export const MAX_TOOLS = 20;
 export const MAX_DESCRIPTION_CHARS = 2_000;
 
 /** Maximum content length per individual resource. */
-export const MAX_SINGLE_RESOURCE_CHARS = 10_000;
+export const MAX_SINGLE_RESOURCE_CHARS = 2_000;
 
 /** Maximum content length per individual prompt. */
-export const MAX_SINGLE_PROMPT_CHARS = 10_000;
+export const MAX_SINGLE_PROMPT_CHARS = 2_000;
 
 /** Maximum combined content length across all resources + prompts. */
-export const MAX_TOTAL_CONTENT_CHARS = 10_000;
+export const MAX_TOTAL_CONTENT_CHARS = 4_000;
 
 // ─── Tier thresholds (tools + content only — description and API are free) ────
 
@@ -51,8 +51,8 @@ export const TIER1_MAX_CONTENT_CHARS = 2_000;
 
 /** Max tools for Tier 2 (Complex). >10 tools → Tier 3. */
 export const TIER2_MAX_TOOLS = 10;
-/** Max combined content chars for Tier 2 (Complex). >5,000 → Tier 3. */
-export const TIER2_MAX_CONTENT_CHARS = 5_000;
+/** Max combined content chars for Tier 2 (Complex). >4,000 → Tier 3. */
+export const TIER2_MAX_CONTENT_CHARS = 4_000;
 
 // ─── Other ────────────────────────────────────────────────────────────────────
 

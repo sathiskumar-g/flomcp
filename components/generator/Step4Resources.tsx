@@ -60,7 +60,7 @@ const PROMPT_MIME_OPTIONS: { value: PromptMimeType; label: string; hint: string 
 
 const RESOURCE_ACCEPT = ".txt,.md,.mdx,.json";
 const PROMPT_ACCEPT   = ".txt,.md,.mdx";
-const MAX_CONTENT_LEN = 10_000;
+const MAX_CONTENT_LEN = 2_000;
 
 type ActiveTab = "resources" | "prompts";
 

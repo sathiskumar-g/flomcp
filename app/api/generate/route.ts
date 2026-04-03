@@ -117,6 +117,20 @@ function parseClaudeOutput(
 
 // â”€â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+
+// ─── Content sanitizer ────────────────────────────────────────────────────────
+// Strips characters that break TypeScript string-literal embedding when Claude
+// outputs the generated code as a JSON string value.
+// Triple-backtick code fences → plain content (avoids backtick delimiter conflict)
+// Remaining lone backticks → single quotes (avoids template literal collision)
+function sanitizeContentForEmbedding(content: string): string {
+  // Remove fenced code blocks, keep the inner content
+  let safe = content.replace(/```[^\n]*\n([\s\S]*?)```/g, '$1');
+  // Replace lone backticks with single-quote
+  safe = safe.replace(/`/g, "'");
+  return safe.trim();
+}
+
 export async function POST(req: NextRequest) {
   // getUser() validates the JWT against Supabase servers — prevents revoked token bypass
   const supabase = createServerClient();
@@ -283,7 +297,7 @@ export async function POST(req: NextRequest) {
         const resourceEmbeds = resources.length > 0
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? resources.map((r: any) =>
-              `  "${r.name}": {\n    text: ${JSON.stringify(r.content ?? "")},\n    mimeType: "${r.mimeType}",\n    description: ${JSON.stringify(r.description ?? "")}\n  }`
+              `  "${r.name}": {\n    text: ${JSON.stringify(sanitizeContentForEmbedding(r.content ?? ""))},\n    mimeType: "${r.mimeType}",\n    description: ${JSON.stringify(r.description ?? "")}\n  }`
             ).join(",\n")
           : "";
 
@@ -787,7 +801,7 @@ ${resources.length > 0 ? `\nEmbed this exact content in RESOURCE_CONTENT:\n{\n${
 ${prompts.length > 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ? prompts.map((p: any, i: number) =>
-      `${i + 1}. "${p.name}" (${p.mimeType})\n   Description: ${p.description || "(none)"}\n   Content:\n${p.content}`
+      `${i + 1}. "${p.name}" (${p.mimeType})\n   Description: ${p.description || "(none)"}\n   Content:\n${sanitizeContentForEmbedding(p.content ?? "")}`
     ).join("\n\n")
   : "None — only include usage_guide built-in prompt"}
 
