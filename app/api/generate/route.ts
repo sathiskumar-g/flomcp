@@ -415,7 +415,7 @@ async function main(): Promise<void> {
       }
     });
     const PORT = parseInt(process.env.PORT ?? "3001", 10);
-    httpServer.listen(PORT, () => console.error(`SERVER_SLUG MCP server running on SSE at http://localhost:${PORT}/sse`));
+    httpServer.listen(PORT, () => console.error(\`SERVER_SLUG MCP server running on SSE at http://localhost:\${PORT}/sse\`));
     process.on("SIGTERM", () => { httpServer.close(); server.close(); process.exit(0); });
     process.on("SIGINT",  () => { httpServer.close(); server.close(); process.exit(0); });
   } else {
@@ -771,7 +771,7 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 - Description: ${description}
 
 ## Transport
-STDIO (default, `npm start`) + SSE (`npm run start:http` on port 3001) -- runs locally on the developer's machine.
+STDIO (default, \`npm start\`) + SSE (\`npm run start:http\` on port 3001) -- runs locally on the developer's machine.
 
 ## API Integration
 ${apiSectionFull}
