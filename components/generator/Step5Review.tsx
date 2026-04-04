@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { useGeneratorStore, type ToolDefinition, type PromptDefinition } from "@/lib/stores/generator-store";
-import { estimateCredits, validateInputLimits, MAX_TOOLS, MAX_DESCRIPTION_CHARS, MAX_SINGLE_RESOURCE_CHARS, MAX_SINGLE_PROMPT_CHARS, MAX_TOTAL_CONTENT_CHARS } from "@/lib/credits";
+import { estimateCredits, validateInputLimits, MAX_TOOLS, MAX_DESCRIPTION_CHARS, MAX_SINGLE_RESOURCE_CHARS, MAX_SINGLE_PROMPT_CHARS, MAX_TOTAL_CONTENT_CHARS, TIER2_MAX_TOOLS, TIER2_MAX_CONTENT_CHARS, TIER1_MAX_TOOLS, TIER1_MAX_CONTENT_CHARS } from "@/lib/credits";
 import { useDrafts, DRAFT_FREE_LIMIT } from "@/lib/use-drafts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -230,9 +230,27 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {estimate.tier === 3
-                    ? `Premium — ${estimate.reasons.join(", ")} · ≥11 tools or content 3,001–4,000 chars`
+                    ? (() => {
+                        const byTools   = tools.length > TIER2_MAX_TOOLS;
+                        const byContent = estimate.totalContentChars > TIER2_MAX_CONTENT_CHARS;
+                        const trigger   = byTools && byContent
+                          ? `≥11 tools · content 3,001–4,000 chars`
+                          : byTools
+                          ? `≥11 tools`
+                          : `content 3,001–4,000 chars (${estimate.totalContentChars.toLocaleString()} chars)`;
+                        return `Premium — ${estimate.reasons.join(", ")} · ${trigger}`;
+                      })()
                     : estimate.tier === 2
-                    ? `Complex — ${estimate.reasons.join(", ")} · 4–10 tools or content 2,001–3,000 chars`
+                    ? (() => {
+                        const byTools   = tools.length > TIER1_MAX_TOOLS;
+                        const byContent = estimate.totalContentChars > TIER1_MAX_CONTENT_CHARS;
+                        const trigger   = byTools && byContent
+                          ? `4–10 tools · content 2,001–3,000 chars`
+                          : byTools
+                          ? `4–10 tools`
+                          : `content 2,001–3,000 chars (${estimate.totalContentChars.toLocaleString()} chars)`;
+                        return `Complex — ${estimate.reasons.join(", ")} · ${trigger}`;
+                      })()
                     : "Simple — ≤3 tools and content ≤2,000 chars"}
                   {balance !== null && (
                     <span className={cn("ml-2", !canAfford ? "text-red-500" : "")}>

@@ -225,6 +225,7 @@ export async function POST(req: NextRequest) {
 
   if (!deductResult.ok) {
     const status = deductResult.error === "insufficient_credits" ? 402 : 500;
+    console.error(`[generate] credit deduction failed — error=${deductResult.error} cost=${creditCost} userId=${user.id}${deductResult.rawError ? ` rawError="${deductResult.rawError}"` : ""}`);
     return new Response(
       JSON.stringify({
         error: deductResult.error === "insufficient_credits"

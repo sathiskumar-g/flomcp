@@ -42,6 +42,8 @@ export interface DeductResult {
   balanceAfter: number;
   /** Only set when ok === false */
   error?: "insufficient_credits" | "credits_row_missing" | "unknown";
+  /** Raw error message from the Supabase RPC (only set when ok === false) */
+  rawError?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -117,8 +119,8 @@ export async function deductCredits(
   });
 
   if (error) {
-    console.error("[credits-service] deductCredits RPC error:", error.message);
-    return { ok: false, monthlyUsed: 0, bonusUsed: 0, balanceAfter: 0, error: "unknown" };
+    console.error(`[credits-service] deductCredits RPC error (cost=${cost}, complexity=${complexity}):`, error.message, error.details ?? "");
+    return { ok: false, monthlyUsed: 0, bonusUsed: 0, balanceAfter: 0, error: "unknown", rawError: error.message };
   }
 
   const result = data as {
