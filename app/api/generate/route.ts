@@ -14,7 +14,7 @@ import {
   type SchemaContract,
 } from "@/lib/generation/passes";
 import { estimateCredits, validateInputLimits } from "@/lib/credits";
-import { ensureCreditRow, deductCredits, refundCredits } from "@/lib/credits-service";
+import { ensureCreditRow, deductCredits, getBalance } from "@/lib/credits-service";
 import { sendEmail } from "@/lib/email";
 import type { ToolDefinition, ResourceDefinition, PromptDefinition, ApiConfig } from "@/lib/stores/generator-store";
 
@@ -195,10 +195,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Credit check & deduction ──
-  // Set DISABLE_CREDIT_DEDUCTION=true in .env.local to skip during development/testing.
-  // Deduct before stream starts so we can return 402 synchronously.
-  // On generation failure the catch block inside the stream refunds.
+  // ── Credit check — balance only, deduction happens post-generation ──
+  // Credits are NOT deducted upfront. No refund RPC is ever needed — if any pass
+  // fails the user's balance is untouched. Deduction runs after all passes succeed.
   await ensureCreditRow(user.id);
   const creditEstimate = estimateCredits({
     tools:       tools       as ToolDefinition[],
@@ -213,53 +212,22 @@ export async function POST(req: NextRequest) {
   const pass2TimeoutMs = creditEstimate.tier === 3 ? 200000 : creditEstimate.tier === 2 ? 120000 : 60000;
 
   const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
-  let deductResult: Awaited<ReturnType<typeof deductCredits>>;
 
-  if (skipCredits) {
-    console.warn(`[generate] DISABLE_CREDIT_DEDUCTION=true — skipping ${creditCost} credit deduction for user ${user.id}`);
-    deductResult = { ok: true, monthlyUsed: 0, bonusUsed: 0, balanceAfter: 999 };
-  } else {
-    deductResult = await deductCredits(
-      user.id,
-      creditCost,
-      null,
-      String(creditCost) as "1" | "2" | "3"
-    );
+  if (!skipCredits) {
+    const balance = await getBalance(user.id);
+    const currentTotal = balance?.total ?? 0;
+    if (currentTotal < creditCost) {
+      return new Response(
+        JSON.stringify({
+          error: `Not enough credits. This generation costs ${creditCost} credit${creditCost > 1 ? "s" : ""}. Your balance: ${currentTotal}.`,
+          code: "INSUFFICIENT_CREDITS",
+          balance: currentTotal,
+          cost: creditCost,
+        }),
+        { status: 402 }
+      );
+    }
   }
-
-  if (!deductResult.ok) {
-    const status = deductResult.error === "insufficient_credits" ? 402 : 500;
-    console.error(`[generate] credit deduction failed — error=${deductResult.error} cost=${creditCost} userId=${user.id}${deductResult.rawError ? ` rawError="${deductResult.rawError}"` : ""}`);
-    return new Response(
-      JSON.stringify({
-        error: deductResult.error === "insufficient_credits"
-          ? `Not enough credits. This generation costs ${creditCost} credit${creditCost > 1 ? "s" : ""}. Your balance: ${deductResult.balanceAfter}.`
-          : "Credit system error — please try again.",
-        code: deductResult.error === "insufficient_credits" ? "INSUFFICIENT_CREDITS" : "CREDIT_ERROR",
-        balance: deductResult.balanceAfter,
-        cost: creditCost,
-      }),
-      { status }
-    );
-  }
-
-  // Credit low-balance warning notifications (fire-and-forget)
-  if (!skipCredits && (deductResult.balanceAfter === 2 || deductResult.balanceAfter === 1)) {
-    const adminClient = createAdminClient();
-    const remaining = deductResult.balanceAfter;
-    adminClient.from("notifications").insert({
-      user_id: user.id,
-      type: "security_alert",
-      title: "Rate Limit Warning",
-      body: `You have ${remaining} generation${remaining === 1 ? "" : "s"} remaining this month. Upgrade to Pro for unlimited generations.`,
-    }).then();
-  }
-
-  // Capture deduction amounts for refund inside the stream's catch block
-  const creditDeduct = {
-    monthlyUsed: deductResult.monthlyUsed,
-    bonusUsed:   deductResult.bonusUsed,
-  };
 
   // ── SSE stream ──
   const stream = new ReadableStream({
@@ -1057,6 +1025,28 @@ Run command for users after download:
 
         await recordGeneration(supabase, user.id);
 
+        // ── Deduct credits after successful generation ──
+        // Only charged on success — any error before this point costs the user nothing.
+        if (!skipCredits) {
+          const deductResult = await deductCredits(
+            user.id,
+            creditCost,
+            insertedRow.id,
+            String(creditCost) as "1" | "2" | "3"
+          );
+          if (!deductResult.ok) {
+            console.error(`[generate] post-generation credit deduction failed — error=${deductResult.error} cost=${creditCost} userId=${user.id}${deductResult.rawError ? ` rawError="${deductResult.rawError}"` : ""}`);
+          } else if (deductResult.balanceAfter === 2 || deductResult.balanceAfter === 1) {
+            const remaining = deductResult.balanceAfter;
+            adminClient.from("notifications").insert({
+              user_id: user.id,
+              type: "security_alert",
+              title: "Low Credit Balance",
+              body: `You have ${remaining} generation${remaining === 1 ? "" : "s"} remaining. Upgrade to Pro for unlimited generations.`,
+            }).then();
+          }
+        }
+
         // Notify user their server is ready — fire-and-forget (non-critical)
         adminClient.from("notifications").insert({
           user_id: user.id,
@@ -1074,16 +1064,7 @@ Run command for users after download:
           blockDownload: combinedReport.blockDownload,
         });
       } catch (err: unknown) {
-        // Refund credits — user should not be charged for a failed generation
-        if (!skipCredits) {
-          await refundCredits(
-            user.id,
-            creditDeduct.monthlyUsed,
-            creditDeduct.bonusUsed,
-            null,
-            "generation_error_refund"
-          );
-        }
+        // No credits to refund — deduction only happens after successful generation
         // Notify founder about generation failure (non-blocking)
         const founderEmail = process.env.FOUNDER_EMAIL || "founder@flomcp.com";
         const errMsg = err instanceof Error ? err.message : "Generation failed";
