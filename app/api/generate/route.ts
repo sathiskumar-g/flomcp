@@ -81,16 +81,28 @@ function parseClaudeOutput(
     const completeMatch = cleaned.match(completeRe);
     if (completeMatch) {
       try { files[key] = JSON.parse(`"${completeMatch[1]}"`); }
-      catch { files[key] = completeMatch[1]; }
+      catch {
+        // JSON.parse failed (e.g. embedded special chars) — manually unescape
+        files[key] = completeMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+      }
       continue;
     }
     // Partial: value runs to end-of-string (truncated response)
     const partialRe = new RegExp(`"${escapedKey}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)$`, "s");
     const partialMatch = cleaned.match(partialRe);
     if (partialMatch) {
-      // Decode escape sequences in the partial content
-      try { files[key] = JSON.parse(`"${partialMatch[1].replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\\\/g, "\\").replace(/\\"/g, '"')}"`); }
-      catch { files[key] = partialMatch[1]; }
+      // Always manually unescape — JSON.parse is unreliable on partial content
+      files[key] = partialMatch[1]
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
     }
   }
   // BUG-008: Generic fallback — extract ALL "key": "value" pairs missed by known-key loop
@@ -209,8 +221,8 @@ export async function POST(req: NextRequest) {
   const creditCost = creditEstimate.cost;
   // Pass 2 generates ONLY src/index.ts — boilerplate files are built programmatically.
   // Token budgets reflect index.ts-only output: ~1,500 / ~4,000 / ~9,000 tokens max per tier.
-  const pass2MaxTokens = creditEstimate.tier === 3 ? 12000 : creditEstimate.tier === 2 ? 8000 : 5000;
-  const pass2TimeoutMs = creditEstimate.tier === 3 ? 240000 : creditEstimate.tier === 2 ? 165000 : 105000;
+  const pass2MaxTokens = creditEstimate.tier === 3 ? 14000 : creditEstimate.tier === 2 ? 8000 : 5000;
+  const pass2TimeoutMs = creditEstimate.tier === 3 ? 260000 : creditEstimate.tier === 2 ? 165000 : 105000;
 
   const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
 
@@ -281,7 +293,15 @@ export async function POST(req: NextRequest) {
         const SYSTEM_PROMPT = `You are FloMCP Generator â€” the core engine for generating production-quality LOCAL STDIO MCP servers in TypeScript.
 Your output runs on the developer's machine and connects to VS Code (GitHub Copilot) or Claude Desktop.
 Output ONLY valid JSON. No markdown code fences around the JSON. No prose. No explanation outside the JSON object.
-TOKEN BUDGET: Your total output is capped at ${pass2MaxTokens} tokens (roughly ${Math.round(pass2MaxTokens * 3.5)} characters). src/index.ts is the ONLY file you output — use every token on real working code. Prioritize: (1) all tool implementations complete, (2) resource registration, (3) prompts, (4) main(). Write concise but COMPLETE logic — no stubs, no "see above", no placeholder comments. If a function body needs 50 lines, write all 50 lines. Never truncate mid-function.
+TOKEN BUDGET: ${pass2MaxTokens} tokens (~${Math.round(pass2MaxTokens * 3.5)} chars) for src/index.ts — the ONLY file.
+WORKING > COMPLEX: A simple server that runs is ALWAYS better than a complex server that truncates or breaks.
+WRITE IN THIS ORDER — budget per section:
+  [1] MCP ARCHITECTURE  ~15% (~${Math.round(pass2MaxTokens * 0.15)} tk): imports, new McpServer(), sanitizeError(), fetchWithTimeout() only if API used
+  [2] TOOLS             ~55% (~${Math.round(pass2MaxTokens * 0.55)} tk): ALL server.tool() calls with complete inline logic
+  [3] RESOURCES         ~10% (~${Math.round(pass2MaxTokens * 0.10)} tk): RESOURCE_CONTENT + server.resource() loop — omit entirely if no resources
+  [4] PROMPTS           ~10% (~${Math.round(pass2MaxTokens * 0.10)} tk): server.prompt() registrations
+  [5] MAIN              ~10% (~${Math.round(pass2MaxTokens * 0.10)} tk): main(), SIGTERM/SIGINT handlers, main().catch()
+SIMPLIFICATION RULE: If a section is exceeding its budget, SIMPLIFY logic in that section — shorter conditionals, fewer optional validations, inline logic — but NEVER truncate a function mid-body or skip a section. Every section must be syntactically complete.
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ARCHITECTURE: TypeScript Â· Single file Â· No build step
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -300,6 +320,8 @@ BLANK LINES:
 NEVER write multiple statements on one line to save space
 NEVER omit opening/closing braces on if/else blocks, even single-line ones
 Use consistent single-quoted strings unless the string contains a quote
+REGEX PATTERNS: Keep them concise -- maximum 12-15 keywords per pattern. Do NOT write exhaustive keyword lists with 100+ words. Use representative examples only. A regex like /\b(create|update|delete|list|get)\b/ is correct. A regex with 200 terms is a CRITICAL token waste failure.
+FUNCTION LENGTH: No helper function may exceed 20 lines. No server.tool() handler may exceed 30 lines. Avoid scoring engines, classifiers, or keyword analyzers — they waste tokens on complexity that Claude already handles. Simple direct logic is always correct.
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 CANONICAL src/index.ts STRUCTURE
@@ -395,37 +417,11 @@ server.prompt(
 
 // â”€â”€ Start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function main(): Promise<void> {
-  const useHttp = process.argv.includes("--http");
-  if (useHttp) {
-    // SSE mode: npm run start:http
-    const sseTransports = new Map<string, SSEServerTransport>();
-    const httpServer = http.createServer(async (req, res) => {
-      if (req.url === "/sse" && req.method === "GET") {
-        const transport = new SSEServerTransport("/message", res);
-        sseTransports.set(transport.sessionId, transport);
-        res.on("close", () => sseTransports.delete(transport.sessionId));
-        await server.connect(transport);
-      } else if (req.url?.startsWith("/message") && req.method === "POST") {
-        const sessionId = new URL(req.url, "http://localhost").searchParams.get("sessionId") ?? "";
-        const t = sseTransports.get(sessionId);
-        if (t) await t.handlePostMessage(req, res);
-        else { res.writeHead(404); res.end("Session not found"); }
-      } else {
-        res.writeHead(404); res.end("Not found");
-      }
-    });
-    const PORT = parseInt(process.env.PORT ?? "3001", 10);
-    httpServer.listen(PORT, () => console.error(\`SERVER_SLUG MCP server running on SSE at http://localhost:\${PORT}/sse\`));
-    process.on("SIGTERM", () => { httpServer.close(); server.close(); process.exit(0); });
-    process.on("SIGINT",  () => { httpServer.close(); server.close(); process.exit(0); });
-  } else {
-    // STDIO mode (default): npm start
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("SERVER_SLUG MCP server running on stdio");
-    process.on("SIGTERM", () => { server.close(); process.exit(0); });
-    process.on("SIGINT",  () => { server.close(); process.exit(0); });
-  }
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("SERVER_SLUG MCP server running on stdio");
+  process.on("SIGTERM", () => { server.close(); process.exit(0); });
+  process.on("SIGINT",  () => { server.close(); process.exit(0); });
 }
 main().catch((error: unknown) => {
   console.error("Fatal error in main():", error);
@@ -572,7 +568,7 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 âœ All database/SQL queries use parameterized form --- zero string concatenation in SQL
 âœ If OAuth2 used: token refresh flow is COMPLETE --- no TODO comments in auth code
 NOTE: package.json, tsconfig.json, .env.example, README.md, and tests/ are generated automatically - do NOT include them in your JSON output.
-TOKEN REMINDER: You have ${pass2MaxTokens} tokens. Every token must go into src/index.ts. Never cut a function short — if you are running low, shorten variable names or reduce comments, but NEVER omit logic or leave a function body incomplete.`;
+TOKEN REMINDER: ${pass2MaxTokens} tokens total. Sections in order: [1] Architecture → [2] Tools → [3] Resources → [4] Prompts → [5] Main. If running low: SIMPLIFY logic in the current section (shorter conditions, inline helpers, fewer validations) — but NEVER leave a function body unclosed or truncate mid-statement. A complete simple server beats a broken complex one.`;
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // USER MESSAGE
