@@ -1035,7 +1035,12 @@ Run command for users after download:
             String(creditCost) as "1" | "2" | "3"
           );
           if (!deductResult.ok) {
+            // Race condition: another concurrent request consumed the last credit between our
+            // balance check and now. The SQL RPC is atomic so no double-spend occurred.
+            // Throw so the catch block sends type:"error" — server is already saved in DB but
+            // the user will be told to retry rather than silently getting a free generation.
             console.error(`[generate] post-generation credit deduction failed — error=${deductResult.error} cost=${creditCost} userId=${user.id}${deductResult.rawError ? ` rawError="${deductResult.rawError}"` : ""}`);
+            throw new Error("Credit deduction failed after generation — your server was saved. Please contact support if credit was not deducted.");
           } else if (deductResult.balanceAfter === 2 || deductResult.balanceAfter === 1) {
             const remaining = deductResult.balanceAfter;
             adminClient.from("notifications").insert({

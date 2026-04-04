@@ -125,7 +125,9 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
         throw new Error(body?.error ?? `Server error ${res.status}`);
       }
 
-      const reader = res.body!.getReader();
+      // BUG: res.body can be null in some edge environments — guard before asserting
+      if (!res.body) throw new Error("Server returned no response body");
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       // Local tracker for the current step — avoids stale closure from `activeStep` state
@@ -134,28 +136,25 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
       // Flag so we can break out of the outer while loop from the inner event loop
       let generationDone = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done || generationDone) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // Parse SSE lines — process each event sequentially with yield points
-        // so React commits each step's state change as a separate render frame.
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
+      const processLines = async (lines: string[]) => {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
-          const event = JSON.parse(line.slice(6));
+          let event: Record<string, unknown>;
+          try {
+            event = JSON.parse(line.slice(6));
+          } catch {
+            // Malformed SSE chunk — skip this line, don't crash the whole stream
+            continue;
+          }
 
           if (event.type === "progress") {
             // flushSync forces React to render each step's state immediately,
             // even when multiple progress events arrive in the same SSE chunk.
             const prevStep = currentStep;
-            currentStep = event.step;
+            currentStep = event.step as string;
             flushSync(() => {
               if (prevStep) setCompletedSteps((prev) => new Set([...prev, prevStep]));
-              setActiveStep(event.step);
+              setActiveStep(event.step as string);
             });
           } else if (event.type === "security") {
             // Store security result — will be attached to generatedResult below
@@ -174,20 +173,39 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
               setActiveStep(null);
             });
             setGeneratedResult({
-              id: event.id,
-              tools: (event.tools ?? tools) as ToolDefinition[],
+              id: event.id as string,
+              tools: ((event.tools ?? tools) as ToolDefinition[]),
               securityScore,
               securityGrade,
               blockDownload,
             });
+            // BUG: setLoading(false) was missing on success — caused stuck spinner on back-navigation
+            setLoading(false);
             // Brief pause so user sees all 6 steps ticked before navigating
             setTimeout(() => nextStep(), 700);
             generationDone = true;
-            break;
           } else if (event.type === "error") {
-            throw new Error(event.message);
+            throw new Error(event.message as string);
           }
         }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // BUG: flush any remaining buffer content when stream closes —
+          // the final SSE event may arrive without a trailing newline
+          if (buffer.trim()) await processLines(buffer.split("\n"));
+          break;
+        }
+        if (generationDone) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE lines — process each event sequentially with yield points
+        // so React commits each step's state change as a separate render frame.
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        await processLines(lines);
       }
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : "Something went wrong";
