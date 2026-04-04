@@ -25,7 +25,7 @@ const FAQ_ITEMS = [
   { q: "Can I build MCP for Claude and Copilot?", a: "Yes — generated servers work with Claude Desktop, GitHub Copilot, Cursor, Windsurf, Cline, and any assistant supporting the MCP standard." },
   { q: "Are FloMCP servers secure?", a: "Yes. FloMCP generates OWASP-compliant code with input validation, zero hardcoded credentials, bounded execution, and protection against SSRF and injection attacks from day one." },
   { q: "Can I use FloMCP for complex API integrations?", a: "Absolutely. FloMCP handles REST APIs, GraphQL, databases, file systems, and webhooks — including authentication flows, rate limiting, and error recovery." },
-  { q: "How does FloMCP compare to building MCP manually?", a: "Manual MCP development takes 10+ hours across boilerplate, schemas, error handling, testing, and documentation. FloMCP does it in under 2 minutes — with security checks built in." },
+  { q: "How does FloMCP compare to building MCP manually?", a: "Manual MCP development takes 10+ hours across boilerplate, schemas, error handling, testing, and documentation. FloMCP does it in under 5minutes — with security checks built in." },
   { q: "What makes FloMCP different from just asking Claude or ChatGPT?", a: "FloMCP is purpose-built for MCP: the generated code follows the MCP specification exactly, includes Zod schemas, passes 22 OWASP security checks + 10 MCP protocol compliance checks, and comes with a working README and claude_desktop_config.json — not a generic snippet that still needs hours of debugging." },
 ];
 
@@ -109,7 +109,7 @@ function CodeEditorShowcase() {
   async function handleDownload() {
     const JSZip = (await import("jszip")).default;
     const zip = new JSZip();
-    const folder = zip.folder("regex-lab")!;
+    const folder = zip.folder("prompt-enhancar")!;
     for (const f of CODE_FILES) {
       folder.file(f.name, f.content);
     }
@@ -117,7 +117,7 @@ function CodeEditorShowcase() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "regex-lab.zip";
+    a.download = "prompt-enhancar.zip";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -404,8 +404,8 @@ export default function Home() {
           <nav className="flex items-center gap-3" aria-label="Main navigation">
             {/* Always-visible nav links */}
             <button
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              aria-label="Jump to code showcase"
+              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+              aria-label="Jump to demo video"
               className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
             >
               Demo
@@ -783,34 +783,34 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Video / Tutorial Slot — hidden, kept for future use */}
-          {false && (
-          <section className="mt-12" aria-label="Demo video">
+          {/* Demo Video */}
+          <section id="demo" className="mt-12 scroll-mt-20" aria-label="Demo video">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">See FloMCP in Action</h3>
               <p className="text-sm text-muted-foreground">Watch how to generate a production-ready MCP server in under 5 minutes — from plain English to working TypeScript code.</p>
             </div>
-            <button type="button" onClick={trackDemoInterest} aria-label="Watch FloMCP demo — sign up to get notified when the tutorial is live" className="relative w-full aspect-video rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 flex flex-col items-center justify-center gap-4 overflow-hidden group cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-              <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7 text-primary ml-0.5" aria-hidden="true">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+            {/* Purple border ring */}
+            <div className="relative rounded-2xl" style={{ background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #a855f7 100%)" }}>
+              <div className="relative w-full aspect-video rounded-[14px] overflow-hidden shadow-2xl">
+                <iframe
+                  src="https://www.youtube.com/embed/41qfhjLIcRo?autoplay=1&mute=1&rel=0&modestbranding=1"
+                  title="FloMCP Demo — Generate a Production MCP Server in Under 2 Minutes"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                  loading="lazy"
+                />
               </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Tutorial video coming soon</p>
-                <p className="text-xs text-muted-foreground mt-1">Sign up to get notified when it&apos;s live</p>
-              </div>
-            </button>
+            </div>
           </section>
-          )}
 
           {/* Generated Code Showcase — read-only output preview */}
           <div id="how-it-works" className="mt-10">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold mb-2">This is What FloMCP Generates</h3>
               <p className="text-sm text-muted-foreground">
-                A real MCP server — regex-lab — built with FloMCP.
-                4 tools, ReDoS protection, 30 battle-tested patterns. Browse the code below.
+                A real MCP server — prompt-enhancar — built with FloMCP.
+                4 tools, 10 anti-pattern detectors, quality scoring across 5 dimensions. Browse the code below.
               </p>
             </div>
             <CodeEditorShowcase />
