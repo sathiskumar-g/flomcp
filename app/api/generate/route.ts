@@ -209,8 +209,8 @@ export async function POST(req: NextRequest) {
   const creditCost = creditEstimate.cost;
   // Pass 2 generates ONLY src/index.ts — boilerplate files are built programmatically.
   // Token budgets reflect index.ts-only output: ~1,500 / ~4,000 / ~9,000 tokens max per tier.
-  const pass2MaxTokens = creditEstimate.tier === 3 ? 10000 : creditEstimate.tier === 2 ? 7000 : 4000;
-  const pass2TimeoutMs = creditEstimate.tier === 3 ? 210000 : creditEstimate.tier === 2 ? 150000 : 90000;
+  const pass2MaxTokens = creditEstimate.tier === 3 ? 12000 : creditEstimate.tier === 2 ? 8000 : 5000;
+  const pass2TimeoutMs = creditEstimate.tier === 3 ? 240000 : creditEstimate.tier === 2 ? 165000 : 105000;
 
   const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
 
@@ -432,6 +432,7 @@ server.tool(name: string, description: string, zodShape: ZodRawShape, handler):
 - Success: return { content: [{ type: "text" as const, text: String(result) }] }
 - Error:   return { content: [{ type: "text" as const, text: sanitizeError(error) }], isError: true }
 - Write COMPLETE real logic â€” zero TODO, zero placeholder comments
+- NEVER abbreviate, condense, or stub helper functions — if a check has 10 cases write all 10; comments like "expanded in full implementation" or "simplified version" are a CRITICAL failure
 - Add JSDoc annotation above each tool: /** @readonly */ or /** @destructive */ or /** @creates */
 
 TOOL ANNOTATION TYPES (comment only â€” not passed to the SDK):
@@ -469,6 +470,11 @@ Always include usage_guide. Add 1-2 domain-specific prompts:
 - Args array: [{ name: "param", description: "...", required: true }]
 - Handler receives args as Record<string, string>: args?.param ?? ""
 - Prompt messages should be rich, instructive workflows for the AI to follow
+
+For CUSTOM prompts with ---PROMPT-CONTENT-START--- blocks in the user message:
+- Register each as: server.prompt(name, description, [], () => ({ messages: [{ role: "user", content: { type: "text" as const, text: \THE_VERBATIM_CONTENT\ } }] }))
+- Replace THE_VERBATIM_CONTENT with the EXACT text between ---PROMPT-CONTENT-START--- and ---PROMPT-CONTENT-END--- as a template literal string - do NOT summarize or paraphrase
+- The handler returns the content AS-IS; do NOT implement the instructions it contains
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 SECURITY RULES (all required)
@@ -523,147 +529,6 @@ FORBIDDEN:
   âœ— Express / http / https / Fastify
   âœ— console.log(...) anywhere â€” use console.error() only
   âœ— Any import from ./tools/ ./utils/ ./types.ts
-
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-TEST FILE (tests/index.test.ts) â€” generate this for every server
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-import { describe, it, expect } from "vitest";
-import { z } from "zod";
-
-// Helper: run a Zod schema validation
-function validate<T extends z.ZodTypeAny>(schema: T, input: unknown) {
-  return schema.safeParse(input);
-}
-
-// â”€â”€ sanitizeError tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe("sanitizeError", () => {
-  it("hides file paths", () => {
-    // Replace with import of sanitizeError when refactored to module
-    const msg = "Error at /home/user/.env line 3";
-    const sanitized = msg.replace(/\\/[^\\s"']+/g, "[PATH]");
-    expect(sanitized).not.toContain("/home");
-    expect(sanitized).toContain("[PATH]");
-  });
-
-  it("hides IP addresses", () => {
-    const msg = "Connection to 192.168.1.1 refused";
-    const sanitized = msg.replace(/\\b\\d{1,3}(\\.\\d{1,3}){3}\\b/g, "[IP]");
-    expect(sanitized).not.toContain("192.168");
-  });
-});
-
-// â”€â”€ Tool schema validation tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-describe("Tool schemas", () => {
-  // Generate one describe block per tool, testing valid and invalid inputs
-  it("add: accepts valid numbers", () => {
-    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
-    const result = validate(schema, { a: 5, b: 3 });
-    expect(result.success).toBe(true);
-  });
-
-  it("add: rejects non-finite numbers", () => {
-    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
-    expect(validate(schema, { a: Infinity, b: 1 }).success).toBe(false);
-    expect(validate(schema, { a: NaN, b: 1 }).success).toBe(false);
-  });
-
-  it("add: rejects missing params", () => {
-    const schema = z.object({ a: z.number().finite(), b: z.number().finite() });
-    expect(validate(schema, { a: 5 }).success).toBe(false);
-  });
-  // Add more tests for each tool below
-});
-
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-README.md TEMPLATE â€” follow exactly, with real values
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-Use triple-backtick code fences for every bash/json block. No exceptions.
-
-# SERVER_NAME MCP Server
-
-SERVER_DESCRIPTION
-
-## What It Does
-
-| Component | Name | Description |
-|-----------|------|-------------|
-| ðŸ”§ Tool | \`tool_name\` | What the tool does, one line |
-| ðŸ“„ Resource | \`resource-name\` | What the resource contains |
-| ðŸ’¬ Prompt | \`usage_guide\` | Show all tools with examples |
-
-## Quick Start
-
-\`\`\`bash
-# 1. Install dependencies (one time)
-npm install
-
-# 2. Verify it starts correctly
-npx tsx src/index.ts
-# â†’ SERVER_SLUG MCP server running on stdio
-# Press Ctrl+C to stop
-\`\`\`
-
-## Add to VS Code (GitHub Copilot)
-
-Create or edit \`.vscode/settings.json\` **in your project folder** (not the MCP server folder):
-
-\`\`\`json
-{
-  "github.copilot.chat.mcp.servers": {
-    "SERVER_SLUG": {
-      "command": "npx",
-      "args": ["tsx", "C:/ABSOLUTE/PATH/TO/SERVER_SLUG/src/index.ts"]
-    }
-  }
-}
-\`\`\`
-
-Replace the path:
-- **Windows example**: \`C:/Users/YourName/Downloads/SERVER_SLUG/src/index.ts\`
-- **macOS example**: \`/Users/YourName/Downloads/SERVER_SLUG/src/index.ts\`
-
-Then press **Ctrl+Shift+P â†’ Developer: Reload Window**. You'll see a ðŸ”Œ icon in Copilot Chat.
-
-## Add to Claude Desktop
-
-Edit the Claude Desktop config file:
-- **Windows**: \`%APPDATA%\\Claude\\claude_desktop_config.json\`
-- **macOS**: \`~/Library/Application Support/Claude/claude_desktop_config.json\`
-
-\`\`\`json
-{
-  "mcpServers": {
-    "SERVER_SLUG": {
-      "command": "npx",
-      "args": ["tsx", "C:/ABSOLUTE/PATH/TO/SERVER_SLUG/src/index.ts"]
-    }
-  }
-}
-\`\`\`
-
-Replace the path with your actual folder path. **Restart Claude Desktop** after saving.
-
-## Using the Tools
-
-Just ask naturally in Copilot Chat or Claude:
-
-USAGE_EXAMPLES (one per tool, natural language questions)
-
-## Running Tests
-
-\`\`\`bash
-npm test
-\`\`\`
-
-## Environment Variables
-
-IF_API_SERVER_ONLY â€” copy \`.env.example\` to \`.env\` and fill in your values.
-IF_NO_API â€” No environment variables needed. This server works completely offline.
-
-## License
-
-MIT
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 REQUIRED JSON OUTPUT â€” return ONLY this object, no prose, no fences
@@ -792,8 +657,8 @@ Run command for users after download:
               "\n\n## Schema Contract from Pass 1 (LOCKED \u2014 implement these exact tool names, param names, and types)\n" +
               "```json\n" + JSON.stringify(schemaContract, null, 2) + "\n```";
             pass2UserMessage = USER_MESSAGE.replace(
-              "## Required Deliverables",
-              contractJson + "\n\n## Required Deliverables"
+              "## Required Deliverable",
+              contractJson + "\n\n## Required Deliverable"
             );
           }
 
