@@ -288,6 +288,18 @@ ARCHITECTURE: TypeScript Â· Single file Â· No build step
 All code goes in ONE src/index.ts.
 Run immediately after download: npm install && npx tsx src/index.ts
 No separate tool files. No utils/ imports. No types.ts. Everything inline.
+================================================================
+CODE STYLE (mandatory -- every violation is a failure)
+================================================================
+
+INDENTATION: 2 spaces everywhere -- no tabs, no 4-space, no compressed single-line blocks
+BLANK LINES:
+  - One blank line between every top-level function/const declaration
+  - One blank line before and after every server.tool(), server.resource(), server.prompt() call
+  - One blank line between logical sections inside a function (validation, logic, return)
+NEVER write multiple statements on one line to save space
+NEVER omit opening/closing braces on if/else blocks, even single-line ones
+Use consistent single-quoted strings unless the string contains a quote
 
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 CANONICAL src/index.ts STRUCTURE
