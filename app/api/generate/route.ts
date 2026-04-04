@@ -200,13 +200,17 @@ export async function POST(req: NextRequest) {
   // Deduct before stream starts so we can return 402 synchronously.
   // On generation failure the catch block inside the stream refunds.
   await ensureCreditRow(user.id);
-  const creditCost = estimateCredits({
+  const creditEstimate = estimateCredits({
     tools:       tools       as ToolDefinition[],
     resources:   resources   as ResourceDefinition[],
     prompts:     prompts     as PromptDefinition[],
     apiConfig:   apiConfig   as ApiConfig,
     description: description as string,
-  }).cost;
+  });
+  const creditCost = creditEstimate.cost;
+  // Pass 2 output capacity scales with tier — more tools/content = more code to generate
+  const pass2MaxTokens = creditEstimate.tier === 3 ? 10000 : creditEstimate.tier === 2 ? 6000 : 3000;
+  const pass2TimeoutMs = creditEstimate.tier === 3 ? 200000 : creditEstimate.tier === 2 ? 120000 : 60000;
 
   const skipCredits = process.env.DISABLE_CREDIT_DEDUCTION === "true";
   let deductResult: Awaited<ReturnType<typeof deductCredits>>;
@@ -851,13 +855,13 @@ Run command for users after download:
             const pass1Msg = await Promise.race([
               anthropic.messages.create({
                 model: "claude-sonnet-4-6",
-                max_tokens: 2000,
+                max_tokens: 1000,
                 temperature: 0.1,
                 system: buildPass1System(),
                 messages: [{ role: "user", content: buildPass1User(tools, apiConfig) }],
               }),
               new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("Pass 1 timed out")), 30000)
+                setTimeout(() => reject(new Error("Pass 1 timed out")), 20000)
               ),
             ]);
             const pass1Raw = pass1Msg.content[0].type === "text" ? pass1Msg.content[0].text : "";
@@ -885,13 +889,13 @@ Run command for users after download:
           const pass2Msg = await Promise.race([
             anthropic.messages.create({
               model: "claude-sonnet-4-6",
-              max_tokens: 8000,
+              max_tokens: pass2MaxTokens,
               temperature: 0.3,
               system: SYSTEM_PROMPT,
               messages: [{ role: "user", content: pass2UserMessage }],
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), 240000)
+              setTimeout(() => reject(new Error("Generation timed out \u2014 please try again")), pass2TimeoutMs)
             ),
           ]);
 
@@ -917,13 +921,13 @@ Run command for users after download:
               const pass3Msg = await Promise.race([
                 anthropic.messages.create({
                   model: "claude-sonnet-4-6",
-                  max_tokens: 4096,
+                  max_tokens: 2000,
                   temperature: 0.1,
                   system: buildPass3System(),
                   messages: [{ role: "user", content: buildPass3User(generatedIndexTs) }],
                 }),
                 new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error("Pass 3 timed out")), 30000)
+                  setTimeout(() => reject(new Error("Pass 3 timed out")), 20000)
                 ),
               ]);
               const pass3Raw = pass3Msg.content[0].type === "text" ? pass3Msg.content[0].text : "";
@@ -950,12 +954,12 @@ Run command for users after download:
               const fixMsg = await Promise.race([
                 anthropic.messages.create({
                   model: "claude-sonnet-4-6",
-                  max_tokens: 4096,
+                  max_tokens: 2000,
                   temperature: 0.1,
                   messages: [{ role: "user", content: buildProtocolFixPrompt(generatedIndexTs, failedBlockers) }],
                 }),
                 new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error("Protocol fix timed out")), 40000)
+                  setTimeout(() => reject(new Error("Protocol fix timed out")), 20000)
                 ),
               ]);
               const fixedCode = fixMsg.content[0].type === "text" ? fixMsg.content[0].text.trim() : "";
