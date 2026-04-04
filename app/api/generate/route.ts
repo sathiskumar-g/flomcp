@@ -281,7 +281,7 @@ export async function POST(req: NextRequest) {
         const SYSTEM_PROMPT = `You are FloMCP Generator â€” the core engine for generating production-quality LOCAL STDIO MCP servers in TypeScript.
 Your output runs on the developer's machine and connects to VS Code (GitHub Copilot) or Claude Desktop.
 Output ONLY valid JSON. No markdown code fences around the JSON. No prose. No explanation outside the JSON object.
-
+TOKEN BUDGET: Your total output is capped at ${pass2MaxTokens} tokens (roughly ${Math.round(pass2MaxTokens * 3.5)} characters). src/index.ts is the ONLY file you output — use every token on real working code. Prioritize: (1) all tool implementations complete, (2) resource registration, (3) prompts, (4) main(). Write concise but COMPLETE logic — no stubs, no "see above", no placeholder comments. If a function body needs 50 lines, write all 50 lines. Never truncate mid-function.
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ARCHITECTURE: TypeScript Â· Single file Â· No build step
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -571,7 +571,8 @@ PRE-OUTPUT CHECKLIST â€” verify ALL before emitting JSON:
 âœ main() registers both process.on("SIGTERM") and process.on("SIGINT") handlers calling server.close() then process.exit(0)
 âœ All database/SQL queries use parameterized form --- zero string concatenation in SQL
 âœ If OAuth2 used: token refresh flow is COMPLETE --- no TODO comments in auth code
-NOTE: package.json, tsconfig.json, .env.example, README.md, and tests/ are generated automatically - do NOT include them in your JSON output.`;
+NOTE: package.json, tsconfig.json, .env.example, README.md, and tests/ are generated automatically - do NOT include them in your JSON output.
+TOKEN REMINDER: You have ${pass2MaxTokens} tokens. Every token must go into src/index.ts. Never cut a function short — if you are running low, shorten variable names or reduce comments, but NEVER omit logic or leave a function body incomplete.`;
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // USER MESSAGE
