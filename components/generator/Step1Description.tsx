@@ -7,7 +7,7 @@
  * Includes example prompts, character counter, and helpful hints.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase";
@@ -85,6 +85,9 @@ export function Step1Description() {
 
   const [touched, setTouched] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+  const [nameExists, setNameExists] = useState(false);
+  const [checkingName, setCheckingName] = useState(false);
+  const nameCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noCredits = credits !== null && credits <= 0;
 
   useEffect(() => {
@@ -93,6 +96,22 @@ export function Step1Description() {
       .then((d) => { if (d) setCredits(d.total ?? 0); })
       .catch(() => {});
   }, []);
+
+  // Debounced duplicate-name check — fires 600ms after the user stops typing
+  useEffect(() => {
+    if (nameCheckTimer.current) clearTimeout(nameCheckTimer.current);
+    const trimmed = serverName.trim();
+    if (trimmed.length < 3) { setNameExists(false); return; }
+    setCheckingName(true);
+    nameCheckTimer.current = setTimeout(() => {
+      fetch(`/api/servers/check-name?name=${encodeURIComponent(trimmed)}`)
+        .then((r) => r.ok ? r.json() : { exists: false })
+        .then((d) => setNameExists(d.exists ?? false))
+        .catch(() => setNameExists(false))
+        .finally(() => setCheckingName(false));
+    }, 600);
+    return () => { if (nameCheckTimer.current) clearTimeout(nameCheckTimer.current); };
+  }, [serverName]);
   // Prompt library UI state
   const [showLoadPrompt, setShowLoadPrompt] = useState(false);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
@@ -101,8 +120,8 @@ export function Step1Description() {
   const charCount = description.length;
   const isNameValid = serverName.trim().length >= 3;
   const isDescValid = charCount >= MIN_CHARS;
-  // Basic length gates + credits gate (for live UI feedback)
-  const isValid = isNameValid && isDescValid && !noCredits;
+  // Basic length gates + credits gate + duplicate name gate
+  const isValid = isNameValid && isDescValid && !noCredits && !nameExists;
   const showNameError = touched && !isNameValid;
   const showDescError = touched && !isDescValid;
 
@@ -170,6 +189,13 @@ export function Step1Description() {
             <AlertCircle className="h-3.5 w-3.5" />
             Minimum 3 characters
           </span>
+        ) : nameExists ? (
+          <span className="flex items-center gap-1.5 text-xs text-red-500">
+            <AlertCircle className="h-3.5 w-3.5" />
+            You already have a server with this name — choose a different one
+          </span>
+        ) : checkingName ? (
+          <span className="text-xs text-muted-foreground">Checking availability…</span>
         ) : (
           <span className="text-xs text-muted-foreground">
             Short, descriptive name for your server (letters, numbers, spaces)
