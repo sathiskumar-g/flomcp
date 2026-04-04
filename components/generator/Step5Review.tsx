@@ -190,7 +190,10 @@ export function Step5Review({ onSaveDraft, userId = "" }: { onSaveDraft?: () => 
         }
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const raw = err instanceof Error ? err.message : "Something went wrong";
+      // ERR_CONNECTION_RESET / reader.read() TypeError fires when Vercel kills the stream mid-response
+      const isConnectionDrop = /network error|failed to fetch|load failed|err_connection/i.test(raw);
+      setError(isConnectionDrop ? "Generation timed out — please try again" : raw);
       setActiveStep(null);
       setLoading(false);
     }

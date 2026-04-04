@@ -885,7 +885,7 @@ Run command for users after download:
           const pass2Msg = await Promise.race([
             anthropic.messages.create({
               model: "claude-sonnet-4-6",
-              max_tokens: 16000,
+              max_tokens: 8000,
               temperature: 0.3,
               system: SYSTEM_PROMPT,
               messages: [{ role: "user", content: pass2UserMessage }],
