@@ -66,7 +66,7 @@ const EXAMPLE_PROMPTS = [
   },
 ];
 
-const MAX_CHARS = 2000;
+const MAX_CHARS = 3000;
 const MIN_CHARS = 50;
 
 // ─── Component ────────────────────────────────────────────────────────────────
