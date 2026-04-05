@@ -57,7 +57,7 @@ const CREDIT_PACKS = [
   { name: "Growth",   credits: "+55",  price: "$25+", priceNum: 25 },
 ];
 
-function ProInterestModal({ open, onClose, userEmail }: { open: boolean; onClose: () => void; userEmail?: string }) {
+function ProInterestModal({ open, onClose, userEmail, spotsLeft = 49 }: { open: boolean; onClose: () => void; userEmail?: string; spotsLeft?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ function ProInterestModal({ open, onClose, userEmail }: { open: boolean; onClose
         <div className="flex items-start justify-between">
           <div>
             <h2 id="pro-modal-title" className="text-xl font-bold">Get Early Access — $19/mo</h2>
-            <p className="text-sm text-muted-foreground mt-1">Reserved for our first 50 founding members. Price locked at $19/mo forever.</p>
+            <p className="text-sm text-muted-foreground mt-1">{spotsLeft} of 50 founding member spots remaining. Price locked at $19/mo forever.</p>
           </div>
           <button onClick={onClose} aria-label="Close early access form" className="text-muted-foreground hover:text-foreground transition-colors ml-4 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
             <X className="h-5 w-5" aria-hidden="true" />
@@ -276,6 +276,7 @@ export default function Home() {
   const [proModalOpen, setProModalOpen] = useState(false);
   const [enterpriseOpen, setEnterpriseOpen] = useState(false);
   const [serverTotal, setServerTotal] = useState<number | null>(null);
+  const [spotsLeft, setSpotsLeft] = useState(49);
   const [heroCursor, setHeroCursor] = useState<{ x: number; y: number } | null>(null);
 
   // User state — start with checkingAuth=false so buttons show IMMEDIATELY.
@@ -375,6 +376,14 @@ export default function Home() {
     fetch("/api/stats", { cache: "no-store" })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.count != null) setServerTotal(d.count); })
+      .catch(() => {});
+  }, []);
+
+  // Live founding member spots counter
+  useEffect(() => {
+    fetch("/api/founding-spots", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.remaining != null) setSpotsLeft(d.remaining); })
       .catch(() => {});
   }, []);
 
@@ -1363,12 +1372,12 @@ export default function Home() {
                   <span className="relative inline-flex items-center">
                     <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(120,58,230,0.3)" }} />
                     <span className="relative text-xs px-2 py-0.5 rounded-full font-semibold text-white" style={{ background: "#783ae6" }}>
-                      49 spots left
+                      {spotsLeft} spot{spotsLeft === 1 ? "" : "s"} left
                     </span>
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Regular price $29/mo after April 29. First 50 members only.
+                  Regular price $29/mo after May 19. First 50 members only.
                 </p>
               </div>
             </div>
@@ -1562,7 +1571,7 @@ export default function Home() {
       </footer>
 
       {/* Pro Interest Modal */}
-      <ProInterestModal open={proModalOpen} onClose={() => setProModalOpen(false)} userEmail={loggedInEmail} />
+      <ProInterestModal open={proModalOpen} onClose={() => setProModalOpen(false)} userEmail={loggedInEmail} spotsLeft={spotsLeft} />
       <EnterpriseModal open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} userEmail={loggedInEmail} />
     </main>
   );
