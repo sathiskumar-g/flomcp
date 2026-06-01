@@ -23,7 +23,7 @@ interface Props {
 export default function Toolbar({ onMergeOpen }: Props) {
   const {
     files, activeFileId, viewMode, appView, highlights,
-    setViewMode, setAppView,
+    setViewMode, setAppView, importFile,
     setSearchQuery, searchQuery, toggleSidebar, sidebarOpen,
   } = useStore();
 
@@ -87,18 +87,18 @@ export default function Toolbar({ onMergeOpen }: Props) {
   ];
 
   const appViews: { view: AppView; icon: React.ReactNode; label: string; badge?: number }[] = [
-    { view: "editor", icon: <FileText size={14} />, label: "Editor" },
-    { view: "dashboard", icon: <LayoutDashboard size={14} />, label: "Dashboard" },
-    { view: "highlights", icon: <Highlighter size={14} />, label: "Highlights", badge: highlights.length || undefined },
-    { view: "prompts", icon: <Terminal size={14} />, label: "Prompts" },
-    { view: "skills", icon: <BrainCircuit size={14} />, label: "Skills" },
-    { view: "book", icon: <BookOpen size={14} />, label: "Book" },
-    { view: "trash", icon: <Trash2 size={14} />, label: "Trash" },
+    { view: "editor", icon: <FileText size={12} />, label: "Editor" },
+    { view: "dashboard", icon: <LayoutDashboard size={12} />, label: "Dashboard" },
+    { view: "highlights", icon: <Highlighter size={12} />, label: "Highlights", badge: highlights.length || undefined },
+    { view: "prompts", icon: <Terminal size={12} />, label: "Prompts" },
+    { view: "skills", icon: <BrainCircuit size={12} />, label: "Skills" },
+    { view: "book", icon: <BookOpen size={12} />, label: "Book" },
+    { view: "trash", icon: <Trash2 size={12} />, label: "Trash" },
   ];
 
   return (
     <header className="shrink-0 border-b border-white/[0.07] bg-[hsl(222_47%_5%)]">
-      <div className="h-11 flex items-center gap-1 px-2 select-none">
+      <div className="h-9 flex items-center gap-1 px-2 select-none">
         {/* Mobile hamburger */}
         <button onClick={toggleSidebar} className="md:hidden p-1.5 rounded hover:bg-white/10 text-white/50 hover:text-white mr-1">
           {sidebarOpen ? <X size={16} /> : <Menu size={16} />}
@@ -117,7 +117,7 @@ export default function Toolbar({ onMergeOpen }: Props) {
               key={view}
               onClick={() => setAppView(view)}
               className={cn(
-                "relative flex items-center gap-1 px-2.5 py-1.5 rounded text-[13px] transition-all",
+                "relative flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-all",
                 appView === view ? "bg-white/15 text-white" : "text-white/40 hover:text-white/70"
               )}
             >

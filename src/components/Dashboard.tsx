@@ -11,7 +11,7 @@ import { syncNote, deleteNoteFile } from "@/lib/folder-root";
 import ProgressBoard from "@/components/ProgressBoard";
 import { formatDate, cn } from "@/lib/utils";
 
-type Tab = "overview" | "notes" | "progress" | "quelist" | "reminders";
+type Tab = "overview" | "watchlist" | "notes" | "progress" | "quelist" | "reminders";
 
 export default function Dashboard() {
   const {
@@ -42,14 +42,14 @@ export default function Dashboard() {
   const activeFiles = useMemo(() => files.filter((f) => f.trashedAt == null), [files]);
 
   const statCards = [
-    { label: "Files",      value: activeFiles.length,                                           icon: <FileText size={20} />,   color: "text-blue-400",   bg: "bg-blue-500/10" },
-    { label: "Categories", value: categories.length,                                           icon: <Folder size={20} />,     color: "text-purple-400", bg: "bg-purple-500/10" },
-    { label: "Highlights", value: highlights.length,                                           icon: <Highlighter size={20} />, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-    { label: "Reminders",  value: reminderNotes.filter((r) => !r.done).length,                 icon: <ListChecks size={20} />, color: "text-green-400",  bg: "bg-green-500/10" },
-    { label: "Notes",      value: stickyNotes.length,                                          icon: <StickyNote size={20} />, color: "text-pink-400",   bg: "bg-pink-500/10" },
-    { label: "Prompts",    value: prompts.length,                                              icon: <Hash size={20} />,       color: "text-teal-400",   bg: "bg-teal-500/10" },
-    { label: "Skills",     value: skills.length,                                               icon: <TrendingUp size={20} />, color: "text-indigo-400", bg: "bg-indigo-500/10" },
-    { label: "Tasks",      value: kanbanTasks.filter((t) => t.column !== "done").length,       icon: <Kanban size={20} />,     color: "text-orange-400", bg: "bg-orange-500/10" },
+    { label: "Files",      value: activeFiles.length,                                           icon: <FileText size={16} />,   color: "text-blue-400",   bg: "bg-blue-500/10" },
+    { label: "Categories", value: categories.length,                                           icon: <Folder size={16} />,     color: "text-purple-400", bg: "bg-purple-500/10" },
+    { label: "Highlights", value: highlights.length,                                           icon: <Highlighter size={16} />, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+    { label: "Reminders",  value: reminderNotes.filter((r) => !r.done).length,                 icon: <ListChecks size={16} />, color: "text-green-400",  bg: "bg-green-500/10" },
+    { label: "Notes",      value: stickyNotes.length,                                          icon: <StickyNote size={16} />, color: "text-pink-400",   bg: "bg-pink-500/10" },
+    { label: "Prompts",    value: prompts.length,                                              icon: <Hash size={16} />,       color: "text-teal-400",   bg: "bg-teal-500/10" },
+    { label: "Skills",     value: skills.length,                                               icon: <TrendingUp size={16} />, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+    { label: "Tasks",      value: kanbanTasks.filter((t) => t.column !== "done").length,       icon: <Kanban size={16} />,     color: "text-orange-400", bg: "bg-orange-500/10" },
   ];
 
   const watchlist = useMemo(
@@ -59,6 +59,7 @@ export default function Dashboard() {
 
   const tabs: { id: Tab; icon: React.ReactNode; label: string; count?: number }[] = [
     { id: "overview",  icon: <LayoutGrid size={15} />,   label: "Overview" },
+    { id: "watchlist", icon: <Eye size={15} />,          label: "Watchlist", count: watchlist.length || undefined },
     { id: "notes",     icon: <StickyNote size={15} />,   label: "Notes",     count: stickyNotes.length || undefined },
     { id: "progress",  icon: <Kanban size={15} />,       label: "Progress" },
     { id: "quelist",   icon: <BookMarked size={15} />,   label: "Que List",  count: queItems.length || undefined },
@@ -108,7 +109,13 @@ export default function Dashboard() {
             createFile={createFile}
             createCategory={createCategory}
             setAppView={setAppView}
+          />
+        )}
+        {tab === "watchlist" && (
+          <WatchlistTab
             watchlist={watchlist}
+            categories={categories}
+            openFile={openFile}
             toggleWatchFile={toggleWatchFile}
           />
         )}
@@ -141,18 +148,20 @@ export default function Dashboard() {
   );
 }
 
-function OverviewTab({ statCards, sortedRecent, sortedCategories, files, categories, openFile, createFile, createCategory, setAppView, watchlist, toggleWatchFile }: any) {
+function OverviewTab({ statCards, sortedRecent, sortedCategories, files, categories, openFile, createFile, createCategory, setAppView }: any) {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {statCards.map((s: any) => (
-          <div key={s.label} className={`bg-white/[0.04] border border-white/[0.08] rounded-xl p-4`}>
-            <div className={`inline-flex p-2.5 rounded-xl mb-3 ${s.bg}`}>
+          <div key={s.label} className="flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.08] rounded-lg p-2.5">
+            <div className={`inline-flex p-1.5 rounded-lg shrink-0 ${s.bg}`}>
               <span className={s.color}>{s.icon}</span>
             </div>
-            <p className="text-3xl font-bold text-white">{s.value}</p>
-            <p className="text-sm text-white/40 mt-1">{s.label}</p>
+            <div className="min-w-0">
+              <p className="text-lg font-bold text-white leading-tight">{s.value}</p>
+              <p className="text-[11px] text-white/40 truncate">{s.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -177,39 +186,6 @@ function OverviewTab({ statCards, sortedRecent, sortedCategories, files, categor
           <Highlighter size={16} /> View Highlights
         </button>
       </div>
-
-      {/* ── Watchlist (unwatched files) ── */}
-      {watchlist.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3 flex items-center gap-2">
-            <Eye size={14} className="text-blue-400" /> Watchlist <span className="text-white/25 font-normal normal-case tracking-normal">(unwatched)</span>
-          </h2>
-          <div className="space-y-1.5">
-            {watchlist.slice(0, 10).map((f: any) => {
-              const cat = categories.find((c: any) => c.id === f.categoryId);
-              return (
-                <div key={f.id} className="flex items-center gap-2 p-2.5 bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.12] rounded-xl group transition-all">
-                  <button onClick={() => openFile(f.id)} className="flex-1 flex items-center gap-2 min-w-0 text-left">
-                    <FileText size={13} className="text-blue-400 shrink-0" />
-                    <span className="text-sm text-white/75 truncate group-hover:text-white">{f.name}</span>
-                    {cat && <span className="text-xs text-purple-400/60 shrink-0">{cat.name}</span>}
-                  </button>
-                  <button
-                    onClick={() => toggleWatchFile(f.id)}
-                    title="Mark as watched"
-                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/15 transition-all shrink-0"
-                  >
-                    <Eye size={12} /> Watch
-                  </button>
-                </div>
-              );
-            })}
-            {watchlist.length > 10 && (
-              <p className="text-xs text-white/25 pl-2">{watchlist.length - 10} more unwatched files</p>
-            )}
-          </div>
-        </section>
-      )}
 
       {sortedRecent.length > 0 && (
         <section>
@@ -293,6 +269,47 @@ function OverviewTab({ statCards, sortedRecent, sortedCategories, files, categor
           <p className="text-sm mt-1">Your workspace overview will appear here</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function WatchlistTab({ watchlist, categories, openFile, toggleWatchFile }: any) {
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <section>
+        <h2 className="text-sm font-semibold text-white/50 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Eye size={14} className="text-blue-400" /> Watchlist <span className="text-white/25 font-normal normal-case tracking-normal">(unwatched)</span>
+        </h2>
+        {watchlist.length === 0 ? (
+          <div className="text-center py-16 text-white/20">
+            <Eye size={44} className="mx-auto mb-4 opacity-30" />
+            <p className="text-base">No unwatched files</p>
+            <p className="text-sm mt-1">Files you haven&apos;t marked as watched will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {watchlist.map((f: any) => {
+              const cat = categories.find((c: any) => c.id === f.categoryId);
+              return (
+                <div key={f.id} className="flex items-center gap-2 p-2.5 bg-white/[0.03] border border-white/[0.07] hover:border-white/[0.12] rounded-xl group transition-all">
+                  <button onClick={() => openFile(f.id)} className="flex-1 flex items-center gap-2 min-w-0 text-left">
+                    <FileText size={13} className="text-blue-400 shrink-0" />
+                    <span className="text-sm text-white/75 truncate group-hover:text-white">{f.name}</span>
+                    {cat && <span className="text-xs text-purple-400/60 shrink-0">{cat.name}</span>}
+                  </button>
+                  <button
+                    onClick={() => toggleWatchFile(f.id)}
+                    title="Mark as watched"
+                    className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/15 transition-all shrink-0"
+                  >
+                    <Eye size={12} /> Watch
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

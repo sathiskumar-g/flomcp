@@ -164,18 +164,13 @@ export default function App() {
 
           {appView === "editor" && (
             <>
-              {activeFile && (
+              {activeFile && selectedIds.size > 0 && (
                 <div className="flex items-center gap-2 px-3 md:px-4 py-2 border-b border-white/[0.06] bg-[hsl(222_47%_5%)] shrink-0">
-                  <FileText size={13} className="text-blue-400 shrink-0" />
-                  <span className="text-sm font-medium text-white/80 truncate">{activeFile.name}</span>
-                  <span className="text-xs text-white/25">.md</span>
-                  {selectedIds.size > 0 && (
-                    <span className="ml-auto flex items-center gap-2 text-xs text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full">
-                      {selectedIds.size} selected
-                      <button onClick={() => setMergeOpen(true)} className="text-orange-400 hover:text-orange-300 font-medium">Merge</button>
-                      <button onClick={() => setSelectedIds(new Set())} className="text-white/30 hover:text-white/60">✕</button>
-                    </span>
-                  )}
+                  <span className="ml-auto flex items-center gap-2 text-xs text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full">
+                    {selectedIds.size} selected
+                    <button onClick={() => setMergeOpen(true)} className="text-orange-400 hover:text-orange-300 font-medium">Merge</button>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-white/30 hover:text-white/60">✕</button>
+                  </span>
                 </div>
               )}
 

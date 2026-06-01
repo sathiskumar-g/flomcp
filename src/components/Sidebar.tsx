@@ -126,42 +126,42 @@ export default function Sidebar({ selectedIds, onSelectToggle, onClose, onMergeO
         <div className="flex items-center gap-1 mb-1.5">
           <button
             onClick={() => handleNewFile(null)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-[12px] font-medium transition-colors flex-1 justify-center"
+            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-[13px] font-medium transition-colors flex-1 justify-center"
             title="New file"
           >
-            <FilePlus size={12} /> New
+            <FilePlus size={16} /> New
           </button>
           <button
             onClick={() => {
               const name = prompt("Category name:");
               if (name?.trim()) createCategory(sanitizeName(name));
             }}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-[12px] transition-colors"
+            className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-colors"
             title="New category"
           >
-            <FolderPlus size={12} />
+            <FolderPlus size={16} />
           </button>
           {onImport && (
             <button
               onClick={onImport}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 text-[12px] transition-colors"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors"
               title="Import .md files"
             >
-              <Upload size={12} />
+              <Upload size={16} />
             </button>
           )}
           {onMergeOpen && (
             <button
               onClick={selectedIds.size >= 2 ? onMergeOpen : undefined}
               className={cn(
-                "flex items-center gap-1 px-2 py-1.5 rounded-lg text-[12px] transition-colors",
+                "flex items-center gap-1 px-2.5 py-2 rounded-lg transition-colors",
                 selectedIds.size >= 2
                   ? "bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 cursor-pointer"
                   : "bg-white/[0.03] text-white/20 cursor-default"
               )}
               title={selectedIds.size >= 2 ? "Merge selected files" : "Select 2+ files to merge"}
             >
-              <Merge size={12} />
+              <Merge size={16} />
             </button>
           )}
           {/* Mobile close */}

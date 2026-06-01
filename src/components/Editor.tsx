@@ -1,21 +1,36 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
-import { Bold, Italic, Code, Link2, List, ListOrdered, Quote, Minus, Table, Heading1, Heading2 } from "lucide-react";
+import { Bold, Italic, Code, Link2, List, ListOrdered, Quote, Minus, Table, Heading1, Heading2, Eye, EyeOff, FileText, Pencil } from "lucide-react";
 import { useStore, type HighlightColor } from "@/lib/store";
-import { wordCount, cn } from "@/lib/utils";
+import { wordCount, sanitizeName, cn } from "@/lib/utils";
 import { FloatingHighlightPicker } from "@/components/Highlights";
 import { toast } from "sonner";
 
 export default function Editor() {
-  const { files, activeFileId, updateFile, addHighlight, touchSaved, lastSavedAt } = useStore();
+  const { files, activeFileId, updateFile, addHighlight, touchSaved, lastSavedAt, toggleWatchFile } = useStore();
   const activeFile = files.find((f) => f.id === activeFileId);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [floatingPicker, setFloatingPicker] = useState<{ text: string; x: number; y: number } | null>(null);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
 
   const content = activeFile?.content ?? "";
+
+  const startEditName = () => {
+    if (!activeFile) return;
+    setNameValue(activeFile.name);
+    setEditingName(true);
+  };
+
+  const commitName = () => {
+    if (!activeFile) return;
+    const n = sanitizeName(nameValue);
+    if (n && n !== activeFile.name) updateFile(activeFile.id, { name: n });
+    setEditingName(false);
+  };
 
   // Auto-focus when file changes
   useEffect(() => {
@@ -115,6 +130,47 @@ export default function Editor() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* File header — editable name + watch toggle */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-[hsl(222_47%_4%)] shrink-0">
+        <FileText size={14} className="text-blue-400 shrink-0" />
+        {editingName ? (
+          <input
+            autoFocus
+            value={nameValue}
+            onChange={(e) => setNameValue(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commitName(); }
+              if (e.key === "Escape") { setEditingName(false); }
+            }}
+            className="flex-1 min-w-0 bg-white/[0.06] border border-white/15 rounded px-2 py-0.5 text-sm text-white outline-none focus:border-blue-400/60"
+          />
+        ) : (
+          <button
+            onClick={startEditName}
+            title="Rename file"
+            className="group flex items-center gap-1.5 min-w-0 text-left"
+          >
+            <span className="text-sm font-medium text-white/85 truncate group-hover:text-white">{activeFile.name}</span>
+            <Pencil size={11} className="text-white/25 group-hover:text-white/60 transition-colors shrink-0" />
+          </button>
+        )}
+        <div className="flex-1" />
+        <button
+          onClick={() => toggleWatchFile(activeFile.id)}
+          title={!activeFile.watched ? "In watchlist — click to mark watched" : "Add to watchlist"}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors shrink-0",
+            !activeFile.watched
+              ? "bg-blue-500/15 text-blue-300 hover:bg-blue-500/25"
+              : "bg-white/[0.04] text-white/40 hover:text-white/70 hover:bg-white/[0.08]"
+          )}
+        >
+          {!activeFile.watched ? <Eye size={13} /> : <EyeOff size={13} />}
+          {!activeFile.watched ? "In Watchlist" : "Add to Watchlist"}
+        </button>
+      </div>
+
       {/* Mini toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1 border-b border-white/[0.06] bg-[hsl(222_47%_5%)] shrink-0 overflow-x-auto">
         <ToolBtn title="Heading 1" onClick={() => insertLine("# ", "Heading 1")}><Heading1 size={13} /></ToolBtn>
