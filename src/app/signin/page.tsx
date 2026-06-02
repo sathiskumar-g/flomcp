@@ -1,13 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
+  );
+}
+
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const needsVerify = searchParams.get("verify") === "1";
   const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +49,12 @@ export default function SignInPage() {
         <div className="bg-[hsl(222_47%_7%)] border border-white/[0.08] rounded-2xl p-7 shadow-2xl">
           <h1 className="text-xl font-semibold text-white mb-1">Welcome back</h1>
           <p className="text-white/50 text-sm mb-6">Sign in to your flomcpmemory account</p>
+
+          {needsVerify && !error && (
+            <div className="bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm rounded-lg px-3 py-2.5 mb-4">
+              Please confirm your email first. Check your inbox for the verification link, then sign in.
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-lg px-3 py-2.5 mb-4">
@@ -101,11 +117,6 @@ export default function SignInPage() {
           Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">
             Sign up free
-          </Link>
-        </p>
-        <p className="text-center text-sm text-white/30 mt-2">
-          <Link href="/app" className="hover:text-white/50 transition-colors">
-            Continue without account →
           </Link>
         </p>
       </div>

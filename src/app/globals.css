@@ -114,3 +114,25 @@
 
 /* Drag over highlight */
 .drag-over { outline: 2px dashed hsl(217 91% 60%); outline-offset: -2px; }
+
+/* ------------------------------------------------------------------ *
+ * Brighten low-opacity white text/icons on the dark theme.
+ * The faint tiers (/10–/25) are intentional dividers/placeholders and
+ * are left untouched; the /30–/75 tiers were reading as dull grey, so
+ * they're lifted to a lighter, more legible white tint.
+ * ------------------------------------------------------------------ */
+.text-white\/30 { color: rgb(255 255 255 / 0.48) !important; }
+.text-white\/40 { color: rgb(255 255 255 / 0.62) !important; }
+.text-white\/50 { color: rgb(255 255 255 / 0.72) !important; }
+.text-white\/55 { color: rgb(255 255 255 / 0.76) !important; }
+.text-white\/60 { color: rgb(255 255 255 / 0.80) !important; }
+.text-white\/65 { color: rgb(255 255 255 / 0.84) !important; }
+.text-white\/70 { color: rgb(255 255 255 / 0.88) !important; }
+.text-white\/75 { color: rgb(255 255 255 / 0.91) !important; }
+
+/* Hover states use the same brighter mapping */
+.hover\:text-white\/50:hover { color: rgb(255 255 255 / 0.72) !important; }
+.hover\:text-white\/60:hover { color: rgb(255 255 255 / 0.80) !important; }
+.hover\:text-white\/70:hover { color: rgb(255 255 255 / 0.88) !important; }
+.hover\:text-white\/80:hover { color: rgb(255 255 255 / 0.93) !important; }
+.hover\:text-white:hover     { color: rgb(255 255 255) !important; }

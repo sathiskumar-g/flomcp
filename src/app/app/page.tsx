@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import Toolbar from "@/components/Toolbar";
 import Sidebar from "@/components/Sidebar";
@@ -15,11 +16,52 @@ import PromptsView from "@/components/PromptsView";
 import SkillsView from "@/components/SkillsView";
 import { cn } from "@/lib/utils";
 import { readFileObject } from "@/lib/fs-api";
-import { FileText } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { useFolderSync } from "@/lib/use-folder-sync";
+import { useAuth } from "@/lib/auth-context";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { toast } from "sonner";
 
+/**
+ * Hard gate: only a signed-in, email-confirmed user may reach the workspace.
+ * Anyone else is bounced to /signin. Auth must be configured for the app to be
+ * reachable at all.
+ */
 export default function App() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  const allowed = !!user && !!user.email_confirmed_at;
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isSupabaseConfigured) {
+      router.replace("/signin");
+      return;
+    }
+    if (!user) {
+      router.replace("/signin");
+      return;
+    }
+    if (!user.email_confirmed_at) {
+      // Signed in but unverified — send them back to verify.
+      router.replace("/signin?verify=1");
+    }
+  }, [loading, user, router]);
+
+  if (loading || !allowed) {
+    return (
+      <div className="flex flex-col items-center justify-center h-dvh bg-[hsl(222_47%_4%)] text-white/60 gap-3">
+        <Loader2 size={22} className="animate-spin text-blue-400" />
+        <p className="text-sm">{loading ? "Loading…" : "Redirecting to sign in…"}</p>
+      </div>
+    );
+  }
+
+  return <Workspace />;
+}
+
+function Workspace() {
   const {
     viewMode, sidebarWidth, setSidebarWidth, createFile, files, activeFileId,
     appView, sidebarOpen, setSidebarOpen, setAppView,

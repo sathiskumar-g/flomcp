@@ -47,10 +47,10 @@ export default function SignUpPage() {
               <div className="text-4xl mb-4">📬</div>
               <h2 className="text-xl font-semibold text-white mb-2">Check your email</h2>
               <p className="text-white/50 text-sm mb-6">
-                We sent a confirmation link to <span className="text-white/70">{email}</span>. Click it to activate your account.
+                We sent a confirmation link to <span className="text-white/70">{email}</span>. Click it to activate your account, then sign in.
               </p>
-              <Link href="/app" className="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
-                Open App
+              <Link href="/signin" className="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+                Go to sign in
               </Link>
             </div>
           ) : (
@@ -106,11 +106,6 @@ export default function SignUpPage() {
           Already have an account?{" "}
           <Link href="/signin" className="text-blue-400 hover:text-blue-300 transition-colors">
             Sign in
-          </Link>
-        </p>
-        <p className="text-center text-sm text-white/40 mt-2">
-          <Link href="/app" className="text-white/40 hover:text-white/60 transition-colors">
-            Continue without account →
           </Link>
         </p>
       </div>
