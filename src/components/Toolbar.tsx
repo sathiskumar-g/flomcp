@@ -23,6 +23,7 @@ interface Props {
 export default function Toolbar({ onMergeOpen }: Props) {
   const {
     files, activeFileId, viewMode, appView, highlights,
+    categories, createCategory,
     setViewMode, setAppView, importFile,
     setSearchQuery, searchQuery, toggleSidebar, sidebarOpen,
   } = useStore();
@@ -72,9 +73,26 @@ export default function Toolbar({ onMergeOpen }: Props) {
     const pulled = await pullFilesFromRoot();
     if (!pulled.length) { toast("No .md files found in linked folder's documents/"); return; }
     let added = 0;
+    // Map each subfolder name → category id, finding an existing category
+    // (case-insensitive) or creating a new one, so files land under the
+    // category matching their folder rather than as uncategorized.
+    const catIdByName = new Map<string, string>();
+    for (const c of categories) catIdByName.set(c.name.toLowerCase(), c.id);
+    const resolveCategoryId = (name: string | null): string | null => {
+      if (!name) return null;
+      const key = name.toLowerCase();
+      const existing = catIdByName.get(key);
+      if (existing) return existing;
+      const id = createCategory(name);
+      catIdByName.set(key, id);
+      return id;
+    };
     for (const f of pulled) {
       const exists = files.some((existing) => existing.name === f.name && existing.trashedAt == null);
-      if (!exists) { importFile(f.name, f.content); added++; }
+      if (!exists) {
+        importFile(f.name, f.content, resolveCategoryId(f.category));
+        added++;
+      }
     }
     toast.success(`Synced ${added} new file(s) (${pulled.length} found, ${pulled.length - added} already exist)`);
     if (added > 0) setAppView("editor");
