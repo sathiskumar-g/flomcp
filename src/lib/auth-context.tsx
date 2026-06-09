@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { supabase, isSupabaseConfigured, getSiteURL } from "./supabase";
 
 interface AuthContextValue {
   user: User | null;
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/app`,
+        emailRedirectTo: `${getSiteURL()}/app`,
       },
     });
     return { error: error?.message ?? null };
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     if (!isSupabaseConfigured) return { error: "Supabase is not configured." };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${getSiteURL()}/reset-password`,
     });
     return { error: error?.message ?? null };
   };
